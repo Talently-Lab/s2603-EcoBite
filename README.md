@@ -46,7 +46,7 @@ El plan de testing del proyecto se encuentra disponible en el siguiente enlace:
 | Rol | Nombre | LinkedIn |
 |-----|--------|----------|
 | | | |
-| | | |
+|Backend |Sabrina Tolay | |
 | | | |
 | | | |
 
