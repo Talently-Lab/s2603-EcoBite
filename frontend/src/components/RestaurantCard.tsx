@@ -7,27 +7,27 @@ type RestaurantCardProps = {
 
 export function RestaurantCard({ restaurant }: RestaurantCardProps) {
   return (
-    <article className="overflow-hidden rounded-lg border border-[#dce5d8] bg-white">
+    <article className="overflow-hidden rounded-lg border border-green-200 bg-white">
       {restaurant.imageUrl ? (
-        <img className="aspect-[16/9] w-full object-cover" src={restaurant.imageUrl} alt="" />
+        <img className="aspect-video w-full object-cover" src={restaurant.imageUrl} alt="" />
       ) : (
-        <div className="flex aspect-[16/9] items-center justify-center bg-[#e6eee0] text-sm font-medium text-[#526357]">
+        <div className="flex aspect-video items-center justify-center bg-green-100 text-sm font-medium text-gray-600">
           Imagen del restaurante
         </div>
       )}
       <div className="space-y-3 p-4">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <h2 className="font-semibold text-[#1f2b22]">{restaurant.name}</h2>
-            <p className="mt-1 text-sm text-[#647267]">{restaurant.cuisine}</p>
+            <h2 className="font-semibold text-gray-800">{restaurant.name}</h2>
+            <p className="mt-1 text-sm text-gray-500">{restaurant.cuisine}</p>
           </div>
-          <span className="shrink-0 text-sm font-semibold text-[#1f2b22]" aria-label={`Calificacion ${restaurant.rating} de 5`}>
+          <span className="shrink-0 text-sm font-semibold text-gray-800" aria-label={`Calificacion ${restaurant.rating} de 5`}>
             {restaurant.rating.toFixed(1)} / 5
           </span>
         </div>
-        <div className="flex flex-wrap items-center gap-2 text-sm text-[#647267]">
+        <div className="flex flex-wrap items-center gap-2 text-sm text-gray-500">
           <span>{restaurant.deliveryMinutes} min</span>
-          {restaurant.ecoLabels?.map((label) => <GreenBadge key={label}>{label}</GreenBadge>)}
+          {restaurant.ecoLabels?.map((label: string) => <GreenBadge key={label}>{label}</GreenBadge>)}
         </div>
       </div>
     </article>

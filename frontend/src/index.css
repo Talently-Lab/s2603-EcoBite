@@ -1,12 +1,20 @@
 @import "tailwindcss";
 
+@theme {
+  --color-eco-green: #4caf50;
+  --color-eco-dark: #2e3b32;
+  --color-eco-light: #f4f9f5;
+
+  --font-sans: "DM Sans", sans-serif;
+}
+
 body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
-  background: #f4f8f1;
-  color: #1f2b22;
-  font-family: "DM Sans", sans-serif;
+  background: var(--color-eco-light);
+  color: var(--color-eco-dark);
+  font-family: var(--font-sans);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
