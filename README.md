@@ -53,8 +53,13 @@ La documentación de testing del proyecto está centralizada en Google Drive:
 |-----|--------|----------|
 | Backend | Sabrina Tolay | |
 | Tester | Erika Helfenstern | https://www.linkedin.com/in/hevieri/ |
-| | | |
-| | | |
+| Tester | Mayra Chazarreta | |
+| Frontend | Franco Alex Torrico | | 
+| Diseñador Gráfico | Maria Pilar Donovan | |
+| Diseñador UX/UI | Carina Alejandra Luna | |
+| Marketing | Jorgelina Riquelme | |
+| Data Analyst | Fernando Romero | |
+| Project Manager | Jeanette Ruiz Valiente | |
 
 ---
 
