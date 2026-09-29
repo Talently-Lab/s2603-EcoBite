@@ -37,7 +37,7 @@ Desarrollar una plataforma de delivery que permita:
 
 La documentación de testing del proyecto está centralizada en Google Drive:
 
-**[Acceder a la carpeta de Testing — EcoBite](https://drive.google.com/drive/folders/1IiAtrBC5js8X3RuEQ6iEwSMv19LPIV52?usp=drive_link)**
+**[Acceder a la carpeta de Testing — EcoBite](https://drive.google.com/drive/folders/1u0dHy75aMJyqiXqOvlvtUyAHdIVAhIp7?usp=sharing)**
 
 | Documento | Descripción |
 |-----------|-------------|
