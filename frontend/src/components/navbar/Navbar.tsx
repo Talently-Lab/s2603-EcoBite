@@ -4,7 +4,7 @@ type NavbarProps = {
   cartCount?: number;
 };
 
-export function Navbar({ cartCount = 0 }: NavbarProps) {
+export default function Navbar({ cartCount = 0 }: NavbarProps) {
   return (
     <header className="border-b border-green-200 bg-white">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4 sm:px-8">

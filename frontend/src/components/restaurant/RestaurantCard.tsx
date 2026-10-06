@@ -1,5 +1,5 @@
-import type { Restaurant } from '../services/restaurants'
-import { GreenBadge } from './GreenBadge'
+import type { Restaurant } from '../../services/restaurants'
+import { GreenBadge } from '../ui/GreenBadge'
 
 type RestaurantCardProps = {
   restaurant: Restaurant

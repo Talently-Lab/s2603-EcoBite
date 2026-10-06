@@ -1,23 +1,50 @@
 @import "tailwindcss";
 
 @theme {
-  --color-eco-green: #4caf50;
-  --color-eco-dark: #2e3b32;
-  --color-eco-light: #f4f9f5;
+  /* Verde claro
+     Uso: fondos y detalles.
+     Contraste sobre blanco: 1.5:1
+     NO usar para texto.
+  */
+  --color-eco-light: #bbdb9b;
 
-  --font-sans: "DM Sans", sans-serif;
+  /* Verde salvia
+     Uso: fondos y detalles.
+     Contraste sobre blanco: 1.9:1
+     NO usar para texto.
+  */
+  --color-eco-sage: #abc4a1;
+
+  /* Oliva grisáceo
+     Uso: elementos grandes y detalles.
+     Contraste sobre blanco: 3.4:1
+     NO usar para texto pequeño.
+  */
+  --color-eco-olive: #878e76;
+
+  /* Terracota / acento Bite
+     Uso: botones, acentos y elementos destacados.
+     Contraste sobre blanco: 3.1:1
+     NO usar con texto blanco ni para texto pequeño.
+  */
+  --color-eco-terracotta: #c97f5d;
+
+  /* Verde oscuro del logo
+     Uso: fondo del logo y elementos que necesiten
+     mayor contraste.
+     Contraste con blanco: 13:1
+  */
+  --color-eco-logo: #053731;
+  --font-sans: "Poppins", sans-serif;
 }
 
 body {
   margin: 0;
-  min-width: 320px;
+  /* min-width: 320px; */
   min-height: 100vh;
   background: var(--color-eco-light);
   color: var(--color-eco-dark);
   font-family: var(--font-sans);
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
 }
 
 #root {
