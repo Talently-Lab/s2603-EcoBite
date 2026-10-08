@@ -1,29 +1,37 @@
+import { useState } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { HomePage } from "./pages/Home";
 import { LoginPage } from "./pages/login";
-import { RestaurantesPage } from "./pages/restaurantes";
+import { RestaurantesPage } from "./pages/restaurants";
 import { CarritoPage } from "./pages/carrito";
-import { DetalleLocalPage } from "./pages/detalleLocal";
+import { DetalleRestaurantePage } from "./pages/detailRestaurant";
 import { CheckoutPage } from "./pages/checkout";
-import { ConfirmacionPage } from "./pages/confirmacion";
+import { ConfirmacionPage } from "./pages/confirmation";
 import { DashboardImpactoPage } from "./pages/dashboardImpacto";
-import { RegistroPage } from "./pages/registro";
-import { Navbar } from "./components/navbar/Navbar";
+import { RegistroPage } from "./pages/register";
+import Navbar from "./components/navbar/Navbar";
+import MainLayout from "./layouts/MainLayout";
 
 function App() {
+  const [count, setCount] = useState(0);
+  const handleAdd = () => setCount((value) => value + 1);
   return (
     <BrowserRouter>
-      <Navbar />
       <Routes>
-        <Route path="/" element={<HomePage />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/registro" element={<RegistroPage />} />
-        <Route path="/restaurantes" element={<RestaurantesPage />} />
-        <Route path="/detalle/:id" element={<DetalleLocalPage />} />
-        <Route path="/carrito" element={<CarritoPage />} />
-        <Route path="/checkout" element={<CheckoutPage />} />
-        <Route path="/confirmacion" element={<ConfirmacionPage />} />
-        <Route path="/dashboard" element={<DashboardImpactoPage />} />
+        <Route element={<MainLayout />}>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/registro" element={<RegistroPage />} />
+          <Route path="/restaurantes" element={<RestaurantesPage />} />
+          <Route
+            path="/restaurantes/:slug"
+            element={<DetalleRestaurantePage count={count} onAdd={handleAdd} />}
+          />
+          <Route path="/carrito" element={<CarritoPage count={count} />} />
+          <Route path="/checkout" element={<CheckoutPage />} />
+          <Route path="/confirmacion" element={<ConfirmacionPage />} />
+          <Route path="/dashboard" element={<DashboardImpactoPage />} />
+        </Route>
       </Routes>
     </BrowserRouter>
   );

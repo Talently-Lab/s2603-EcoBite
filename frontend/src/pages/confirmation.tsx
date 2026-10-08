@@ -1,26 +1,26 @@
 import { Link } from "react-router-dom";
 
-export function CheckoutPage() {
+export function ConfirmacionPage() {
   return (
-    <main className="mx-auto max-w-3xl px-5 py-12 sm:px-8">
+    <main className="mx-auto max-w-3xl px-5 py-12 text-center sm:px-8">
       <h1 className="text-2xl font-semibold text-gray-800 sm:text-3xl">
-        Checkout
+        ¡Pedido confirmado!
       </h1>
       <p className="mt-3 text-gray-600">
-        Este es un checkout de prueba. No se realizará ningún cobro.
+        Esta confirmación es parte de una compra simulada.
       </p>
-      <div className="mt-6 flex flex-wrap gap-3">
+      <div className="mt-6 flex flex-wrap justify-center gap-3">
         <Link
-          to="/confirmacion"
+          to="/dashboard"
           className="rounded-full bg-green-800 px-5 py-3 font-semibold text-white transition hover:bg-green-900"
         >
-          Confirmar pedido
+          Ver mi dashboard
         </Link>
         <Link
-          to="/carrito"
+          to="/"
           className="rounded-full border border-green-800 px-5 py-3 font-semibold text-green-800 transition hover:bg-green-50"
         >
-          Volver al carrito
+          Volver al inicio
         </Link>
       </div>
     </main>

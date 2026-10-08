@@ -34,7 +34,7 @@
      mayor contraste.
      Contraste con blanco: 13:1
   */
-  --color-eco-logo: #053731;
+  --color-eco-dark: #053731;
   --font-sans: "Poppins", sans-serif;
 }
 
@@ -49,4 +49,7 @@ body {
 
 #root {
   min-height: 100vh;
+}
+*{
+   /* border: 1px solid red; */
 }
