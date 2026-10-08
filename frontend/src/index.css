@@ -42,7 +42,7 @@ body {
   margin: 0;
   /* min-width: 320px; */
   min-height: 100vh;
-  background: var(--color-eco-light);
+  background: color-mix(in srgb, var(--color-eco-light) 30%, transparent);
   color: var(--color-eco-dark);
   font-family: var(--font-sans);
 }

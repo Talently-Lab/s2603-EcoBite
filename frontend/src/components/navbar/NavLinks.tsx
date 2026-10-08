@@ -18,7 +18,7 @@ export default function NavLinks({
   // Estilo único para las filas del menú móvil
   const itemStyle = mobile 
     ? "flex items-center justify-between w-full py-4 border-b border-gray-200 font-bold text-eco-dark text-base text-left" 
-    : "";
+    : "rounded-md transition-shadow duration-200 hover:shadow-md";
 
   return (
     <nav
@@ -49,7 +49,12 @@ export default function NavLinks({
       </Link>
 
       {mobile && (
-        <Button to="/login" variant="light" className="inline-flex w-full justify-center mt-6" onClick={onLinkClick}>
+        <Button
+          to="/login"
+          variant="light"
+          className="mt-6 inline-flex w-full justify-center hover:bg-gray-50"
+          onClick={onLinkClick}
+        >
           Iniciar sesión
         </Button>
       )}

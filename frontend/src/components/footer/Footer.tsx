@@ -18,11 +18,7 @@ export default function Footer() {
           <div key={index} className="flex flex-col gap-3">
             <h3 className="text-white font-bold text-base md:text-lg">{section.title}</h3>
             
-            {/* 
-              CAMBIO CLAVE:
-              - Se eliminó `flex-col` y se usa `flex flex-wrap` para que vayan en el mismo renglón.
-              - Se agregó `items-center` y un espacio horizontal entre elementos (`gap-x-2`).
-            */}
+            
             <div className="flex flex-wrap items-center gap-x-2 text-sm">
               {section.links.map((link, linkIndex) => (
                 <div key={linkIndex} className="flex items-center gap-x-2">

@@ -26,17 +26,26 @@ export default function Navbar() {
             />
           </div>
 
-          <div className="hidden shrink-0 items-center gap-1 whitespace-nowrap text-sm md:flex lg:gap-5 lg:mr-2 xl:gap-6 -mr-2.5 lg:mr-0">
+          <div className="hidden shrink-0 items-center gap-1 whitespace-nowrap text-sm md:flex lg:gap-5 xl:gap-6 -mr-2.5 lg:mr-0">
+            <Button to="/login" variant="light" className="hover:bg-gray-50">
+              Iniciar sesión
+            </Button>
             <Button
-            to="/login" variant="light">Iniciar sesión</Button>
-            <Button to="/registro" variant="dark">
+              to="/registro"
+              variant="dark"
+              className="hover:bg-eco-dark/90"
+            >
               Registrarme
             </Button>
           </div>
 
           {/* orden mobile */}
           <div className="flex items-center gap-3 md:hidden">
-            <Button to="/registro" variant="dark">
+            <Button
+              to="/registro"
+              variant="dark"
+              className="hover:bg-eco-dark/90"
+            >
               Registrarme
             </Button>
             <button
