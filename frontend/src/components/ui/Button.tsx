@@ -4,12 +4,14 @@ import { Link, type LinkProps } from "react-router-dom";
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: "light" | "dark";
   to?: string;
+  onLinkClick?: LinkProps["onClick"];
 }
 
 export default function Button({
   variant = "dark",
   className = "",
   to,
+  onLinkClick,
   children,
   ...props
 }: ButtonProps) {
@@ -22,7 +24,7 @@ export default function Button({
 
   if (to) {
     return (
-      <Link to={to} className={styles}>
+      <Link to={to} onClick={onLinkClick} className={styles}>
         {children}
       </Link>
     );

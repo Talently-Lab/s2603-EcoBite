@@ -9,12 +9,36 @@ import { CheckoutPage } from "./pages/checkout";
 import { ConfirmacionPage } from "./pages/confirmation";
 import { DashboardImpactoPage } from "./pages/dashboardImpacto";
 import { RegistroPage } from "./pages/register";
-import Navbar from "./components/navbar/Navbar";
+import type { CartItem } from "./components/detailRestaurant/OrderSummary";
+import type { MenuItemData } from "./services/restaurants";
 import MainLayout from "./layouts/MainLayout";
 
 function App() {
-  const [count, setCount] = useState(0);
-  const handleAdd = () => setCount((value) => value + 1);
+  const [items, setItems] = useState<CartItem[]>([]);
+  const count = items.reduce((total, item) => total + item.quantity, 0);
+  const handleAdd = (menuItem: MenuItemData) => {
+    setItems((currentItems) => {
+      const existingItem = currentItems.find((item) => item.id === menuItem.id);
+
+      if (!existingItem) {
+        return [
+          ...currentItems,
+          { ...menuItem, quantity: 1, price: menuItem.price },
+        ];
+      }
+
+      return currentItems.map((item) =>
+        item.id === menuItem.id
+          ? {
+              ...item,
+              quantity: item.quantity + 1,
+              price: item.price + menuItem.price,
+            }
+          : item,
+      );
+    });
+  };
+
   return (
     <BrowserRouter>
       <Routes>
@@ -25,7 +49,9 @@ function App() {
           <Route path="/restaurantes" element={<RestaurantesPage />} />
           <Route
             path="/restaurantes/:slug"
-            element={<DetalleRestaurantePage count={count} onAdd={handleAdd} />}
+            element={
+              <DetalleRestaurantePage items={items} onAdd={handleAdd} />
+            }
           />
           <Route path="/carrito" element={<CarritoPage count={count} />} />
           <Route path="/checkout" element={<CheckoutPage />} />

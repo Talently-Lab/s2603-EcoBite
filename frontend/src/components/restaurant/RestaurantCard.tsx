@@ -1,53 +1,134 @@
-import type { Restaurant } from '../../services/restaurants'
-import { GreenBadge } from '../ui/GreenBadge'
-import { Link } from 'react-router-dom'
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import Badge from '../ui/Badge';
+import { InitialBanner } from './InitialBanner';
+import { Leaf } from 'lucide-react';
+import { Loader } from '../ui/Loader';
+import type { Restaurant } from '../../services/restaurants';
 
-function toSlug(value: string) {
-  return value
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '')
+export type { Restaurant } from '../../services/restaurants';
+
+interface RestaurantCardProps {
+  restaurant: Restaurant;
+  isElegido?: boolean;
+  isCerrado?: boolean;
+  openingTime?: string;
+  className?: string;
+  onSelect?: () => void;
 }
 
-type RestaurantCardProps = {
-  restaurant: Restaurant
-}
+export function RestaurantCard({
+  restaurant,
+  isElegido = false,
+  isCerrado = restaurant.isClosed ?? false,
+  openingTime = restaurant.openingTime,
+  className = '',
+  onSelect,
+}: RestaurantCardProps) {
+  const navigate = useNavigate();
+  const [shouldOpenProfile, setShouldOpenProfile] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const { name, slug, cuisine, deliveryTime, tag, initialLetter } = restaurant;
+  const isSelected = isElegido && !isCerrado;
 
-export function RestaurantCard({ restaurant }: RestaurantCardProps) {
+  useEffect(() => {
+    if (!shouldOpenProfile || !isSelected) {
+      return;
+    }
+
+    let navigationTimeout: number | undefined;
+    const loaderTimeout = window.setTimeout(() => {
+      setIsLoading(true);
+      navigationTimeout = window.setTimeout(() => {
+        navigate(`/restaurantes/${slug}`);
+      }, 650);
+    }, 2000);
+
+    return () => {
+      window.clearTimeout(loaderTimeout);
+      if (navigationTimeout !== undefined) {
+        window.clearTimeout(navigationTimeout);
+      }
+    };
+  }, [
+    cuisine,
+    deliveryTime,
+    isSelected,
+    navigate,
+    slug,
+    shouldOpenProfile,
+  ]);
+
+  function handleSelect() {
+    if (isCerrado || !onSelect) return;
+
+    setShouldOpenProfile(!isSelected);
+    setIsLoading(false);
+    onSelect();
+  }
+
+  const isOpeningProfile = isSelected && isLoading;
+
+  const cardStyles = `
+    w-full rounded-2xl bg-white font-sans flex flex-col overflow-hidden text-left border transition-all duration-200
+    ${isCerrado ? 'pointer-events-none opacity-60' : ''}
+    ${isSelected ? 'border-4 border-eco-dark shadow-sm' : 'border-gray-100 shadow-sm hover:border-eco-dark hover:shadow-md'}
+    ${isOpeningProfile ? 'cursor-wait' : ''}
+    ${className}
+  `;
+
   return (
-    <Link
-      to={`/restaurantes/${toSlug(restaurant.name)}`}
-      state={{ restaurant }}
-      aria-label={`Ver perfil de ${restaurant.name}`}
-      className="block overflow-hidden rounded-lg border border-green-200 bg-white transition hover:shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-800"
+    <button
+      type="button"
+      className={`${cardStyles} ${onSelect && !isCerrado && !isOpeningProfile ? 'cursor-pointer' : 'cursor-default'}`}
+      onClick={handleSelect}
+      disabled={!onSelect || isCerrado || isOpeningProfile}
+      aria-pressed={onSelect ? isSelected : undefined}
+      aria-busy={isOpeningProfile}
     >
-      <article>
-        {restaurant.imageUrl ? (
-          <img className="aspect-video w-full object-cover" src={restaurant.imageUrl} alt="" />
-        ) : (
-          <div className="flex aspect-video items-center justify-center bg-green-100 text-sm font-medium text-gray-600">
-            Imagen del restaurante
+      <div className="relative">
+        <InitialBanner letter={initialLetter} />
+
+        {isSelected && (
+          <div className="absolute top-3 right-3">
+            <Badge 
+              text={isOpeningProfile ? 'Abriendo perfil' : 'Elegido'} 
+              className=" bg-eco-dark text-white px-2 py-0.5" 
+              icon={isOpeningProfile ? <Loader label="Cargando perfil" /> : <span>✓ </span>}
+            />
           </div>
         )}
-        <div className="space-y-3 p-4">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <h2 className="font-semibold text-gray-800">{restaurant.name}</h2>
-              <p className="mt-1 text-sm text-gray-500">{restaurant.cuisine}</p>
-            </div>
-            <span className="shrink-0 text-sm font-semibold text-gray-800" aria-label={`Calificacion ${restaurant.rating} de 5`}>
-              {restaurant.rating.toFixed(1)} / 5
-            </span>
+
+        {isCerrado && (
+          <div className="absolute top-3 right-3">
+            <Badge 
+              text="Cerrado ahora" 
+              className="bg-gray-100 text-gray-500 border border-gray-200 px-2 py-0.5" 
+              icon={null}
+            />
           </div>
-          <div className="flex flex-wrap items-center gap-2 text-sm text-gray-500">
-            <span>{restaurant.deliveryMinutes} min</span>
-            {restaurant.ecoLabels?.map((label: string) => <GreenBadge key={label}>{label}</GreenBadge>)}
-          </div>
+        )}
+      </div>
+
+      <div className="p-5 flex flex-col grow justify-between gap-3">
+        <div>
+          <h4 className="text-md font-bold text-gray-900 m-0 leading-snug">
+            {name}
+          </h4>
+          
+          <p className="text-xs mt-1 mb-0 font-medium text-gray-500">
+            {isCerrado && openingTime ? openingTime : `${cuisine} • ${deliveryTime}`}
+          </p>
         </div>
-      </article>
-    </Link>
-  )
+
+        {tag && (
+          <Badge 
+            text={tag}
+            className="bg-eco-light text-eco-dark"
+            icon={<Leaf className="h-3.5 w-3.5" />}
+          />
+        )}
+      </div>
+    </button>
+  );
 }

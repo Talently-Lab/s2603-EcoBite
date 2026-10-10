@@ -28,6 +28,15 @@ pnpm dev
 
 Vite informa en la terminal la URL local para abrir la aplicación.
 
+## Datos de restaurantes
+
+Los listados y el detalle consumen `src/services/restaurants.ts`. Para usar los
+mocks locales, copiá `.env.example` como `.env.local`. Cuando la API esté lista,
+configurá `VITE_DATA_SOURCE=api` y `VITE_API_URL` con su URL base. Se esperan los
+endpoints `GET /restaurants`, `GET /restaurants/:slug` y
+`GET /restaurants/:slug/menu`; sus respuestas deben coincidir con los tipos
+`Restaurant` y `RestaurantMenu` del servicio.
+
 ## Comandos
 
 | Comando        | Uso                                                 |
