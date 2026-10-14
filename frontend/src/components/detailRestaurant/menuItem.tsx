@@ -35,7 +35,12 @@ export function MenuItem({ item, onAdd }: MenuItemProps) {
         </div>
       </div>
       <div className="flex shrink-0 items-center justify-center sm:justify-start">
-        <Button onClick={() => onAdd(item)}>Agregar</Button>
+        <Button
+          onClick={() => onAdd(item)}
+          className="cursor-pointer shadow-sm transition-colors hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-eco-dark"
+        >
+          Agregar
+        </Button>
       </div>
     </article>
   );

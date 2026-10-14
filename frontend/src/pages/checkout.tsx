@@ -1,28 +1,70 @@
-import { Link } from "react-router-dom";
+import { useState, type FormEvent } from "react";
+import { useNavigate } from "react-router-dom";
+import type { CartItem } from "../components/detailRestaurant/OrderSummary";
+import { DeliveryAddressSection } from "../components/checkout/direction";
+import { PaymentMethodSection } from "../components/checkout/method-page";
+import { CheckoutOrderSummary } from "../components/checkout/CheckoutOrderSummary";
+import { GlobalAlert } from "../components/ui/GlobalAlert";
+import { HeroTitle } from "../components/ui/HeroTitle";
 
-export function CheckoutPage() {
+interface CheckoutPageProps {
+  items: CartItem[];
+  savedCo2Kg: number | null;
+}
+
+export function CheckoutPage({ items, savedCo2Kg }: CheckoutPageProps) {
+  const navigate = useNavigate();
+  const [showValidationErrors, setShowValidationErrors] = useState(false);
+  const [validationMessage, setValidationMessage] = useState<string | null>(null);
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setShowValidationErrors(true);
+
+    if (items.length === 0) {
+      setValidationMessage("Tu carrito está vacío. Agregá productos antes de confirmar.");
+      return;
+    }
+
+    const formData = new FormData(event.currentTarget);
+    const street = formData.get("street")?.toString().trim();
+    const city = formData.get("city")?.toString().trim();
+
+    if (!street || !city) {
+      setValidationMessage(
+        "Revisá los campos obligatorios antes de confirmar el pedido.",
+      );
+      return;
+    }
+
+    setValidationMessage(null);
+    navigate("/confirmacion");
+  }
+
   return (
-    <main className="mx-auto max-w-3xl px-5 py-12 sm:px-8">
-      <h1 className="text-2xl font-semibold text-gray-800 sm:text-3xl">
-        Checkout
-      </h1>
-      <p className="mt-3 text-gray-600">
-        Este es un checkout de prueba. No se realizará ningún cobro.
-      </p>
-      <div className="mt-6 flex flex-wrap gap-3">
-        <Link
-          to="/confirmacion"
-          className="rounded-full bg-green-800 px-5 py-3 font-semibold text-white transition hover:bg-green-900"
-        >
-          Confirmar pedido
-        </Link>
-        <Link
-          to="/carrito"
-          className="rounded-full border border-green-800 px-5 py-3 font-semibold text-green-800 transition hover:bg-green-50"
-        >
-          Volver al carrito
-        </Link>
-      </div>
+    <main className="mx-auto max-w-7xl px-5 py-12 sm:px-8">
+      <HeroTitle>Checkout</HeroTitle>
+      {/* <HeroDescription>
+        Completá los datos para preparar tu pedido
+      </HeroDescription> */}
+      {validationMessage && (
+        <GlobalAlert
+          className="mt-4 w-full"
+          variant="error"
+          message={validationMessage}
+        />
+      )}
+      <form className="mt-8" onSubmit={handleSubmit} noValidate>
+        <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-3">
+          <div className="flex flex-col gap-6 lg:col-span-2">
+            <DeliveryAddressSection
+              showValidationErrors={showValidationErrors}
+            />
+            <PaymentMethodSection />
+          </div>
+          <CheckoutOrderSummary items={items} savedCo2Kg={savedCo2Kg} />
+        </div>
+      </form>
     </main>
   );
 }

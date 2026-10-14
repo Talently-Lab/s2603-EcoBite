@@ -1,5 +1,3 @@
-import React from 'react';
-
 interface StepIndicatorProps {
   number: number;
   className?: string;

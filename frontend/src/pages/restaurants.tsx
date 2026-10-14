@@ -7,6 +7,10 @@ import { HeroTitle } from "../components/ui/HeroTitle";
 import { HeroDescription } from "@/components/ui/HeroDescription";
 import { FilterDropdown } from "../components/restaurant/FilterDropDowm";
 import { FilterToggle } from "../components/restaurant/FilterToggle";
+import Button from "../components/ui/Button";
+import EmptyState from "../components/ui/EmptyState";
+import { ErrorState } from "../components/ui/ErrorState";
+import { Loader } from "../components/ui/Loader";
 
 const RESTAURANTS_PER_PAGE = 3;
 
@@ -24,13 +28,17 @@ export function RestaurantesPage() {
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [retryAttempt, setRetryAttempt] = useState(0);
 
   useEffect(() => {
     let isCurrent = true;
 
     getRestaurants()
       .then((data) => {
-        if (isCurrent) setRestaurants(data);
+        if (isCurrent) {
+          setRestaurants(data);
+          setLoadError(null);
+        }
       })
       .catch((error: unknown) => {
         if (isCurrent) {
@@ -48,7 +56,12 @@ export function RestaurantesPage() {
     return () => {
       isCurrent = false;
     };
-  }, []);
+  }, [retryAttempt]);
+
+  function retryLoadingRestaurants() {
+    setIsLoading(true);
+    setRetryAttempt((attempt) => attempt + 1);
+  }
   
   //  Lectura estricta de Query Params desde la URL
   const category = searchParams.get("categoria") ?? "";
@@ -227,13 +240,7 @@ export function RestaurantesPage() {
 
         <div className="flex w-full flex-col gap-6">
           {/* Contador de locales dinámico según el filtro de la URL */}
-          {isLoading ? (
-            <p className="px-1 text-sm text-gray-600">Cargando restaurantes...</p>
-          ) : loadError ? (
-            <p role="alert" className="px-1 text-sm text-red-700">
-              {loadError}
-            </p>
-          ) : (
+          {isLoading || loadError ? null : (
             <p className="px-1 text-left text-sm font-semibold text-gray-500">
               {filteredRestaurants.length}{" "}
               {filteredRestaurants.length === 1 ? "local" : "locales"}
@@ -241,12 +248,67 @@ export function RestaurantesPage() {
           )}
 
           <div>
-            {isLoading || loadError ? null : pageRestaurants.length > 0 ? (
+            {isLoading ? (
+              <div
+                role="status"
+                aria-label="Cargando locales"
+                className="flex min-h-[40vh] items-center justify-center"
+              >
+                <Loader
+                  label="Cargando locales"
+                  className="justify-center text-eco-dark [&_svg]:h-8 [&_svg]:w-8"
+                />
+              </div>
+            ) : loadError ? (
+              <ErrorState
+                title="No pudimos cargar los locales"
+                description="Revisá tu conexión e intentá de nuevo. Si el problema sigue, volvé a probar en unos minutos."
+              >
+                <div className="mt-6 flex flex-wrap justify-center gap-3">
+                  <Button
+                    type="button"
+                    variant="dark"
+                    onClick={retryLoadingRestaurants}
+                    className="hover:bg-eco-dark/90"
+                  >
+                    Reintentar
+                  </Button>
+                  <Button
+                    to="/"
+                    variant="light"
+                    className="bg-eco-white hover:bg-eco-light/70"
+                  >
+                    Volver al inicio
+                  </Button>
+                </div>
+              </ErrorState>
+            ) : pageRestaurants.length > 0 ? (
               <RestaurantList restaurants={pageRestaurants} />
             ) : (
-              <p className="rounded-2xl bg-white border border-gray-100 p-12 text-center text-gray-500 font-medium shadow-sm">
-                No hay restaurantes que coincidan con los filtros seleccionados.
-              </p>
+              <EmptyState
+                statusLabel="0 restaurantes encontrados"
+                indicator={<span aria-hidden="true" className="text-2xl font-light">∅</span>}
+                title={
+                  hasActiveFilters
+                    ? "No encontramos restaurantes con esos filtros"
+                    : "No hay restaurantes disponibles"
+                }
+                description={
+                  hasActiveFilters
+                    ? "Proba con otro tipo de comida o de envase, o quita los filtros"
+                    : "Vuelve a consultar más tarde para descubrir locales."
+                }
+              >
+                <Button
+                  type="button"
+                  onClick={clearAllFilters}
+                  disabled={!hasActiveFilters}
+                  variant="dark"
+                  className="mx-auto mt-6 inline-flex w-fit justify-center hover:bg-eco-dark/90 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Limpiar filtros
+                </Button>
+              </EmptyState>
             )}
           </div>
 

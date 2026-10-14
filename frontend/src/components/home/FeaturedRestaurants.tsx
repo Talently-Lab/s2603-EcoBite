@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { SectionHeader } from "../ui/SectionHeader";
 import { RestaurantList } from "../restaurant/RestaurantList";
 import { getRestaurants, type Restaurant } from "../../services/restaurants";
+import EmptyState from "../ui/EmptyState";
 
 export default function FeaturedRestaurants() {
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
@@ -48,7 +49,12 @@ export default function FeaturedRestaurants() {
         ) : restaurants.length > 0 ? (
           <RestaurantList restaurants={restaurants.slice(0, 3)} />
         ) : (
-          <p className="text-sm text-gray-600">No hay restaurantes para mostrar.</p>
+          <EmptyState
+            statusLabel="0 restaurantes encontrados"
+            indicator={<span aria-hidden="true" className="text-2xl font-light">∅</span>}
+            title="No encontramos locales"
+            description="Vuelve a consultar más tarde para descubrir locales."
+          />
         )}
       </div>
     </section>

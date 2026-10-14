@@ -1,39 +1,56 @@
-import { Link } from "react-router-dom";
+import CartList from "@/components/cart/CartList";
+import CartSummary from "@/components/cart/CartSummary";
+import EmptyCart from "@/components/cart/empty/EmptyCart";
+import { HeroDescription } from "@/components/ui/HeroDescription";
+import { HeroTitle } from "@/components/ui/HeroTitle";
+import type { CartItem } from "@/components/detailRestaurant/OrderSummary";
 
-type CarritoPageProps = {
-  count: number;
-};
+interface CarritoPageProps {
+  items: CartItem[];
+  savedCo2Kg: number | null;
+  onQuantityChange: (
+    itemId: CartItem["id"],
+    restaurantName: string,
+    change: -1 | 1,
+  ) => void;
+  onRemove: (itemId: CartItem["id"], restaurantName: string) => void;
+}
 
-export function CarritoPage({ count }: CarritoPageProps) {
+export function CarritoPage({
+  items,
+  savedCo2Kg,
+  onQuantityChange,
+  onRemove,
+}: CarritoPageProps) {
+  if (items.length === 0) {
+    return (
+      <main className="mx-auto max-w-7xl px-5 py-12 sm:px-8">
+        <EmptyCart />
+      </main>
+    );
+  }
+
+  const restaurantNames = [...new Set(items.map((item) => item.restaurantName))];
+  const orderDescription =
+    restaurantNames.length === 1
+      ? `Pedido de ${restaurantNames[0]}`
+      : "Pedido de varios locales";
+
   return (
-    <main className="mx-auto max-w-3xl px-5 py-12 sm:px-8">
-      <h1 className="text-2xl font-semibold text-gray-800 sm:text-3xl">
-        Tu carrito
-      </h1>
-      {count > 0 ? (
-        <p className="mt-3 text-gray-600">
-          Tenés {count} {count === 1 ? "producto" : "productos"} en el carrito.
-        </p>
-      ) : (
-        <p className="mt-3 text-gray-600">
-          Tu carrito está vacío. Volvé al restaurante para elegir algo del menú.
-        </p>
-      )}
-      <div className="mt-6 flex flex-wrap gap-3">
-        {count > 0 && (
-          <Link
-            to="/checkout"
-            className="rounded-full bg-green-800 px-5 py-3 font-semibold text-white transition hover:bg-green-900"
-          >
-            Continuar al checkout
-          </Link>
-        )}
-        <Link
-          to={count > 0 ? "/restaurantes" : "/restaurantes/restaurante-de-ejemplo"}
-          className="rounded-full border border-green-800 px-5 py-3 font-semibold text-green-800 transition hover:bg-green-50"
-        >
-          {count > 0 ? "Segui exploprando" : "Ver menú"}
-        </Link>
+    <main className="mx-auto max-w-7xl px-5 py-12 sm:px-8">
+      <HeroTitle>Mi carrito</HeroTitle>
+      <HeroDescription className="mt-5">
+        {orderDescription}
+      </HeroDescription>
+      <div className="mt-8 grid grid-cols-1 items-start gap-8 lg:grid-cols-3">
+        <div className="lg:col-span-2">
+          <CartList
+            items={items}
+            onQuantityChange={onQuantityChange}
+            onRemove={onRemove}
+          />
+        </div>
+        <CartSummary items={items} savedCo2Kg={savedCo2Kg} />
       </div>
     </main>
   );

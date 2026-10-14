@@ -4,7 +4,10 @@ import { Title } from "../ui/Title";
 export interface CartItem {
   id: string | number;
   name: string;
+  imageUrl?: string;
+  restaurantName: string;
   quantity: number;
+  unitPrice: number;
   price: number; // Total for this line (unit price × quantity).
 }
 
@@ -40,7 +43,7 @@ export function OrderSummary({ items = [], onViewCart }: OrderSummaryProps) {
       <div className="mt-1 flex flex-col gap-3">
         {items.map((item) => (
           <div
-            key={item.id}
+            key={`${item.restaurantName}-${item.id}`}
             className="flex items-center justify-between gap-3 text-sm text-gray-700"
           >
             <span className="font-medium">

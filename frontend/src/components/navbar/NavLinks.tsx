@@ -25,7 +25,7 @@ export default function NavLinks({
       className={
         mobile
           ? "flex flex-col w-full bg-eco-light/20 px-6 py-4"
-          : "hidden shrink-0 items-center gap-2 whitespace-nowrap text-sm md:flex lg:gap-2 xl:gap-4 2xl:gap-5"
+          : "hidden shrink-0 items-center gap-2 whitespace-nowrap text-xs md:flex md:gap-1 lg:text-sm lg:gap-2 xl:gap-4 2xl:gap-5"
       }
     >
       <Link to="/restaurantes" onClick={onLinkClick} className={itemStyle}>
@@ -33,18 +33,27 @@ export default function NavLinks({
         {mobile && <span className="text-eco-dark font-normal">&gt;</span>}
       </Link>
 
-      <button type="button" onClick={() => { onOpenHowItWorksModal(); mobile && onLinkClick?.(); }} className={itemStyle}>
+      <button type="button" onClick={() => { onOpenHowItWorksModal(); if (mobile) onLinkClick?.(); }} className={itemStyle}>
         <span>Cómo funciona</span>
         {mobile && <span className="text-eco-dark font-normal">&gt;</span>}
       </button>
 
-      <button type="button" onClick={() => { onOpenImpactModal(); mobile && onLinkClick?.(); }} className={itemStyle}>
+      <button type="button" onClick={() => { onOpenImpactModal(); if (mobile) onLinkClick?.(); }} className={itemStyle}>
         <span>Impacto</span>
         {mobile && <span className="text-eco-dark font-normal">&gt;</span>}
       </button>
 
       <Link to="/restaurantes" onClick={onLinkClick} className={itemStyle}>
-        <span>Portal Restaurante</span>
+        <span
+          className={
+            mobile
+              ? ""
+              : "flex flex-col text-center leading-tight md:flex-row md:gap-1"
+          }
+        >
+          <span>Portal</span>
+          <span>Restaurante</span>
+        </span>
         {mobile && <span className="text-eco-dark font-normal">&gt;</span>}
       </Link>
 

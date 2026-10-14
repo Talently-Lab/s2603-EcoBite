@@ -18,7 +18,7 @@ import {
 
 type DetalleRestaurantePageProps = {
   items: CartItem[];
-  onAdd: (item: MenuItemData) => void;
+  onAdd: (item: MenuItemData, restaurantName: string) => void;
 };
 
 export function DetalleRestaurantePage({
@@ -151,7 +151,11 @@ export function DetalleRestaurantePage({
             <div className="mt-5 grid grid-cols-1 gap-5">
               {menu.dishes.length > 0 ? (
                 menu.dishes.map((dish) => (
-                  <MenuItem key={dish.id} item={dish} onAdd={onAdd} />
+                  <MenuItem
+                    key={dish.id}
+                    item={dish}
+                    onAdd={(item) => onAdd(item, restaurant.name)}
+                  />
                 ))
               ) : (
                 <p className="text-sm text-gray-600">
@@ -168,7 +172,11 @@ export function DetalleRestaurantePage({
             <div className="mt-5 grid grid-cols-1 gap-5">
               {menu.drinks.length > 0 ? (
                 menu.drinks.map((drink) => (
-                  <MenuItem key={drink.id} item={drink} onAdd={onAdd} />
+                  <MenuItem
+                    key={drink.id}
+                    item={drink}
+                    onAdd={(item) => onAdd(item, restaurant.name)}
+                  />
                 ))
               ) : (
                 <p className="text-sm text-gray-600">

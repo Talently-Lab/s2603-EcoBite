@@ -8,7 +8,6 @@ import { DetalleRestaurantePage } from "./pages/detailRestaurant";
 import { CheckoutPage } from "./pages/checkout";
 import { ConfirmacionPage } from "./pages/confirmation";
 import { DashboardImpactoPage } from "./pages/dashboardImpacto";
-import { RegistroPage } from "./pages/register";
 import type { CartItem } from "./components/detailRestaurant/OrderSummary";
 import type { MenuItemData } from "./services/restaurants";
 import MainLayout from "./layouts/MainLayout";
@@ -16,36 +15,76 @@ import MainLayout from "./layouts/MainLayout";
 function App() {
   const [items, setItems] = useState<CartItem[]>([]);
   const count = items.reduce((total, item) => total + item.quantity, 0);
-  const handleAdd = (menuItem: MenuItemData) => {
+  const handleAdd = (menuItem: MenuItemData, restaurantName: string) => {
     setItems((currentItems) => {
-      const existingItem = currentItems.find((item) => item.id === menuItem.id);
+      const existingItem = currentItems.find(
+        (item) =>
+          item.id === menuItem.id && item.restaurantName === restaurantName,
+      );
 
       if (!existingItem) {
         return [
           ...currentItems,
-          { ...menuItem, quantity: 1, price: menuItem.price },
+          {
+            ...menuItem,
+            restaurantName,
+            quantity: 1,
+            unitPrice: menuItem.price,
+            price: menuItem.price,
+          },
         ];
       }
 
       return currentItems.map((item) =>
-        item.id === menuItem.id
+        item.id === menuItem.id && item.restaurantName === restaurantName
           ? {
               ...item,
               quantity: item.quantity + 1,
-              price: item.price + menuItem.price,
+              price: (item.quantity + 1) * item.unitPrice,
             }
           : item,
       );
     });
   };
+  const handleQuantityChange = (
+    itemId: CartItem["id"],
+    restaurantName: string,
+    change: -1 | 1,
+  ) => {
+    setItems((currentItems) =>
+      currentItems.map((item) => {
+        if (item.id !== itemId || item.restaurantName !== restaurantName) {
+          return item;
+        }
+
+        const quantity = Math.max(1, item.quantity + change);
+        return {
+          ...item,
+          quantity,
+          price: quantity * item.unitPrice,
+        };
+      }),
+    );
+  };
+  const handleRemove = (
+    itemId: CartItem["id"],
+    restaurantName: string,
+  ) => {
+    setItems((currentItems) =>
+      currentItems.filter(
+        (item) =>
+          item.id !== itemId || item.restaurantName !== restaurantName,
+      ),
+    );
+  };
 
   return (
     <BrowserRouter>
       <Routes>
-        <Route element={<MainLayout />}>
+        <Route element={<MainLayout cartCount={count} />}>
           <Route path="/" element={<HomePage />} />
           <Route path="/login" element={<LoginPage />} />
-          <Route path="/registro" element={<RegistroPage />} />
+          <Route path="/registro" element={<LoginPage />} />
           <Route path="/restaurantes" element={<RestaurantesPage />} />
           <Route
             path="/restaurantes/:slug"
@@ -53,9 +92,25 @@ function App() {
               <DetalleRestaurantePage items={items} onAdd={handleAdd} />
             }
           />
-          <Route path="/carrito" element={<CarritoPage count={count} />} />
-          <Route path="/checkout" element={<CheckoutPage />} />
-          <Route path="/confirmacion" element={<ConfirmacionPage />} />
+          <Route
+            path="/carrito"
+            element={
+              <CarritoPage
+                items={items}
+                savedCo2Kg={null}
+                onQuantityChange={handleQuantityChange}
+                onRemove={handleRemove}
+              />
+            }
+          />
+          <Route
+            path="/checkout"
+            element={<CheckoutPage items={items} savedCo2Kg={null} />}
+          />
+          <Route
+            path="/confirmacion"
+            element={<ConfirmacionPage items={items} savedCo2Kg={null} />}
+          />
           <Route path="/dashboard" element={<DashboardImpactoPage />} />
         </Route>
       </Routes>

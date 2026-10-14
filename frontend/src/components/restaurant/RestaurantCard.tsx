@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Badge from '../ui/Badge';
 import { InitialBanner } from './InitialBanner';
-import { Leaf } from 'lucide-react';
+import { Leaf, Star } from 'lucide-react';
 import { Loader } from '../ui/Loader';
 import type { Restaurant } from '../../services/restaurants';
 
@@ -28,8 +28,10 @@ export function RestaurantCard({
   const navigate = useNavigate();
   const [shouldOpenProfile, setShouldOpenProfile] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const { name, slug, cuisine, deliveryTime, tag, initialLetter } = restaurant;
+  const [imageFailed, setImageFailed] = useState(false);
+  const { name, slug, cuisine, deliveryTime, rating, imageUrl, tag, initialLetter } = restaurant;
   const isSelected = isElegido && !isCerrado;
+  const hasImage = Boolean(imageUrl) && !imageFailed;
 
   useEffect(() => {
     if (!shouldOpenProfile || !isSelected) {
@@ -87,7 +89,16 @@ export function RestaurantCard({
       aria-busy={isOpeningProfile}
     >
       <div className="relative">
-        <InitialBanner letter={initialLetter} />
+        {hasImage ? (
+          <img
+            src={imageUrl}
+            alt={name}
+            className="h-28 w-full object-cover"
+            onError={() => setImageFailed(true)}
+          />
+        ) : (
+          <InitialBanner letter={initialLetter} />
+        )}
 
         {isSelected && (
           <div className="absolute top-3 right-3">
@@ -116,8 +127,15 @@ export function RestaurantCard({
             {name}
           </h4>
           
-          <p className="text-xs mt-1 mb-0 font-medium text-gray-500">
-            {isCerrado && openingTime ? openingTime : `${cuisine} • ${deliveryTime}`}
+          <p className="text-xs mt-1 mb-0 font-medium text-gray-500 flex flex-wrap items-center gap-x-1">
+            <span className="inline-flex items-center gap-0.5 text-eco-dark font-semibold">
+              <Star className="h-3.5 w-3.5 fill-eco-dark text-eco-dark" aria-hidden="true" />
+              {rating.toFixed(1)}
+            </span>
+            <span className="text-eco-light/70 select-none" aria-hidden="true">•</span>
+            <span>
+              {isCerrado && openingTime ? openingTime : `${cuisine} • ${deliveryTime}`}
+            </span>
           </p>
         </div>
 

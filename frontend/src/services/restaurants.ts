@@ -4,6 +4,7 @@ export interface MenuItemData {
   description: string;
   price: number;
   classification: string;
+  imageUrl?: string;
 }
 
 export interface Restaurant {

@@ -2,10 +2,14 @@ import { Outlet } from "react-router-dom";
 import Navbar from "@/components/navbar/Navbar";
 import Footer from "@/components/footer/Footer";
 
-export default function MainLayout() {
+interface MainLayoutProps {
+  cartCount: number;
+}
+
+export default function MainLayout({ cartCount }: MainLayoutProps) {
   return (
     <>
-      <Navbar />
+      <Navbar cartCount={cartCount} />
 
       <main>
         <Outlet />

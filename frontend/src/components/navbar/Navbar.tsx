@@ -5,17 +5,36 @@ import NavLinks from "./NavLinks";
 import MobileMenu from "./MobileMenu";
 import Modal from "../modal/Modal";
 import Button from "../ui/Button";
+import { ShoppingCart } from "lucide-react";
 
-export default function Navbar() {
+interface NavbarProps {
+  cartCount: number;
+}
+
+export default function Navbar({ cartCount }: NavbarProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isImpactOpen, setIsImpactOpen] = useState(false);
   const [isHowItWorksOpen, setIsHowItWorksOpen] = useState(false);
+  const cartLink = (
+    <Link
+      to="/carrito"
+      aria-label={`Ver carrito, ${cartCount} ${cartCount === 1 ? "ítem" : "ítems"}`}
+      className="relative inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-eco-dark transition-colors hover:bg-eco-light/30"
+    >
+      <ShoppingCart aria-hidden="true" className="h-5 w-5" />
+      {cartCount > 0 && (
+        <span className="absolute -right-1 -top-1 inline-flex min-h-5 min-w-5 items-center justify-center rounded-full bg-eco-dark px-1 text-xs font-bold text-white">
+          {cartCount}
+        </span>
+      )}
+    </Link>
+  );
 
   return (
     <>
       <header className="relative border-b border-eco-sage bg-white">
-        <div className="mx-auto flex h-19 flex-nowrap items-center justify-between gap-x-1 px-3 font-bold sm:px-4 lg:px-8">
-          <div className="flex min-w-0 items-center gap-3 md:gap-3 lg:gap-3 xl:ml-8 xl:gap-8 2xl:ml-15 2xl:gap-20">
+        <div className="mx-auto flex h-19 max-w-7xl flex-nowrap items-center justify-between gap-x-1 px-3 font-bold sm:px-4 lg:px-8">
+          <div className="flex min-w-0 items-center gap-3 md:gap-3 lg:gap-3 xl:ml-4 xl:gap-4 2xl:ml-6 2xl:gap-6 pl-6">
             <Link to="/" aria-label="EcoBite, inicio">
               <Logo className="text-2xl font-bold" />
             </Link>
@@ -26,17 +45,22 @@ export default function Navbar() {
             />
           </div>
 
-          <div className="hidden shrink-0 items-center gap-1 whitespace-nowrap text-sm md:flex lg:gap-5 xl:gap-6 -mr-2.5 lg:mr-0">
-            <Button to="/login" variant="light" className="hover:bg-gray-50">
+          <div className="hidden shrink-0 items-center gap-1 whitespace-nowrap text-sm md:flex md:gap-2 lg:gap-4 xl:gap-5">
+            <Button
+              to="/login"
+              variant="light"
+              className="px-2 py-1.5 text-xs hover:bg-gray-50 lg:px-3.5 lg:py-2 lg:text-sm"
+            >
               Iniciar sesión
             </Button>
             <Button
               to="/registro"
               variant="dark"
-              className="hover:bg-eco-dark/90"
+              className="px-2 py-1.5 text-xs hover:bg-eco-dark/90 lg:px-3.5 lg:py-2 lg:text-sm"
             >
               Registrarme
             </Button>
+            {cartLink}
           </div>
 
           {/* orden mobile */}
@@ -48,6 +72,7 @@ export default function Navbar() {
             >
               Registrarme
             </Button>
+            {cartLink}
             <button
               type="button"
               className="text-2xl md:hidden"
