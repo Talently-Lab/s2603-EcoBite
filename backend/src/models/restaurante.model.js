@@ -36,7 +36,34 @@ async function crear(restaurante) {//recibe un objeto restaurante
         ciudad
     } = restaurante;
 
-  //armamos consulta
+    // Validar los datos obligatorios
+    if (
+        !id_usuario ||
+        !nombre ||
+        !cuit ||
+        !categoria
+    ) {
+        throw new Error('Faltan datos obligatorios para el restaurante');
+    }
+
+    // Verificar que la cuenta exista
+    const usuario = await pool.query(
+        'SELECT rol FROM usuario WHERE id = $1',
+        [id_usuario]
+    );
+
+    if (usuario.rows.length === 0) {
+        throw new Error('El usuario no existe');
+    }
+
+    // Verificar que la cuenta tenga el rol correcto
+    if (usuario.rows[0].rol !== 'restaurante') {
+        throw new Error(
+            'Solo los usuarios con rol restaurante pueden crear un perfil de restaurante'
+        );
+    }
+
+    // Insertar el restaurante en la base de datos
     const resultado = await pool.query(
         `INSERT INTO restaurante
         (id_usuario, nombre, telefono, cuit, direccion, descripcion, categoria, ciudad)
@@ -45,15 +72,15 @@ async function crear(restaurante) {//recibe un objeto restaurante
         [
             id_usuario,
             nombre,
-            telefono,
+            telefono || null,
             cuit,
-            direccion,
-            descripcion,
+            direccion || null,
+            descripcion || null,
             categoria,
-            ciudad
+            ciudad || null
         ]
     );
-    //Devolvemos el restaurante que acabamos de insertar.
+    // Devolver el restaurante creado
     return resultado.rows[0];
 }
 

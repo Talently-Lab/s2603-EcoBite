@@ -6,6 +6,7 @@
 const express = require('express');
 const restauranteModel = require('./models/restaurante.model');//importa restaurante.model
 const usuarioModel = require('./models/usuario.model');//importar usuario.model
+const clienteModel = require('./models/cliente.model');//importar cliente.model
 
 const app = express();
 const PORT = 3000;
@@ -250,15 +251,54 @@ app.post('/api/restaurantes', async(req,res)=>{
                 error:'Faltan datos obligatorios para el restaurante'
             });
         }
+
         const nuevoRestaurante= await restauranteModel.crear(restaurante);
         res.status(201).json({
             mensaje: 'Restaurante creado con exito',
             restaurante: nuevoRestaurante
         });
-    }catch(error){
-        console.error('Error al crear el restaurante:',error.message);
-        res.status(500).json({
-            error:'Error interno al crear el restaurante'
+    } catch (error) {
+        if (error.message === 'Faltan datos obligatorios para el restaurante') {
+            return res.status(400).json({
+                error: error.message
+            });
+        }
+
+        // La cuenta ya tiene un perfil de restaurante
+        if (error.code === '23505') {
+            return res.status(409).json({
+                error: 'Esta cuenta ya tiene un perfil de restaurante'
+            });
+        }
+
+        // El usuario no existe
+        if (error.message === 'El usuario no existe') {
+            return res.status(404).json({
+                error: error.message
+            });
+        }
+
+        // La cuenta no tiene el rol de restaurante
+        if (
+            error.message ===
+            'Solo los usuarios con rol restaurante pueden crear un perfil de restaurante'
+        ) {
+            return res.status(403).json({
+                error: error.message
+            });
+        }
+
+        // El usuario o algún otro dato relacionado no existe
+        if (error.code === '23503') {
+            return res.status(400).json({
+                error: 'El usuario indicado no existe'
+            });
+        }
+
+        console.error('Error al crear el restaurante:', error.message);
+
+        return res.status(500).json({
+            error: 'Error interno al crear el restaurante'
         });
     }
 });
@@ -329,8 +369,217 @@ app.delete('/api/restaurantes/:id', async (req, res) => {
     }
 });
 
+//============CLIENTE==============
+ // CREAR CLIENTE
+app.post('/api/clientes', async (req, res) => {
+    try {
+        const cliente = req.body;
+
+        if (
+            !cliente.id_usuario ||
+            !cliente.nombre ||
+            !cliente.apellido
+        ) {
+            return res.status(400).json({
+                error: 'Faltan datos obligatorios para el cliente'
+            });
+        }
+
+        const nuevoCliente = await clienteModel.crear(cliente);
+
+        res.status(201).json({
+            mensaje: 'Perfil de cliente creado correctamente',
+            cliente: nuevoCliente
+        });
+    } catch (error) {
+        if (error.message === 'Faltan datos obligatorios para el cliente') {
+            return res.status(400).json({
+                error: error.message
+            });
+        }
+
+        // La cuenta ya tiene un perfil de cliente
+        if (error.code === '23505') {
+            return res.status(409).json({
+                error: 'Esta cuenta ya tiene un perfil de cliente'
+            });
+        }
+
+        // PostgreSQL detectó una referencia inexistente (usuario o zona)
+        if (error.code === '23503') {
+            return res.status(400).json({
+                error: 'El usuario o la zona indicada no existe'
+            });
+        }
+        
+        // La consulta previa confirmó que el usuario no existe
+        if (error.message === 'El usuario no existe') {
+            return res.status(404).json({
+                error: error.message
+            });
+        }
+
+        // La cuenta existe, pero no tiene el rol de cliente
+        if (error.message ==='Solo los usuarios con rol cliente pueden crear un perfil de cliente') {
+            return res.status(403).json({
+                error: error.message
+            });
+        }
+
+        console.error('Error al crear el cliente:', error.message);
+
+        res.status(500).json({
+            error: 'Error interno al crear el cliente'
+        });
+    }
+});
+
+// OBTENER TODOS LOS CLIENTES
+app.get('/api/clientes', async (req, res) => {
+    try {
+        const clientes = await clienteModel.obtenerTodos();
+
+        res.status(200).json(clientes);
+    } catch (error) {
+        console.error('Error al obtener los clientes:', error.message);
+
+        res.status(500).json({
+            error: 'Error interno al obtener los clientes'
+        });
+    }
+});
 
 
+// OBTENER UN CLIENTE POR ID
+app.get('/api/clientes/:id', async (req, res) => {
+    try {
+        const id = Number(req.params.id);
+
+        // Validar que el ID sea un número entero positivo
+        if (!Number.isInteger(id) || id <= 0) {
+            return res.status(400).json({
+                error: 'El ID debe ser un número entero positivo'
+            });
+        }
+
+        const cliente = await clienteModel.obtenerPorId(id);
+
+        // Verificar si el cliente existe
+        if (!cliente) {
+            return res.status(404).json({
+                error: 'No se encontró el cliente'
+            });
+        }
+
+        res.status(200).json(cliente);
+    } catch (error) {
+        console.error('Error al obtener el cliente:', error.message);
+
+        res.status(500).json({
+            error: 'Error interno al obtener el cliente'
+        });
+    }
+});
+
+// ACTUALIZAR PERFIL DE CLIENTE
+app.put('/api/clientes/:id', async (req, res) => {
+    try {
+        const id = Number(req.params.id);
+
+        // Validar el ID
+        if (!Number.isInteger(id) || id <= 0) {
+            return res.status(400).json({
+                error: 'El ID debe ser un número entero positivo'
+            });
+        }
+
+        const datos = req.body;
+
+        // Verificar que se envíen datos
+        if (Object.keys(datos).length === 0) {
+            return res.status(400).json({
+                error: 'Debe enviar al menos un dato para actualizar'
+            });
+        }
+
+        const clienteActualizado = await clienteModel.actualizar(id, datos);
+
+        // Verificar que el perfil exista
+        if (!clienteActualizado) {
+            return res.status(404).json({
+                error: 'No se encontró el cliente'
+            });
+        }
+
+        res.status(200).json({
+            mensaje: 'Perfil de cliente actualizado correctamente',
+            cliente: clienteActualizado
+        });
+
+    } catch (error) {
+        if (error.message === 'El nombre y el apellido no pueden estar vacíos' ) {
+            return res.status(400).json({
+                error: error.message
+            });
+        }
+
+        if (error.code === '23503') {
+            return res.status(400).json({
+                error: 'La zona indicada no existe'
+            });
+        }
+
+        console.error('Error al actualizar el cliente:', error.message);
+
+        res.status(500).json({
+            error: 'Error interno al actualizar el cliente'
+        });
+    }
+});
+
+ // ELIMINAR PERFIL DE CLIENTE
+app.delete('/api/clientes/:id', async (req, res) => {
+    try {
+        const id = Number(req.params.id);
+
+        // Validar el ID
+        if (!Number.isInteger(id) || id <= 0) {
+            return res.status(400).json({
+                error: 'El ID debe ser un número entero positivo'
+            });
+        }
+
+        // Eliminar el perfil
+        const clienteEliminado = await clienteModel.eliminar(id);
+
+        // Verificar si el perfil existía
+        if (!clienteEliminado) {
+            return res.status(404).json({
+                error: 'No se encontró el cliente'
+            });
+        }
+
+        // Responder con éxito
+        res.status(200).json({
+            mensaje: 'Perfil de cliente eliminado correctamente',
+            cliente: clienteEliminado
+        });
+
+    } catch (error) {
+        // El perfil tiene pedidos asociados u otra referencia
+        if (error.code === '23503') {
+            return res.status(409).json({
+                error: 'No se puede eliminar el cliente porque tiene registros asociados'
+            });
+        }
+
+        console.error('Error al eliminar el cliente:', error.message);
+
+        res.status(500).json({
+            error: 'Error interno al eliminar el cliente'
+        });
+    }
+});
 
 // Iniciar el servidor
 app.listen(PORT, () => {
