@@ -4,9 +4,13 @@
 // Configuración de Express y atención de solicitudes HTTP
 // ==========================================
 const express = require('express');
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
+
 const restauranteModel = require('./models/restaurante.model');//importa restaurante.model
 const usuarioModel = require('./models/usuario.model');//importar usuario.model
 const clienteModel = require('./models/cliente.model');//importar cliente.model
+const { verificarToken, verificarRol } = require('./middlewares/auth.middleware');
 
 const app = express();
 const PORT = 3000;
@@ -20,6 +24,28 @@ app.get('/', (req, res) => {
         mensaje: '¡Servidor de EcoBite funcionando!'
     });
 });
+
+//=========MIDDLEWARE=========
+// RUTA PROTEGIDA DE PRUEBA
+app.get('/api/usuario/perfil', verificarToken, (req, res) => {
+    res.status(200).json({
+        mensaje: 'Acceso autorizado',
+        usuario: req.usuario
+    });
+});
+
+// RUTA DE PRUEBA EXCLUSIVA PARA RESTAURANTES
+app.get(
+    '/api/prueba/restaurante',
+    verificarToken,
+    verificarRol('restaurante'),
+    (req, res) => {
+        res.status(200).json({
+            mensaje: 'Acceso autorizado para restaurante',
+            usuario: req.usuario
+        });
+    }
+);
 
 //============USUARIO============
 // REGISTRAR USUARIO-CLIENTE
@@ -120,13 +146,21 @@ app.get('/api/usuario/:id', async (req, res) => {
 });
 
 //MODIFICAR UN USAURIO
-app.put('/api/usuario/:id', async (req, res) => {
+//app.put('/api/usuario/:id', async (req, res) => {
+app.put('/api/usuario/:id', verificarToken, async (req, res) => {
     try {
         const id = Number(req.params.id);
 
         if (!Number.isInteger(id) || id <= 0) {
             return res.status(400).json({
                 error: 'El ID debe ser un número entero positivo'
+            });
+        }
+
+        // Verificar que el usuario solo modifique su propia cuenta
+        if (req.usuario.id !== id && req.usuario.rol !== 'administrador') {
+            return res.status(403).json({
+                error: 'No tenés permisos para modificar esta cuenta'
             });
         }
 
@@ -167,13 +201,21 @@ app.put('/api/usuario/:id', async (req, res) => {
 });
 
 //ELIMINAR USUARIO
-app.delete('/api/usuario/:id', async (req, res) => {
+//app.delete('/api/usuario/:id',async (req, res) => {
+app.delete('/api/usuario/:id', verificarToken, async (req, res) => {
     try {
         const id = Number(req.params.id);
 
         if (!Number.isInteger(id) || id <= 0) {
             return res.status(400).json({
                 error: 'El ID debe ser un número entero positivo'
+            });
+        }
+
+        // Verificar permisos antes de eliminar
+        if (req.usuario.id !== id && req.usuario.rol !== 'administrador') {
+            return res.status(403).json({
+                error: 'No tenés permisos para eliminar esta cuenta'
             });
         }
 
@@ -201,6 +243,60 @@ app.delete('/api/usuario/:id', async (req, res) => {
 
         res.status(500).json({
             error: 'Error interno al eliminar el usuario'
+        });
+    }
+});
+
+
+//==========LOGIN=============
+/* INICIAR SESIÓN */
+app.post('/api/usuario/login', async (req, res) => {
+    try {
+        const { email, contrasena } = req.body;
+
+        // Validar que se hayan enviado los datos
+        if (!email || !contrasena) {
+            return res.status(400).json({
+                error: 'El email y la contraseña son obligatorios'
+            });
+        }
+
+        // Buscar el usuario por email
+        const usuario = await usuarioModel.obtenerPorEmail(email);
+        
+        // Comprobar que exista y que la contraseña sea correcta
+        if (!usuario || !(await bcrypt.compare(contrasena, usuario.contrasena))) {
+            return res.status(401).json({
+                error: 'Email o contraseña incorrectos'
+            });
+        }
+
+        // Generar el token de acceso
+        const token = jwt.sign(
+            {
+                id: usuario.id,
+                rol: usuario.rol
+            },
+            process.env.JWT_SECRET,
+            { expiresIn: '2h' }
+        );
+
+        // Responder sin exponer el hash de la contraseña
+        res.status(200).json({
+            mensaje: 'Inicio de sesión correcto',
+            token,
+            usuario: {
+                id: usuario.id,
+                email: usuario.email,
+                rol: usuario.rol
+            }
+        });
+
+    } catch (error) {
+        console.error('Error al iniciar sesión:', error.message);
+
+        res.status(500).json({
+            error: 'Error interno al iniciar sesión'
         });
     }
 });
@@ -580,6 +676,9 @@ app.delete('/api/clientes/:id', async (req, res) => {
         });
     }
 });
+
+
+
 
 // Iniciar el servidor
 app.listen(PORT, () => {

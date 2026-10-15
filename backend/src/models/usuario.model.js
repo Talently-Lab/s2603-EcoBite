@@ -28,7 +28,7 @@ async function crearCliente(usuario) {
          RETURNING id, email, avatar, rol, fecha_registro, canal_adquisicion`,
         [
             email,
-             contrasenaHash,
+            contrasenaHash,
             avatar || null,
             'cliente',
             canal_adquisicion
@@ -70,6 +70,19 @@ async function crearRestaurante(usuario) {
     );
 
     return resultado.rows[0];
+}
+
+//===========LOGIN============
+// OBTENER UN USUARIO POR EMAIL (para el login)
+async function obtenerPorEmail(email) {
+    const resultado = await pool.query(
+        `SELECT id, email, contrasena, rol
+         FROM usuario
+         WHERE email = $1`,
+        [email]
+    );
+
+    return resultado.rows[0] || null;
 }
 
 
@@ -163,6 +176,7 @@ module.exports = {
     crearCliente,
     crearRestaurante,
     obtenerTodos,
+    obtenerPorEmail,
     obtenerPorId,
     actualizar,
     eliminar
