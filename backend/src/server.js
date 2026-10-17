@@ -51,6 +51,14 @@ app.get(
 // REGISTRAR USUARIO-CLIENTE
 app.post('/api/usuario/registro-cliente', async (req, res) => {
     try {
+
+        // Validar que el body se haya recibido como objeto
+        if (!req.body || typeof req.body !== 'object' || Array.isArray(req.body)) {
+            return res.status(400).json({
+                error: 'Debés enviar los datos en formato JSON'
+            });
+        }
+        //--------------------
         const usuario = await usuarioModel.crearCliente(req.body);
 
         res.status(201).json({
@@ -66,6 +74,13 @@ app.post('/api/usuario/registro-cliente', async (req, res) => {
             });
         }
 
+        // Email duplicado
+        if (error.code === '23505') {
+            return res.status(409).json({
+                error: 'Ese mail ya está registrado'
+            });
+        }
+        //-----------------
         res.status(500).json({
             error: 'Error interno al registrar el usuario'
         });
@@ -75,6 +90,13 @@ app.post('/api/usuario/registro-cliente', async (req, res) => {
 //REGISTRAR USUARIO-RESTAURANTE
 app.post('/api/usuario/registro-restaurante', async (req, res) => {
     try {
+        // Validar que el body se haya recibido como objeto
+        if (!req.body || typeof req.body !== 'object' || Array.isArray(req.body)) {
+            return res.status(400).json({
+                error: 'Debés enviar los datos en formato JSON'
+            });
+        }
+        //------------------
         const usuario = await usuarioModel.crearRestaurante(req.body);
 
         res.status(201).json({
