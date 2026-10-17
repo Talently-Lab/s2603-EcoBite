@@ -33,7 +33,8 @@ async function crear(restaurante) {//recibe un objeto restaurante
         direccion,
         descripcion,
         categoria,
-        ciudad
+        ciudad,
+        imagen
     } = restaurante;
 
     // Validar los datos obligatorios
@@ -66,8 +67,8 @@ async function crear(restaurante) {//recibe un objeto restaurante
     // Insertar el restaurante en la base de datos
     const resultado = await pool.query(
         `INSERT INTO restaurante
-        (id_usuario, nombre, telefono, cuit, direccion, descripcion, categoria, ciudad)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        (id_usuario, nombre, telefono, cuit, direccion, descripcion, categoria, ciudad,imagen)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
         RETURNING *`,
         [
             id_usuario,
@@ -77,7 +78,8 @@ async function crear(restaurante) {//recibe un objeto restaurante
             direccion || null,
             descripcion || null,
             categoria,
-            ciudad || null
+            ciudad || null,
+            imagen || null
         ]
     );
     // Devolver el restaurante creado
@@ -93,7 +95,8 @@ async function actualizar(id, restaurante) {
         direccion,
         descripcion,
         categoria,
-        ciudad
+        ciudad,
+        imagen
     } = restaurante;
 
     const resultado = await pool.query(
@@ -104,8 +107,9 @@ async function actualizar(id, restaurante) {
              direccion = $4,
              descripcion = $5,
              categoria = $6,
-             ciudad = $7
-         WHERE id = $8
+             ciudad = $7,
+             imagen = $8
+         WHERE id = $9
          RETURNING *`,
         [
             nombre,
@@ -115,6 +119,7 @@ async function actualizar(id, restaurante) {
             descripcion,
             categoria,
             ciudad,
+            imagen,
             id
         ]
     );
