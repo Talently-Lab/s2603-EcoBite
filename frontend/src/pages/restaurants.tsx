@@ -71,14 +71,20 @@ export function RestaurantesPage() {
 
   // Validaciones lógicas de la URL
   const validPage = Number.isInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1;
-  const categories = [...new Set(restaurants.map(({ cuisine }) => cuisine))];
+  const categories = [
+    ...new Set(
+      restaurants.flatMap(({ category }) => (category ? [category] : [])),
+    ),
+  ];
   const validCategories = categories.map(categoryToSlug);
   const selectedCategory = validCategories.includes(category) ? category : "";
 
   // Aplica los filtros de la URL a los restaurantes cargados desde el servicio.
   const filteredRestaurants = restaurants.filter((restaurant) => {
     // Filtro por Categoría
-    const matchesCategory = !selectedCategory || categoryToSlug(restaurant.cuisine) === selectedCategory;
+    const matchesCategory =
+      !selectedCategory ||
+      categoryToSlug(restaurant.category ?? "") === selectedCategory;
     
     // Filtro por tipo de envase
     const matchesEnvase = !envase || restaurant.tag?.toLowerCase().includes(envase.toLowerCase());

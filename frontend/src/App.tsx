@@ -2,6 +2,7 @@ import { useState } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { HomePage } from "./pages/Home";
 import { LoginPage } from "./pages/login";
+import { RegistroPage } from "./pages/register";
 import { RestaurantesPage } from "./pages/restaurants";
 import { CarritoPage } from "./pages/carrito";
 import { DetalleRestaurantePage } from "./pages/detailRestaurant";
@@ -11,6 +12,7 @@ import { DashboardImpactoPage } from "./pages/dashboardImpacto";
 import type { CartItem } from "./components/detailRestaurant/OrderSummary";
 import type { MenuItemData } from "./services/restaurants";
 import MainLayout from "./layouts/MainLayout";
+import { AuthLayout } from "./layouts/AuthLayout";
 
 function App() {
   const [items, setItems] = useState<CartItem[]>([]);
@@ -83,8 +85,10 @@ function App() {
       <Routes>
         <Route element={<MainLayout cartCount={count} />}>
           <Route path="/" element={<HomePage />} />
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/registro" element={<LoginPage />} />
+          <Route element={<AuthLayout />}>
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/registro" element={<RegistroPage />} />
+          </Route>
           <Route path="/restaurantes" element={<RestaurantesPage />} />
           <Route
             path="/restaurantes/:slug"

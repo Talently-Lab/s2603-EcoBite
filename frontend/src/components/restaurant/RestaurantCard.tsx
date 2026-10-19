@@ -29,7 +29,7 @@ export function RestaurantCard({
   const [shouldOpenProfile, setShouldOpenProfile] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [imageFailed, setImageFailed] = useState(false);
-  const { name, slug, cuisine, deliveryTime, rating, imageUrl, tag, initialLetter } = restaurant;
+  const { name, slug, category, deliveryTime, rating, imageUrl, tag, initialLetter } = restaurant;
   const isSelected = isElegido && !isCerrado;
   const hasImage = Boolean(imageUrl) && !imageFailed;
 
@@ -53,7 +53,7 @@ export function RestaurantCard({
       }
     };
   }, [
-    cuisine,
+    category,
     deliveryTime,
     isSelected,
     navigate,
@@ -127,16 +127,26 @@ export function RestaurantCard({
             {name}
           </h4>
           
-          <p className="text-xs mt-1 mb-0 font-medium text-gray-500 flex flex-wrap items-center gap-x-1">
-            <span className="inline-flex items-center gap-0.5 text-eco-dark font-semibold">
-              <Star className="h-3.5 w-3.5 fill-eco-dark text-eco-dark" aria-hidden="true" />
-              {rating.toFixed(1)}
-            </span>
-            <span className="text-eco-light/70 select-none" aria-hidden="true">•</span>
-            <span>
-              {isCerrado && openingTime ? openingTime : `${cuisine} • ${deliveryTime}`}
-            </span>
-          </p>
+          {(rating !== undefined || category || deliveryTime || (isCerrado && openingTime)) && (
+            <p className="text-xs mt-1 mb-0 font-medium text-gray-500 flex flex-wrap items-center gap-x-1">
+              {rating !== undefined && (
+                <>
+                  <span className="inline-flex items-center gap-0.5 text-eco-dark font-semibold">
+                    <Star className="h-3.5 w-3.5 fill-eco-dark text-eco-dark" aria-hidden="true" />
+                    {rating.toFixed(1)}
+                  </span>
+                  {(category || deliveryTime) && (
+                    <span className="text-eco-light/70 select-none" aria-hidden="true">•</span>
+                  )}
+                </>
+              )}
+              {isCerrado && openingTime ? (
+                <span>{openingTime}</span>
+              ) : (
+                <span>{[category, deliveryTime].filter(Boolean).join(" • ")}</span>
+              )}
+            </p>
+          )}
         </div>
 
         {tag && (

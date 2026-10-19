@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { HeroTitle } from "../components/ui/HeroTitle";
 import { HeroDescription } from "../components/ui/HeroDescription";
+import EmptyState from "../components/ui/EmptyState";
 import { MenuItem } from "../components/detailRestaurant/menuItem";
 import { RestaurantInfoTags } from "../components/detailRestaurant/RestaurantInfoTags";
 import {
@@ -101,7 +102,7 @@ export function DetalleRestaurantePage({
 
   const { restaurant, menu } = currentData;
   const restaurantDetails = [
-    restaurant.cuisine,
+    ...(restaurant.category ? [restaurant.category] : []),
     ...(restaurant.deliveryMinutes
       ? [`Entrega: ${restaurant.deliveryMinutes} min`]
       : []),
@@ -141,50 +142,64 @@ export function DetalleRestaurantePage({
 
       <div className="mt-12 grid gap-10 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start">
         <div>
-          <section aria-labelledby="main-dishes-title">
-            <h2
-              id="main-dishes-title"
-              className="text-2xl font-bold text-eco-dark"
-            >
-              Platos principales
-            </h2>
-            <div className="mt-5 grid grid-cols-1 gap-5">
-              {menu.dishes.length > 0 ? (
-                menu.dishes.map((dish) => (
-                  <MenuItem
-                    key={dish.id}
-                    item={dish}
-                    onAdd={(item) => onAdd(item, restaurant.name)}
-                  />
-                ))
-              ) : (
-                <p className="text-sm text-gray-600">
-                  Este restaurante todavía no publicó platos principales.
-                </p>
-              )}
-            </div>
-          </section>
+          {menu.dishes.length === 0 && menu.drinks.length === 0 ? (
+            <EmptyState
+              statusLabel="Menú vacío"
+              indicator={<span aria-hidden="true" className="text-2xl font-light">∅</span>}
+              title="Este restaurante todavía no tiene menú"
+              description="Vuelve a consultar más tarde para ver sus platos y bebidas."
+            />
+          ) : (
+            <>
+              <section aria-labelledby="main-dishes-title">
+                <h2
+                  id="main-dishes-title"
+                  className="text-2xl font-bold text-eco-dark"
+                >
+                  Platos principales
+                </h2>
+                <div className="mt-5 grid grid-cols-1 gap-5">
+                  {menu.dishes.length > 0 ? (
+                    menu.dishes.map((dish) => (
+                      <MenuItem
+                        key={dish.id}
+                        item={dish}
+                        onAdd={(item) => onAdd(item, restaurant.name)}
+                      />
+                    ))
+                  ) : (
+                    <p className="text-sm text-gray-600">
+                      Este restaurante todavía no publicó platos principales.
+                    </p>
+                  )}
+                </div>
+              </section>
 
-          <section aria-labelledby="drinks-title" className="mt-12">
-            <h2 id="drinks-title" className="text-2xl font-bold text-eco-dark">
-              Bebidas
-            </h2>
-            <div className="mt-5 grid grid-cols-1 gap-5">
-              {menu.drinks.length > 0 ? (
-                menu.drinks.map((drink) => (
-                  <MenuItem
-                    key={drink.id}
-                    item={drink}
-                    onAdd={(item) => onAdd(item, restaurant.name)}
-                  />
-                ))
-              ) : (
-                <p className="text-sm text-gray-600">
-                  Este restaurante todavía no publicó bebidas.
-                </p>
-              )}
-            </div>
-          </section>
+              <section aria-labelledby="drinks-title" className="mt-12">
+                <h2
+                  id="drinks-title"
+                  className="text-2xl font-bold text-eco-dark"
+                >
+                  Bebidas
+                </h2>
+                <div className="mt-5 grid grid-cols-1 gap-5">
+                  {menu.drinks.length > 0 ? (
+                    menu.drinks.map((drink) => (
+                      <MenuItem
+                        key={drink.id}
+                        item={drink}
+                        onAdd={(item) => onAdd(item, restaurant.name)}
+                      />
+                    ))
+                  ) : (
+                    <p className="text-sm text-gray-600">
+                      Este restaurante todavía no publicó bebidas.
+                    </p>
+                  )}
+                </div>
+              </section>
+            </>
+          )}
         </div>
 
         <OrderSummary items={items} />
