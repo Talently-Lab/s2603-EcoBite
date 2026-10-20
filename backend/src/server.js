@@ -447,11 +447,22 @@ app.post('/api/restaurantes', verificarToken, async (req, res) => {
             });
         }
 
-        // La cuenta ya tiene un perfil de restaurante
+        // Error de dato duplicado (restricción UNIQUE)
         if (error.code === '23505') {
-            return res.status(409).json({
-                error: 'Esta cuenta ya tiene un perfil de restaurante'
-            });
+
+            // El CUIT ya pertenece a otro restaurante
+            if (error.constraint === 'uq_restaurante_cuit') {
+                return res.status(409).json({
+                    error: 'Ese CUIT ya está registrado'
+                });
+            }
+
+            // La cuenta ya tiene un perfil de restaurante
+            if (error.constraint === 'uq_restaurante_usuario') {
+                return res.status(409).json({
+                    error: 'Esta cuenta ya tiene un perfil de restaurante'
+                });
+            }
         }
 
         // El usuario no existe
