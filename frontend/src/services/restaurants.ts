@@ -7,7 +7,9 @@
   //   "direccion": "Av. Illia 250",
   //   "descripcion": "Comida natural y saludable",
   //   "categoria": "Cocina natural",
-  //   "ciudad": "San Luis"
+  //   "ciudad": "San Luis",
+  //   "hora_apertura": null,
+  //   "hora_cierre": null
   // },
 export interface RestaurantApiResponse {
   id: number;
@@ -19,9 +21,11 @@ export interface RestaurantApiResponse {
   descripcion: string | null;
   categoria: string | null;
   ciudad: string | null;
+  hora_apertura?: string | null;
+  hora_cierre?: string | null;
 }
 
-export interface MenuItemData {
+  export interface MenuItemData {
   id: string;
   name: string;
   description: string;
@@ -41,15 +45,9 @@ export interface Restaurant {
   description?: string | null;
   category?: string | null;
   city?: string | null;
-  deliveryTime?: string;
-  deliveryMinutes?: number;
-  rating?: number;
-  imageUrl?: string;
-  tag?: string;
-  ecoLabels?: string[];
+  openingTime?: string | null;
+  closingTime?: string | null;
   initialLetter: string;
-  isClosed?: boolean;
-  openingTime?: string;
 }
 
 export interface RestaurantMenu {
@@ -93,109 +91,109 @@ function mapRestaurant(data: RestaurantApiResponse): Restaurant {
     description: data.descripcion,
     category: data.categoria,
     city: data.ciudad,
+    openingTime: data.hora_apertura,
+    closingTime: data.hora_cierre,
     initialLetter: data.nombre.charAt(0).toUpperCase(),
   };
 }
 
-const MOCK_RESTAURANTS: Restaurant[] = [
+const MOCK_RESTAURANTS: RestaurantApiResponse[] = [
   {
-    id: "1",
-    slug: "verde-raiz",
-    name: "Verde Raíz",
-    category: "Cocina natural",
-    city: "San Luis",
-    deliveryTime: "25-35 min",
-    deliveryMinutes: 25,
-    rating: 4.8,
-    tag: "Envase biodegradable",
-    ecoLabels: ["biodegradable", "sin-emisiones", "ahorro-co2"],
-    initialLetter: "V",
+    id: 1,
+    id_usuario: 5,
+    nombre: "Verde Raiz",
+    telefono: "2664000005",
+    cuit: "30-71234567-8",
+    direccion: "Av. Illia 250",
+    descripcion: "Comida natural y saludable",
+    categoria: "Cocina natural",
+    ciudad: "San Luis",
+    hora_apertura: null,
+    hora_cierre: null,
   },
   {
-    id: "2",
-    slug: "hoja-y-fuego",
-    name: "Hoja y Fuego",
-    category: "Parrilla vegetal",
-    city: "San Luis",
-    deliveryTime: "30-40 min",
-    deliveryMinutes: 30,
-    rating: 4.6,
-    tag: "Envase biodegradable",
-    ecoLabels: ["biodegradable"],
-    initialLetter: "H",
-  },
-  {
-    id: "3",
-    slug: "brote-cocina-viva",
-    name: "Brote Cocina Viva",
-    category: "Vegana",
-    city: "San Luis",
-    deliveryTime: "20-30 min",
-    deliveryMinutes: 20,
-    rating: 4.7,
-    tag: "Envase biodegradable",
-    ecoLabels: ["biodegradable"],
-    initialLetter: "B",
-  },
-  {
-    id: "4",
-    slug: "raices-ancestrales",
-    name: "Raíces Ancestrales",
-    category: "Orgánica",
-    city: "San Luis",
-    deliveryTime: "40-50 min",
-    deliveryMinutes: 40,
-    rating: 4.5,
-    tag: "Envase biodegradable",
-    ecoLabels: ["biodegradable"],
-    initialLetter: "R",
-    isClosed: true,
-    openingTime: "Abre a las 19:00",
+    id: 2,
+    id_usuario: 6,
+    nombre: "Hoja y Fuego",
+    telefono: "2664000006",
+    cuit: "30-79876543-2",
+    direccion: "Calle Colon 580",
+    descripcion: "Propuesta de cocina vegetal",
+    categoria: "Parrilla vegetal",
+    ciudad: "San Luis",
+    hora_apertura: null,
+    hora_cierre: null,
   },
 ];
 
-const MOCK_MENU: RestaurantMenu = {
-  dishes: [
-    {
-      id: "bowl-estacional",
-      name: "Bowl de estación",
-      description: "Quinoa, vegetales frescos y aderezo cítrico.",
-      price: 12.5,
-      classification: "Envase biodegradable",
-    },
-    {
-      id: "tarta-verduras",
-      name: "Tarta de verduras asadas",
-      description:
-        "Masa integral casera con verduras de productores locales.",
-      price: 10,
-      classification: "Envase biodegradable",
-    },
-    {
-      id: "hamburguesa-lentejas",
-      name: "Hamburguesa de lentejas",
-      description: "Lentejas, pan artesanal y vegetales frescos.",
-      price: 13.75,
-      classification: "Envase biodegradable",
-    },
-  ],
-  drinks: [
-    {
-      id: "limonada-menta",
-      name: "Limonada con menta",
-      description: "Limones frescos y menta.",
-      price: 4.5,
-      classification: "Envase biodegradable",
-    },
-    {
-      id: "jugo-estacional",
-      name: "Jugo de estación",
-      description: "Frutas de estación, exprimidas al momento.",
-      price: 5,
-      classification: "Envase biodegradable",
-    },
-  ],
+const MOCK_MENUS: Record<string, RestaurantMenu> = {
+  "verde-raiz": {
+    dishes: [
+      {
+        id: "1",
+        name: "Bowl de quinoa",
+        description: "Quinoa, vegetales frescos y aderezo de la casa",
+        price: 8500,
+        classification: "Comida",
+        imageUrl: "bowl_quinoa.jpg",
+      },
+      {
+        id: "2",
+        name: "Ensalada mediterránea",
+        description: "Vegetales frescos, aceitunas y semillas",
+        price: 7200,
+        classification: "Comida",
+        imageUrl: "ensalada_mediterranea.jpg",
+      },
+    ],
+    drinks: [
+      {
+        id: "3",
+        name: "Limonada natural",
+        description: "Limonada casera con limón fresco",
+        price: 3000,
+        classification: "Bebidas",
+        imageUrl: "limonada.jpg",
+      },
+    ],
+  },
+  "hoja-y-fuego": {
+    dishes: [
+      {
+        id: "4",
+        name: "Parrillada vegetal",
+        description: "Vegetales grillados de temporada",
+        price: 9500,
+        classification: "Comida",
+        imageUrl: "parrillada_vegetal.jpg",
+      },
+      {
+        id: "5",
+        name: "Hamburguesa vegetal",
+        description: "Hamburguesa vegetal con pan artesanal",
+        price: 8000,
+        classification: "Comida",
+        imageUrl: "hamburguesa_vegetal.jpg",
+      },
+    ],
+    drinks: [
+      {
+        id: "6",
+        name: "Jugo natural",
+        description: "Jugo natural de frutas de temporada",
+        price: 3200,
+        classification: "Bebidas",
+        imageUrl: "jugo_natural.jpg",
+      },
+    ],
+  },
 };
+
+function getMockRestaurantBySlug(slug: string): Restaurant | undefined {
+  return MOCK_RESTAURANTS.map(mapRestaurant).find(
+    (restaurant) => restaurant.slug === slug,
+  );
+}
 
 async function fetchApi<T>(path: string): Promise<T> {
   const url = `${API_BASE_URL}${path}`;
@@ -214,7 +212,7 @@ async function fetchApi<T>(path: string): Promise<T> {
 export async function getRestaurants(): Promise<Restaurant[]> {
   try {
     if (USE_MOCK_DATA) {
-      return MOCK_RESTAURANTS;
+      return MOCK_RESTAURANTS.map(mapRestaurant);
     }
 
     const restaurants =
@@ -222,6 +220,14 @@ export async function getRestaurants(): Promise<Restaurant[]> {
 
     return restaurants.map(mapRestaurant);
   } catch (error) {
+    if (!USE_MOCK_DATA && error instanceof TypeError) {
+      console.warn(
+        "La API no está disponible; se usarán los restaurantes de muestra.",
+        error,
+      );
+      return MOCK_RESTAURANTS.map(mapRestaurant);
+    }
+
     console.error("No se pudieron cargar los restaurantes.", error);
     throw new Error("Error al cargar restaurantes.", { cause: error });
   }
@@ -231,9 +237,7 @@ export async function getRestaurantBySlug(
   slug: string,
 ): Promise<Restaurant> {
   if (USE_MOCK_DATA) {
-    const restaurant = MOCK_RESTAURANTS.find(
-      (item) => item.slug === slug,
-    );
+    const restaurant = getMockRestaurantBySlug(slug);
 
     if (!restaurant) {
       throw new Error("No se encontró el restaurante solicitado.");
@@ -256,11 +260,10 @@ export async function getRestaurantMenu(
   slug: string,
 ): Promise<RestaurantMenu> {
   if (USE_MOCK_DATA) {
-    const restaurant = await getRestaurantBySlug(slug);
-
-    return restaurant.slug === "verde-raiz"
-      ? MOCK_MENU
-      : { dishes: [], drinks: [] };
+    if (!getMockRestaurantBySlug(slug)) {
+      throw new Error("No se encontró el restaurante solicitado.");
+    }
+    return MOCK_MENUS[slug] ?? { dishes: [], drinks: [] };
   }
 
   try {
@@ -270,6 +273,19 @@ export async function getRestaurantMenu(
   } catch (error) {
     if (error instanceof ApiRequestError && error.status === 404) {
       return { dishes: [], drinks: [] };
+    }
+
+    if (error instanceof TypeError) {
+      console.warn(
+        "La API no está disponible; se usará el menú de muestra.",
+        error,
+      );
+      if (!getMockRestaurantBySlug(slug)) {
+        throw new Error("No se encontró el restaurante solicitado.", {
+          cause: error,
+        });
+      }
+      return MOCK_MENUS[slug] ?? { dishes: [], drinks: [] };
     }
 
     throw error;

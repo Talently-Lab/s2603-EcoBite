@@ -30,12 +30,25 @@ Vite informa en la terminal la URL local para abrir la aplicación.
 
 ## Datos de restaurantes
 
-Los listados y el detalle consumen `src/services/restaurants.ts`. Para usar los
-mocks locales, copiá `.env.example` como `.env.local`. Cuando la API esté lista,
-configurá `VITE_DATA_SOURCE=api` y `VITE_API_URL` con su URL base. Se esperan los
-endpoints `GET /restaurants`, `GET /restaurants/:slug` y
-`GET /restaurants/:slug/menu`; sus respuestas deben coincidir con los tipos
-`Restaurant` y `RestaurantMenu` del servicio.
+Los listados y el detalle consumen `src/services/restaurants.ts`. Elegí la fuente
+de datos en `.env.local` (podés crear el archivo copiando `.env.example`):
+
+```env
+VITE_DATA_SOURCE=mock
+VITE_API_URL=http://localhost:3000/api
+```
+
+Con `VITE_DATA_SOURCE=mock`, la aplicación usa directamente los datos locales
+definidos en `src/services/restaurants.ts`; no hace falta iniciar el backend.
+Para conectarte a la API, cambiá el valor a `VITE_DATA_SOURCE=api` y configurá
+`VITE_API_URL` con su URL base. Se esperan los endpoints `GET /restaurantes` y
+`GET /restaurants/:slug/menu`; las respuestas deben coincidir con los tipos
+`RestaurantApiResponse` y `RestaurantMenu` del servicio. Si la conexión falla,
+se usan los datos locales como alternativa.
+
+Después de crear o modificar `.env.local`, detené y volvé a iniciar Vite con
+`pnpm dev` para que lea la configuración nueva. Los cambios en los datos mock
+del archivo del servicio se reflejan al guardar, gracias a la recarga de Vite.
 
 ## Comandos
 
@@ -126,3 +139,24 @@ El perfil y el menú del restaurante usan datos de ejemplo. Los platos se pueden
 agregar al carrito, ajustar o quitar; el estado se comparte mediante Context API
 y se mantiene mientras la aplicación está abierta. Redux no se usará en este
 MVP. El catálogo real y la persistencia del carrito quedan pendientes.
+
+
+## Probar los datos mock
+
+1. En `frontend/.env.local`, verificá que esté configurado:
+
+   ```env
+   VITE_DATA_SOURCE=mock
+   ```
+
+   Si modificás esta variable, reiniciá Vite con `pnpm dev`.
+2. Abrí la URL que Vite muestra en la terminal y agregá estas rutas:
+
+   - `/restaurantes`: listado mock con el filtro por tipo de comida.
+   - `/restaurantes/verde-raiz`: detalle y menú de Verde Raiz.
+   - `/restaurantes/hoja-y-fuego`: detalle y menú de Hoja y Fuego.
+
+Por ejemplo, si Vite muestra `http://localhost:5173`, el listado estará en
+`http://localhost:5173/restaurantes`. Los datos mock de restaurantes y menús
+están definidos en `src/services/restaurants.ts`; no hace falta iniciar el
+backend.

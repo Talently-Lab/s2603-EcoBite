@@ -33,8 +33,8 @@ export default function Navbar({ cartCount }: NavbarProps) {
   return (
     <>
       <header className="relative border-b border-eco-sage bg-white">
-        <div className="mx-auto flex h-19 max-w-7xl flex-nowrap items-center justify-between gap-x-1 px-3 font-bold sm:px-4 lg:px-8">
-          <div className="flex min-w-0 items-center gap-3 md:gap-3 lg:gap-3 xl:ml-4 xl:gap-4 2xl:ml-6 2xl:gap-6 pl-6">
+        <div className="flex h-19 w-full flex-nowrap items-center justify-between gap-x-1 px-3 font-bold sm:px-4 lg:px-8">
+          <div className="flex min-w-0 flex-1 items-center gap-3 md:gap-3 lg:gap-3 xl:ml-4 xl:gap-4 2xl:ml-6 2xl:gap-6 pl-6">
             <Link to="/" aria-label="EcoBite, inicio">
               <Logo className="text-2xl font-bold" />
             </Link>

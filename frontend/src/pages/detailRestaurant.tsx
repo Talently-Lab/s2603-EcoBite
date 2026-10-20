@@ -4,7 +4,6 @@ import { HeroTitle } from "../components/ui/HeroTitle";
 import { HeroDescription } from "../components/ui/HeroDescription";
 import EmptyState from "../components/ui/EmptyState";
 import { MenuItem } from "../components/detailRestaurant/menuItem";
-import { RestaurantInfoTags } from "../components/detailRestaurant/RestaurantInfoTags";
 import {
   OrderSummary,
   type CartItem,
@@ -103,8 +102,10 @@ export function DetalleRestaurantePage({
   const { restaurant, menu } = currentData;
   const restaurantDetails = [
     ...(restaurant.category ? [restaurant.category] : []),
-    ...(restaurant.deliveryMinutes
-      ? [`Entrega: ${restaurant.deliveryMinutes} min`]
+    ...(restaurant.city ? [restaurant.city] : []),
+    ...(restaurant.address ? [restaurant.address] : []),
+    ...(restaurant.openingTime && restaurant.closingTime
+      ? [`${restaurant.openingTime}–${restaurant.closingTime}`]
       : []),
   ];
 
@@ -113,15 +114,7 @@ export function DetalleRestaurantePage({
       <section
         aria-label={`Banner de ${restaurant.name}`}
         className="relative min-h-48 overflow-hidden rounded-2xl bg-eco-light sm:min-h-64"
-      >
-        {restaurant.imageUrl && (
-          <img
-            src={restaurant.imageUrl}
-            alt=""
-            className="absolute inset-0 h-full w-full object-cover"
-          />
-        )}
-      </section>
+      />
 
       <section className="mt-8 flex flex-col items-start gap-5">
         <div className="flex flex-col gap-3">
@@ -134,9 +127,6 @@ export function DetalleRestaurantePage({
           {restaurantDetails.map((detail) => (
             <span key={detail}>{detail}</span>
           ))}
-        </div>
-        <div>
-          <RestaurantInfoTags labels={restaurant.ecoLabels} />
         </div>
       </section>
 

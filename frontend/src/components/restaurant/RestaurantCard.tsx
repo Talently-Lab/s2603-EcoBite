@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Badge from '../ui/Badge';
 import { InitialBanner } from './InitialBanner';
-import { Leaf, Star } from 'lucide-react';
 import { Loader } from '../ui/Loader';
 import type { Restaurant } from '../../services/restaurants';
 
@@ -11,8 +10,6 @@ export type { Restaurant } from '../../services/restaurants';
 interface RestaurantCardProps {
   restaurant: Restaurant;
   isElegido?: boolean;
-  isCerrado?: boolean;
-  openingTime?: string;
   className?: string;
   onSelect?: () => void;
 }
@@ -20,18 +17,14 @@ interface RestaurantCardProps {
 export function RestaurantCard({
   restaurant,
   isElegido = false,
-  isCerrado = restaurant.isClosed ?? false,
-  openingTime = restaurant.openingTime,
   className = '',
   onSelect,
 }: RestaurantCardProps) {
   const navigate = useNavigate();
   const [shouldOpenProfile, setShouldOpenProfile] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [imageFailed, setImageFailed] = useState(false);
-  const { name, slug, category, deliveryTime, rating, imageUrl, tag, initialLetter } = restaurant;
-  const isSelected = isElegido && !isCerrado;
-  const hasImage = Boolean(imageUrl) && !imageFailed;
+  const { name, slug, category, city, openingTime, closingTime, initialLetter } = restaurant;
+  const isSelected = isElegido;
 
   useEffect(() => {
     if (!shouldOpenProfile || !isSelected) {
@@ -53,8 +46,6 @@ export function RestaurantCard({
       }
     };
   }, [
-    category,
-    deliveryTime,
     isSelected,
     navigate,
     slug,
@@ -62,7 +53,7 @@ export function RestaurantCard({
   ]);
 
   function handleSelect() {
-    if (isCerrado || !onSelect) return;
+    if (!onSelect) return;
 
     setShouldOpenProfile(!isSelected);
     setIsLoading(false);
@@ -73,7 +64,6 @@ export function RestaurantCard({
 
   const cardStyles = `
     w-full rounded-2xl bg-white font-sans flex flex-col overflow-hidden text-left border transition-all duration-200
-    ${isCerrado ? 'pointer-events-none opacity-60' : ''}
     ${isSelected ? 'border-4 border-eco-dark shadow-sm' : 'border-gray-100 shadow-sm hover:border-eco-dark hover:shadow-md'}
     ${isOpeningProfile ? 'cursor-wait' : ''}
     ${className}
@@ -82,23 +72,14 @@ export function RestaurantCard({
   return (
     <button
       type="button"
-      className={`${cardStyles} ${onSelect && !isCerrado && !isOpeningProfile ? 'cursor-pointer' : 'cursor-default'}`}
+      className={`${cardStyles} ${onSelect && !isOpeningProfile ? 'cursor-pointer' : 'cursor-default'}`}
       onClick={handleSelect}
-      disabled={!onSelect || isCerrado || isOpeningProfile}
+      disabled={!onSelect || isOpeningProfile}
       aria-pressed={onSelect ? isSelected : undefined}
       aria-busy={isOpeningProfile}
     >
       <div className="relative">
-        {hasImage ? (
-          <img
-            src={imageUrl}
-            alt={name}
-            className="h-28 w-full object-cover"
-            onError={() => setImageFailed(true)}
-          />
-        ) : (
-          <InitialBanner letter={initialLetter} />
-        )}
+        <InitialBanner letter={initialLetter} />
 
         {isSelected && (
           <div className="absolute top-3 right-3">
@@ -110,52 +91,25 @@ export function RestaurantCard({
           </div>
         )}
 
-        {isCerrado && (
-          <div className="absolute top-3 right-3">
-            <Badge 
-              text="Cerrado ahora" 
-              className="bg-gray-100 text-gray-500 border border-gray-200 px-2 py-0.5" 
-              icon={null}
-            />
-          </div>
-        )}
       </div>
 
       <div className="p-5 flex flex-col grow justify-between gap-3">
         <div>
-          <h4 className="text-md font-bold text-gray-900 m-0 leading-snug">
+          <h4 className="text-xl font-semibold text-eco-dark m-0 leading-snug">
             {name}
           </h4>
-          
-          {(rating !== undefined || category || deliveryTime || (isCerrado && openingTime)) && (
-            <p className="text-xs mt-1 mb-0 font-medium text-gray-500 flex flex-wrap items-center gap-x-1">
-              {rating !== undefined && (
-                <>
-                  <span className="inline-flex items-center gap-0.5 text-eco-dark font-semibold">
-                    <Star className="h-3.5 w-3.5 fill-eco-dark text-eco-dark" aria-hidden="true" />
-                    {rating.toFixed(1)}
-                  </span>
-                  {(category || deliveryTime) && (
-                    <span className="text-eco-light/70 select-none" aria-hidden="true">•</span>
-                  )}
-                </>
-              )}
-              {isCerrado && openingTime ? (
-                <span>{openingTime}</span>
-              ) : (
-                <span>{[category, deliveryTime].filter(Boolean).join(" • ")}</span>
+          {(category || city || openingTime || closingTime) && (
+            <p className="mt-1 mb-0 text-xs font-medium text-gray-500">
+              {[category, city].filter(Boolean).join(" • ")}
+              {openingTime && closingTime && (
+                <span>
+                  {category || city ? " • " : ""}
+                  {openingTime}–{closingTime}
+                </span>
               )}
             </p>
           )}
         </div>
-
-        {tag && (
-          <Badge 
-            text={tag}
-            className="bg-eco-light text-eco-dark"
-            icon={<Leaf className="h-3.5 w-3.5" />}
-          />
-        )}
       </div>
     </button>
   );

@@ -6,7 +6,6 @@ import { getRestaurants, type Restaurant } from "../services/restaurants";
 import { HeroTitle } from "../components/ui/HeroTitle";
 import { HeroDescription } from "@/components/ui/HeroDescription";
 import { FilterDropdown } from "../components/restaurant/FilterDropDowm";
-import { FilterToggle } from "../components/restaurant/FilterToggle";
 import Button from "../components/ui/Button";
 import EmptyState from "../components/ui/EmptyState";
 import { ErrorState } from "../components/ui/ErrorState";
@@ -65,8 +64,6 @@ export function RestaurantesPage() {
   
   //  Lectura estricta de Query Params desde la URL
   const category = searchParams.get("categoria") ?? "";
-  const envase = searchParams.get("envase") ?? "";
-  const sinEmisiones = searchParams.get("sin_emisiones") === "true";
   const requestedPage = Number(searchParams.get("page") ?? 1);
 
   // Validaciones lógicas de la URL
@@ -79,21 +76,12 @@ export function RestaurantesPage() {
   const validCategories = categories.map(categoryToSlug);
   const selectedCategory = validCategories.includes(category) ? category : "";
 
-  // Aplica los filtros de la URL a los restaurantes cargados desde el servicio.
+  // Aplica el filtro de tipo de comida a los restaurantes cargados desde el servicio.
   const filteredRestaurants = restaurants.filter((restaurant) => {
-    // Filtro por Categoría
-    const matchesCategory =
+    return (
       !selectedCategory ||
-      categoryToSlug(restaurant.category ?? "") === selectedCategory;
-    
-    // Filtro por tipo de envase
-    const matchesEnvase = !envase || restaurant.tag?.toLowerCase().includes(envase.toLowerCase());
-    
-    // Filtro por las etiquetas ecológicas del restaurante
-    const matchesEmisiones =
-      !sinEmisiones || restaurant.ecoLabels?.includes("sin-emisiones") === true;
-
-    return matchesCategory && matchesEnvase && matchesEmisiones;
+      categoryToSlug(restaurant.category ?? "") === selectedCategory
+    );
   });
 
   // Cálculos de Paginación basados en el resultado ya filtrado
@@ -112,6 +100,12 @@ export function RestaurantesPage() {
 
     if (category && !selectedCategory) {
       nextParams.delete("categoria");
+      shouldReplace = true;
+    }
+
+    if (nextParams.has("envase") || nextParams.has("sin_emisiones")) {
+      nextParams.delete("envase");
+      nextParams.delete("sin_emisiones");
       shouldReplace = true;
     }
 
@@ -161,28 +155,6 @@ export function RestaurantesPage() {
     setSearchParams(nextParams);
   }
 
-  function updateEnvase(nextEnvase: string) {
-    const nextParams = new URLSearchParams(searchParams);
-    nextParams.delete("page");
-    if (nextEnvase) {
-      nextParams.set("envase", nextEnvase);
-    } else {
-      nextParams.delete("envase");
-    }
-    setSearchParams(nextParams);
-  }
-
-  function toggleEmisiones() {
-    const nextParams = new URLSearchParams(searchParams);
-    nextParams.delete("page");
-    if (!sinEmisiones) {
-      nextParams.set("sin_emisiones", "true");
-    } else {
-      nextParams.delete("sin_emisiones");
-    }
-    setSearchParams(nextParams);
-  }
-
   function clearAllFilters() {
     const nextParams = new URLSearchParams(searchParams);
     nextParams.delete("page");
@@ -192,46 +164,27 @@ export function RestaurantesPage() {
     setSearchParams(nextParams);
   }
 
-  // Constantes auxiliares para pasarle a los componentes Dropdown de la UI
-  const hasActiveFilters = selectedCategory !== "" || envase !== "" || sinEmisiones;
+  const hasActiveFilters = selectedCategory !== "";
 
   const categoryOptions = categories.map((cat) => ({
     label: cat,
     value: categoryToSlug(cat),
   }));
 
-  const envaseOptions = [
-    { label: "Biodegradable", value: "biodegradable" },
-    { label: "Retornable", value: "retornable" },
-  ];
-
   return (
     <main className="mx-auto max-w-6xl px-5 py-12 sm:px-8 font-sans">
       <HeroTitle>Explorar Restaurantes</HeroTitle>
       <HeroDescription className="mt-5">
-        Locales con envases biodegradables y transporte sin emisiones
+        Descubrí restaurantes según el tipo de comida.
       </HeroDescription>
 
       <div className="mt-10 flex flex-col gap-8">
-        <div className="grid w-full grid-cols-1 gap-4 rounded-2xl border border-gray-100 bg-white p-6 shadow-sm sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(15rem,1.4fr)_auto] lg:items-center">
+        <div className="flex w-full flex-col gap-4 rounded-2xl border border-gray-100 bg-white p-6 shadow-sm sm:flex-row sm:items-center">
           <FilterDropdown
             label="Tipo de comida"
             value={selectedCategory}
             options={categoryOptions}
             onChange={updateCategory}
-          />
-
-          <FilterDropdown
-            label="Tipo de envase"
-            value={envase}
-            options={envaseOptions}
-            onChange={updateEnvase}
-          />
-
-          <FilterToggle
-            label="Con transporte sin emisiones"
-            isActive={sinEmisiones}
-            onClick={toggleEmisiones}
           />
 
           <button
@@ -240,7 +193,7 @@ export function RestaurantesPage() {
             disabled={!hasActiveFilters}
             className="w-fit text-sm font-bold text-[#042A25] underline bg-transparent border-none text-left cursor-pointer disabled:opacity-30 disabled:pointer-events-none disabled:no-underline"
           >
-            Limpiar filtros
+            Limpiar filtro
           </button>
         </div>
 
@@ -301,7 +254,7 @@ export function RestaurantesPage() {
                 }
                 description={
                   hasActiveFilters
-                    ? "Proba con otro tipo de comida o de envase, o quita los filtros"
+                    ? "Probá con otro tipo de comida o quitá el filtro."
                     : "Vuelve a consultar más tarde para descubrir locales."
                 }
               >

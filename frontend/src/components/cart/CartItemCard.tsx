@@ -67,7 +67,7 @@ export default function CartItemCard({
       <div className="min-w-0 flex-1">
         <Title
           as="h3"
-          className="text-md font-bold leading-snug text-gray-900 opacity-100"
+          className="text-xl font-bold leading-snug text-gray-900 opacity-100"
         >
           {item.name}
         </Title>
