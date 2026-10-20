@@ -67,7 +67,7 @@ async function crear(restaurante) {//recibe un objeto restaurante
     // Insertar el restaurante en la base de datos
     const resultado = await pool.query(
         `INSERT INTO restaurante
-        (id_usuario, nombre, telefono, cuit, direccion, descripcion, categoria, ciudad,imagen)
+        (id_usuario, nombre, telefono, cuit, direccion, descripcion, categoria, ciudad, imagen)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
         RETURNING *`,
         [

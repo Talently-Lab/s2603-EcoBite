@@ -6,11 +6,13 @@
 const express = require('express');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const { enviarBienvenida } = require('./services/email.service');
 
 const restauranteModel = require('./models/restaurante.model');//importa restaurante.model
 const usuarioModel = require('./models/usuario.model');//importar usuario.model
 const clienteModel = require('./models/cliente.model');//importar cliente.model
 const { verificarToken, verificarRol } = require('./middlewares/auth.middleware');
+const horarioRestauranteModel = require('./models/horario_restaurante.model');
 
 const app = express();
 const PORT = 3000;
@@ -57,6 +59,14 @@ app.post('/api/usuario/registro-cliente', async (req, res) => {
         //--------------------
         const usuario = await usuarioModel.crearCliente(req.body);
 
+        //Envio de email
+        try {
+            await enviarBienvenida(usuario.email,'cliente');
+        } catch (error) {
+            console.error('No se pudo enviar el correo de bienvenida:', error.message);
+        }
+        //----------------
+
         res.status(201).json({
             mensaje: 'Usuario registrado correctamente',
             usuario
@@ -94,6 +104,14 @@ app.post('/api/usuario/registro-restaurante', async (req, res) => {
         }
         //------------------
         const usuario = await usuarioModel.crearRestaurante(req.body);
+
+        //Envio de email
+        try {
+            await enviarBienvenida(usuario.email, 'restaurante');
+        } catch (error) {
+            console.error('No se pudo enviar el correo de bienvenida:', error.message);
+        }
+        //------------
 
         res.status(201).json({
             mensaje: 'Cuenta de restaurante creada correctamente',
@@ -856,6 +874,470 @@ app.delete('/api/clientes/:id', verificarToken, async (req, res) => {
     }
 });
 
+//HORARIOS RESTAURANTES
+
+//Guardar la configuración semanal completa.
+app.post('/api/restaurantes/:id/horarios',verificarToken,verificarRol('restaurante', 'administrador'),
+    async (req, res) => {
+        try {
+            // 1. Validar que el ID sea un número entero positivo
+            const idRestaurante = Number(req.params.id);
+
+            if (!Number.isInteger(idRestaurante) || idRestaurante <= 0) {
+                return res.status(400).json({
+                    error: 'El ID del restaurante debe ser un número entero positivo'
+                });
+            }
+
+            // 2. Validar que el cuerpo sea un objeto JSON
+            if (!req.body ||typeof req.body !== 'object' || Array.isArray(req.body)) {
+                return res.status(400).json({
+                    error: 'Debés enviar los datos en formato JSON'
+                });
+            }
+
+            // 3. Validar la lista de horarios
+            const { horarios } = req.body;
+
+            if (!Array.isArray(horarios) || horarios.length === 0) {
+                return res.status(400).json({
+                    error: 'Debés enviar al menos un horario'
+                });
+            }
+
+            // 4. Validar todos los turnos antes de guardar
+            const formatoHora = /^([01]\d|2[0-3]):[0-5]\d$/;
+
+            for (const horario of horarios) {
+                if (!horario ||typeof horario !== 'object' || Array.isArray(horario)) {
+                    return res.status(400).json({
+                        error: 'Cada horario debe ser un objeto válido'
+                    });
+                }
+
+                const { dia_semana, hora_apertura, hora_cierre } = horario;
+
+                if (!Number.isInteger(dia_semana) || dia_semana < 1 || dia_semana > 7) {
+                    return res.status(400).json({
+                        error: 'El día debe ser un número del 1 al 7'
+                    });
+                }
+
+                if (typeof hora_apertura !== 'string' ||!formatoHora.test(hora_apertura) ||typeof hora_cierre !== 'string' ||
+                    !formatoHora.test(hora_cierre)) {
+                    return res.status(400).json({
+                        error: 'Las horas deben tener el formato HH:MM'
+                    });
+                }
+
+                if (hora_apertura === hora_cierre) {
+                    return res.status(400).json({
+                        error: 'La apertura y el cierre no pueden ser iguales'
+                    });
+                }
+            }
+
+            // Validar que los turnos no se superpongan y que haya como máximo dos turnos por día
+            const horariosPorDia = {};
+
+            for (const horario of horarios) {
+                if (!horariosPorDia[horario.dia_semana]) {
+                    horariosPorDia[horario.dia_semana] = [];
+                }
+
+                horariosPorDia[horario.dia_semana].push(horario);
+            }
+
+            for (const turnos of Object.values(horariosPorDia)) {
+                if (turnos.length > 2) {
+                    return res.status(400).json({
+                        error: 'No se permiten más de dos turnos por día'
+                    });
+                }
+
+                turnos.sort((a, b) => a.hora_apertura.localeCompare(b.hora_apertura) );
+
+                for (let i = 1; i < turnos.length; i++) {
+                    if (turnos[i].hora_apertura < turnos[i - 1].hora_cierre) {
+                        return res.status(400).json({
+                            error: 'Los horarios de un mismo día no pueden superponerse'
+                        });
+                    }
+                }
+            }
+
+            // 5. Comprobar que el restaurante exista
+            const restaurante = await horarioRestauranteModel.obtenerRestaurante(idRestaurante);
+
+            if (!restaurante) {
+                return res.status(404).json({
+                    error: 'No se encontró el restaurante'
+                });
+            }
+
+            // 6. Comprobar los permisos del usuario autenticado
+            if ( req.usuario.rol !== 'administrador' && Number(restaurante.id_usuario) !== Number(req.usuario.id)) {
+                return res.status(403).json({
+                    error: 'No tenés permiso para modificar los horarios de este restaurante'
+                });
+            }
+
+            // 7. Guardar los turnos
+            const horariosGuardados = await horarioRestauranteModel.reemplazarPorRestaurante(
+                idRestaurante,
+                horarios
+            );
+
+            return res.status(200).json({
+                mensaje: 'Horarios registrados correctamente',
+                horarios: horariosGuardados
+            });
+        } catch (error) {
+            console.error('Error al registrar horarios:', error.message);
+
+            return res.status(500).json({
+                error: 'Error interno al registrar los horarios'
+            });
+        }
+    }
+);
+
+//Ver todos los turnos del restaurante.
+app.get('/api/restaurantes/:id/horarios',verificarToken,verificarRol('restaurante', 'administrador'),async (req, res) => {
+        try {
+            // 1. Validar el ID
+            const idRestaurante = Number(req.params.id);
+
+            if (!Number.isInteger(idRestaurante) || idRestaurante <= 0) {
+                return res.status(400).json({
+                    error: 'El ID del restaurante debe ser un número entero positivo'
+                });
+            }
+
+            // 2. Comprobar que exista el restaurante
+            const restaurante = await horarioRestauranteModel.obtenerRestaurante(idRestaurante);
+
+            if (!restaurante) {
+                return res.status(404).json({
+                    error: 'No se encontró el restaurante'
+                });
+            }
+
+            // 3. Verificar permisos
+            if (req.usuario.rol !== 'administrador' && Number(restaurante.id_usuario) !== Number(req.usuario.id)) {
+                return res.status(403).json({
+                    error: 'No tenés permiso para consultar los horarios de este restaurante'
+                });
+            }
+
+            // 4. Consultar horarios
+            const horarios = await horarioRestauranteModel.obtenerPorRestaurante(idRestaurante);
+
+            return res.status(200).json({
+                restaurante_id: idRestaurante,
+                horarios
+            });
+        } catch (error) {
+            console.error('Error al consultar horarios:', error.message);
+
+            return res.status(500).json({
+                error: 'Error interno al consultar los horarios'
+            });
+        }
+    }
+);
+
+//MODIFICAR UN HORARIO
+app.put('/api/restaurantes/:id/horarios/:idHorario',verificarToken,verificarRol('restaurante', 'administrador'),async (req, res) => {
+        try {
+            const idRestaurante = Number(req.params.id);
+            const idHorario = Number(req.params.idHorario);
+
+            if (!Number.isInteger(idRestaurante) || idRestaurante <= 0 ||!Number.isInteger(idHorario) || idHorario <= 0) {
+                return res.status(400).json({
+                    error: 'Los IDs deben ser enteros positivos'
+                });
+            }
+
+            const { dia_semana, hora_apertura, hora_cierre } = req.body;
+
+            const formatoHora = /^([01]\d|2[0-3]):[0-5]\d$/;
+
+            if (!Number.isInteger(dia_semana) || dia_semana < 1 || dia_semana > 7) {
+                return res.status(400).json({
+                    error: 'El día debe ser un número del 1 al 7'
+                });
+            }
+
+            if (typeof hora_apertura !== 'string' ||!formatoHora.test(hora_apertura) || typeof hora_cierre !== 'string' ||
+                !formatoHora.test(hora_cierre)) {
+                return res.status(400).json({
+                    error: 'Las horas deben tener el formato HH:MM'
+                });
+            }
+
+            if (hora_apertura >= hora_cierre) {
+                return res.status(400).json({
+                    error: 'La apertura debe ser anterior al cierre'
+                });
+            }
+
+            const restaurante = await horarioRestauranteModel.obtenerRestaurante(idRestaurante);
+
+            if (!restaurante) {
+                return res.status(404).json({
+                    error: 'No se encontró el restaurante'
+                });
+            }
+
+            if (req.usuario.rol !== 'administrador' && Number(restaurante.id_usuario) !== Number(req.usuario.id)) {
+                return res.status(403).json({
+                    error: 'No tenés permiso para modificar estos horarios'
+                });
+            }
+
+            const horarios = await horarioRestauranteModel.obtenerPorRestaurante(idRestaurante);
+
+            const horarioActual = horarios.find( h => Number(h.id) === idHorario );
+
+            if (!horarioActual) {
+                return res.status(404).json({
+                    error: 'No se encontró ese horario en el restaurante'
+                });
+            }
+
+            const otrosTurnosDelDia = horarios.filter( h =>
+                    Number(h.id) !== idHorario &&
+                    Number(h.dia_semana) === dia_semana
+            );
+
+            if (otrosTurnosDelDia.length >= 2) {
+                return res.status(400).json({
+                    error: 'No se permiten más de dos turnos por día'
+                });
+            }
+
+            const seSuperpone = otrosTurnosDelDia.some(h => {
+                const aperturaExistente = String(h.hora_apertura).slice(0, 5);
+                const cierreExistente = String(h.hora_cierre).slice(0, 5);
+
+                return (
+                    hora_apertura < cierreExistente &&
+                    hora_cierre > aperturaExistente
+                );
+            });
+
+            if (seSuperpone) {
+                return res.status(400).json({
+                    error: 'Los horarios de un mismo día no pueden superponerse'
+                });
+            }
+
+            const horarioActualizado =
+                await horarioRestauranteModel.actualizar(
+                    idRestaurante,
+                    idHorario,
+                    dia_semana,
+                    hora_apertura,
+                    hora_cierre
+                );
+
+            return res.status(200).json({
+                mensaje: 'Horario actualizado correctamente',
+                horario: horarioActualizado
+            });
+
+        } catch (error) {
+            console.error('Error al actualizar horario:', error.message);
+            return res.status(500).json({
+                error: 'Error interno al actualizar el horario'
+            });
+        }
+    }
+);
+
+//ELIMINAR UN HORARIO
+
+app.delete('/api/restaurantes/:id/horarios/:idHorario',verificarToken,verificarRol('restaurante', 'administrador'),
+    async (req, res) => {
+        try {
+            const idRestaurante = Number(req.params.id);
+            const idHorario = Number(req.params.idHorario);
+
+            if (!Number.isInteger(idRestaurante) || idRestaurante <= 0 ||!Number.isInteger(idHorario) || idHorario <= 0
+            ) {
+                return res.status(400).json({
+                    error: 'Los IDs deben ser enteros positivos'
+                });
+            }
+
+            const restaurante = await horarioRestauranteModel.obtenerRestaurante(idRestaurante);
+
+            if (!restaurante) {
+                return res.status(404).json({
+                    error: 'No se encontró el restaurante'
+                });
+            }
+
+            if (req.usuario.rol !== 'administrador' && Number(restaurante.id_usuario) !== Number(req.usuario.id)
+            ) {
+                return res.status(403).json({
+                    error: 'No tenés permiso para eliminar estos horarios'
+                });
+            }
+
+            const horarioEliminado = await horarioRestauranteModel.eliminar(idRestaurante, idHorario);
+
+            if (!horarioEliminado) {
+                return res.status(404).json({
+                    error: 'No se encontró ese horario en el restaurante'
+                });
+            }
+
+            return res.status(200).json({
+                mensaje: 'Horario eliminado correctamente',
+                horario: horarioEliminado
+            });
+
+        } catch (error) {
+            console.error('Error al eliminar horario:', error.message);
+            return res.status(500).json({
+                error: 'Error interno al eliminar el horario'
+            });
+        }
+    }
+);
+//AGREGAR UN HORARIO
+app.post('/api/restaurantes/:id/horarios/turno', verificarToken, verificarRol('restaurante', 'administrador'),
+    async (req, res) => {
+        try {
+            const idRestaurante = Number(req.params.id);
+
+            if (!Number.isInteger(idRestaurante) || idRestaurante <= 0) {
+                return res.status(400).json({
+                    error: 'El ID del restaurante debe ser un entero positivo'
+                });
+            }
+
+            const { dia_semana, hora_apertura, hora_cierre } = req.body;
+            const formatoHora = /^([01]\d|2[0-3]):[0-5]\d$/;
+
+            if (!Number.isInteger(dia_semana) || dia_semana < 1 || dia_semana > 7) {
+                return res.status(400).json({
+                    error: 'El día debe ser un número del 1 al 7'
+                });
+            }
+
+            if (typeof hora_apertura !== 'string' ||!formatoHora.test(hora_apertura) ||typeof hora_cierre !== 'string' ||
+                !formatoHora.test(hora_cierre)) {
+                return res.status(400).json({
+                    error: 'Las horas deben tener el formato HH:MM'
+                });
+            }
+
+            if (hora_apertura >= hora_cierre) {
+                return res.status(400).json({
+                    error: 'La apertura debe ser anterior al cierre'
+                });
+            }
+
+            const restaurante = await horarioRestauranteModel.obtenerRestaurante(idRestaurante);
+
+            if (!restaurante) {
+                return res.status(404).json({
+                    error: 'No se encontró el restaurante'
+                });
+            }
+
+            if (req.usuario.rol !== 'administrador' && Number(restaurante.id_usuario) !== Number(req.usuario.id)) {
+                return res.status(403).json({
+                    error: 'No tenés permiso para modificar estos horarios'
+                });
+            }
+
+            const horarios = await horarioRestauranteModel.obtenerPorRestaurante(idRestaurante);
+
+            const turnosDelDia = horarios.filter(
+                h => Number(h.dia_semana) === dia_semana
+            );
+
+            if (turnosDelDia.length >= 2) {
+                return res.status(400).json({
+                    error: 'No se permiten más de dos turnos por día'
+                });
+            }
+
+            const seSuperpone = turnosDelDia.some(h => {
+                const aperturaExistente = String(h.hora_apertura).slice(0, 5);
+                const cierreExistente = String(h.hora_cierre).slice(0, 5);
+
+                return (
+                    hora_apertura < cierreExistente &&
+                    hora_cierre > aperturaExistente
+                );
+            });
+
+            if (seSuperpone) {
+                return res.status(400).json({
+                    error: 'Los horarios de un mismo día no pueden superponerse'
+                });
+            }
+
+            const nuevoTurno = await horarioRestauranteModel.agregarTurno(
+                idRestaurante,
+                dia_semana,
+                hora_apertura,
+                hora_cierre
+            );
+
+            return res.status(201).json({
+                mensaje: 'Turno agregado correctamente',
+                horario: nuevoTurno
+            });
+
+        } catch (error) {
+            console.error('Error al agregar turno:', error.message);
+            return res.status(500).json({
+                error: 'Error interno al agregar el turno'
+            });
+        }
+    }
+);
+
+
+//CAMBIAR ESTADO (ABIERTO/CERRADO)RESTAURANTE
+app.get('/api/restaurantes/:id/estado', async (req, res) => {
+    try {
+        const idRestaurante = Number(req.params.id);
+
+        if (!Number.isInteger(idRestaurante) || idRestaurante <= 0) {
+            return res.status(400).json({
+                error: 'El ID del restaurante debe ser un número entero positivo'
+            });
+        }
+
+        const restaurante = await horarioRestauranteModel.obtenerRestaurante(idRestaurante);
+
+        if (!restaurante) {
+            return res.status(404).json({
+                error: 'No se encontró el restaurante'
+            });
+        }
+
+        const estado = await horarioRestauranteModel.obtenerEstadoRestaurante(idRestaurante);
+
+        return res.status(200).json({
+            restaurante_id: idRestaurante,
+            ...estado
+        });
+    } catch (error) {
+        console.error('Error al consultar el estado del restaurante:', error.message);
+
+        return res.status(500).json({
+            error: 'Error interno al consultar el estado del restaurante'
+        });
+    }
+});
 
 
 
