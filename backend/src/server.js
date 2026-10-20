@@ -35,16 +35,12 @@ app.get('/api/usuario/perfil', verificarToken, (req, res) => {
 });
 
 // RUTA DE PRUEBA EXCLUSIVA PARA RESTAURANTES
-app.get(
-    '/api/prueba/restaurante',
-    verificarToken,
-    verificarRol('restaurante'),
-    (req, res) => {
-        res.status(200).json({
-            mensaje: 'Acceso autorizado para restaurante',
-            usuario: req.usuario
-        });
-    }
+app.get('/api/prueba/restaurante',verificarToken, verificarRol('restaurante'),(req, res) => {
+    res.status(200).json({
+        mensaje: 'Acceso autorizado para restaurante',
+        usuario: req.usuario
+    });
+  }
 );
 
 //============USUARIO============
@@ -127,7 +123,8 @@ app.post('/api/usuario/registro-restaurante', async (req, res) => {
 
 
 // CONSULTAR TODOS LOS USUARIOS
-app.get('/api/usuario', async (req, res) => {
+//app.get('/api/usuario', async (req, res) => {
+app.get('/api/usuarios', verificarToken, verificarRol('administrador'),async (req, res) => {
     try {
         const usuarios = await usuarioModel.obtenerTodos();
         res.status(200).json(usuarios);
@@ -140,13 +137,21 @@ app.get('/api/usuario', async (req, res) => {
 });
 
 // CONSULTAR UN USUARIO POR ID
-app.get('/api/usuario/:id', async (req, res) => {
+//app.get('/api/usuario/:id', async (req, res) => {
+app.get('/api/usuarios/:id', verificarToken, async (req, res) => {
     try {
         const id = Number(req.params.id);
 
         if (!Number.isInteger(id) || id <= 0) {
             return res.status(400).json({
                 error: 'El ID debe ser un número entero positivo'
+            });
+        }
+
+        // Solo puede consultar su propia cuenta o ser administrador
+        if (Number(req.usuario.id) !== id && req.usuario.rol !== 'administrador') {
+            return res.status(403).json({
+                error: 'No tenés permisos para consultar esta cuenta'
             });
         }
 
@@ -167,25 +172,43 @@ app.get('/api/usuario/:id', async (req, res) => {
     }
 });
 
-//MODIFICAR UN USAURIO
+//MODIFICAR UN USUARIO
 //app.put('/api/usuario/:id', async (req, res) => {
-app.put('/api/usuario/:id', verificarToken, async (req, res) => {
+app.put('/api/usuarios/:id', verificarToken, async (req, res) => {
     try {
         const id = Number(req.params.id);
 
+        //validar id(num)
         if (!Number.isInteger(id) || id <= 0) {
             return res.status(400).json({
                 error: 'El ID debe ser un número entero positivo'
             });
         }
 
-        // Verificar que el usuario solo modifique su propia cuenta
-        if (req.usuario.id !== id && req.usuario.rol !== 'administrador') {
+        //Validar el cuerpo recibido
+        const datos = req.body;
+
+        if (!datos ||typeof datos !== 'object' ||Array.isArray(datos)) {
+            return res.status(400).json({
+                error: 'Debés enviar los datos en formato JSON'
+            });
+        }
+
+         //Verificar que se envíen campos para actualizar
+        if (Object.keys(datos).length === 0) {
+            return res.status(400).json({
+                error: 'No se enviaron campos para modificar'
+            });
+        }
+
+        // Verificar permisos: que el usuario solo modifique su propia cuenta
+        if (Number(req.usuario.id) !== id && req.usuario.rol !== 'administrador') {
             return res.status(403).json({
                 error: 'No tenés permisos para modificar esta cuenta'
             });
         }
 
+          //Actualizar el usuario
         const usuario = await usuarioModel.actualizar(id, req.body);
 
         if (!usuario) {
@@ -224,7 +247,7 @@ app.put('/api/usuario/:id', verificarToken, async (req, res) => {
 
 //ELIMINAR USUARIO
 //app.delete('/api/usuario/:id',async (req, res) => {
-app.delete('/api/usuario/:id', verificarToken, async (req, res) => {
+app.delete('/api/usuarios/:id', verificarToken, async (req, res) => {
     try {
         const id = Number(req.params.id);
 
@@ -274,6 +297,14 @@ app.delete('/api/usuario/:id', verificarToken, async (req, res) => {
 /* INICIAR SESIÓN */
 app.post('/api/usuario/login', async (req, res) => {
     try {
+
+        // Validar que el cuerpo sea un objeto
+        if (!req.body || typeof req.body !== 'object' || Array.isArray(req.body)) {
+            return res.status(400).json({
+                error: 'Debés enviar los datos en formato JSON'
+            });
+        }
+
         const { email, contrasena } = req.body;
 
         // Validar que se hayan enviado los datos
@@ -339,7 +370,15 @@ app.get('/api/restaurantes', async (req, res) => {
 //GET para traer un restaurante
 app.get('/api/restaurantes/:id', async (req,res)=>{
    try{
-        const id = req.params.id;
+        const id = Number(req.params.id);
+
+        // Validar que el ID sea un número entero positivo
+        if (!Number.isInteger(id) || id <= 0) {
+            return res.status(400).json({
+                error: 'El ID debe ser un número entero positivo'
+            });
+        }
+
         const restaurante = await restauranteModel.obtenerPorId(id);
         if(!restaurante){
             return res.status(404).json({
@@ -356,21 +395,29 @@ app.get('/api/restaurantes/:id', async (req,res)=>{
 });
 
 //POST para crear un restaurante
-app.post('/api/restaurantes', async(req,res)=>{
+//app.post('/api/restaurantes', async(req,res)=>{
+app.post('/api/restaurantes', verificarToken, async (req, res) => {
     try{
+        // Validar el formato de los datos recibidos
+        if (!req.body || typeof req.body !== 'object' || Array.isArray(req.body)) {
+            return res.status(400).json({
+                error: 'Debés enviar los datos del restaurante en formato JSON'
+            });
+        }
+
         const restaurante = req.body;
-        if(
-            !restaurante.id_usuario ||
-            !restaurante.nombre ||
-            !restaurante.cuit ||
-            !restaurante.categoria
-        ){
+
+        if(!restaurante.nombre || !restaurante.cuit || !restaurante.categoria){
             return res.status(400).json({
                 error:'Faltan datos obligatorios para el restaurante'
             });
         }
 
+        // El ID se obtiene del token, no del cuerpo enviado
+        restaurante.id_usuario = req.usuario.id;
+        //------------
         const nuevoRestaurante= await restauranteModel.crear(restaurante);
+        
         res.status(201).json({
             mensaje: 'Restaurante creado con exito',
             restaurante: nuevoRestaurante
@@ -422,21 +469,50 @@ app.post('/api/restaurantes', async(req,res)=>{
 });
 
 //PUT para modificar un restaurante
-app.put('/api/restaurantes/:id', async (req, res) => {
+//app.put('/api/restaurantes/:id', async (req, res) => {
+app.put('/api/restaurantes/:id', verificarToken, async (req, res) => {
     try {
-        const id = req.params.id;
+        const id = Number(req.params.id);
         const restaurante = req.body;
 
-        if (
-            !restaurante.nombre ||
-            !restaurante.cuit ||
-            !restaurante.categoria
-        ) {
+        //verifica id(num)
+        if (!Number.isInteger(id) || id <= 0) {
+            return res.status(400).json({
+                error: 'El ID debe ser un número entero positivo'
+            });
+        }
+
+        //verifica formato JSON
+        if (!restaurante || typeof restaurante !== 'object' || Array.isArray(restaurante)) {
+            return res.status(400).json({
+                error: 'Debés enviar los datos del restaurante en formato JSON'
+            });
+        }
+
+        if (!restaurante.nombre ||!restaurante.cuit ||!restaurante.categoria) {
             return res.status(400).json({
                 error: 'Faltan datos obligatorios para actualizar el restaurante'
             });
         }
 
+        // Verificamos permiso: que el usuario sea dueño del restaurante o administrador.
+        // Buscamos el restaurante que se quiere modificar
+        const restauranteExistente = await restauranteModel.obtenerPorId(id);
+
+        if (!restauranteExistente) {
+            return res.status(404).json({
+                error: 'Restaurante no encontrado'
+            });
+        }
+
+        // Verificamos que el usuario sea el dueño o administrador
+        if (Number(req.usuario.id) !== Number(restauranteExistente.id_usuario) && req.usuario.rol !== 'administrador'){
+            return res.status(403).json({
+                error: 'No tenés permisos para modificar este restaurante'
+            });
+        }
+
+        //----------------------------------
         const restauranteActualizado = await restauranteModel.actualizar(
             id,
             restaurante
@@ -462,9 +538,33 @@ app.put('/api/restaurantes/:id', async (req, res) => {
 });
 
 //DELETE para eliminar un restaurante
-app.delete('/api/restaurantes/:id', async (req, res) => {
+//app.delete('/api/restaurantes/:id', async (req, res) => {
+app.delete('/api/restaurantes/:id', verificarToken, async (req, res) => {
     try {
-        const id = req.params.id;
+        const id = Number(req.params.id);
+
+        //verifica id(num)
+        if (!Number.isInteger(id) || id <= 0) {
+            return res.status(400).json({
+                error: 'El ID debe ser un número entero positivo'
+            });
+        }
+
+        // Verificar permiso: Buscar el restaurante
+        const restauranteExistente = await restauranteModel.obtenerPorId(id);
+
+        if (!restauranteExistente) {
+            return res.status(404).json({
+                error: 'Restaurante no encontrado'
+            });
+        }
+
+        // Verificar permisos antes de eliminar
+        if (Number(req.usuario.id) !== Number(restauranteExistente.id_usuario) && req.usuario.rol !== 'administrador') {
+            return res.status(403).json({
+                error: 'No tenés permisos para eliminar este restaurante'
+            });
+        }
 
         const restauranteEliminado = await restauranteModel.eliminar(id);
 
@@ -489,19 +589,26 @@ app.delete('/api/restaurantes/:id', async (req, res) => {
 
 //============CLIENTE==============
  // CREAR CLIENTE
-app.post('/api/clientes', async (req, res) => {
+//app.post('/api/clientes', async (req, res) => {
+app.post('/api/clientes', verificarToken, async (req, res) => {
     try {
+
+        // Validar el formato de los datos recibidos
+        if (!req.body || typeof req.body !== 'object' || Array.isArray(req.body)) {
+            return res.status(400).json({
+                error: 'Debés enviar los datos del cliente en formato JSON'
+            });
+        }
+
         const cliente = req.body;
 
-        if (
-            !cliente.id_usuario ||
-            !cliente.nombre ||
-            !cliente.apellido
-        ) {
+        if (!cliente.nombre || !cliente.apellido) {
             return res.status(400).json({
                 error: 'Faltan datos obligatorios para el cliente'
             });
         }
+        // El ID se obtiene del token, no del cuerpo enviado
+        cliente.id_usuario = req.usuario.id;
 
         const nuevoCliente = await clienteModel.crear(cliente);
 
@@ -553,7 +660,8 @@ app.post('/api/clientes', async (req, res) => {
 });
 
 // OBTENER TODOS LOS CLIENTES
-app.get('/api/clientes', async (req, res) => {
+//app.get('/api/clientes', async (req, res) => {
+app.get('/api/clientes', verificarToken,verificarRol('administrador'),async (req, res) => {
     try {
         const clientes = await clienteModel.obtenerTodos();
 
@@ -569,7 +677,8 @@ app.get('/api/clientes', async (req, res) => {
 
 
 // OBTENER UN CLIENTE POR ID
-app.get('/api/clientes/:id', async (req, res) => {
+//app.get('/api/clientes/:id', async (req, res) => {
+app.get('/api/clientes/:id', verificarToken, async (req, res) => {
     try {
         const id = Number(req.params.id);
 
@@ -580,16 +689,23 @@ app.get('/api/clientes/:id', async (req, res) => {
             });
         }
 
-        const cliente = await clienteModel.obtenerPorId(id);
+        // Buscar el perfil para comprobar los permisos
+        const clienteExistente = await clienteModel.obtenerPorId(id);
 
-        // Verificar si el cliente existe
-        if (!cliente) {
+        if (!clienteExistente) {
             return res.status(404).json({
                 error: 'No se encontró el cliente'
             });
         }
 
-        res.status(200).json(cliente);
+        // Verificar permiso: Solo puede consultar su propio perfil o ser administrador
+        if (Number(req.usuario.id) !== Number(clienteExistente.id_usuario) && req.usuario.rol !== 'administrador') {
+            return res.status(403).json({
+                error: 'No tenés permisos para consultar este perfil'
+            });
+        }
+        res.status(200).json(clienteExistente);
+
     } catch (error) {
         console.error('Error al obtener el cliente:', error.message);
 
@@ -600,7 +716,8 @@ app.get('/api/clientes/:id', async (req, res) => {
 });
 
 // ACTUALIZAR PERFIL DE CLIENTE
-app.put('/api/clientes/:id', async (req, res) => {
+//app.put('/api/clientes/:id', async (req, res) => {
+app.put('/api/clientes/:id', verificarToken, async (req, res) => {
     try {
         const id = Number(req.params.id);
 
@@ -613,6 +730,13 @@ app.put('/api/clientes/:id', async (req, res) => {
 
         const datos = req.body;
 
+        // Validar que el cuerpo sea un objeto
+        if (!datos || typeof datos !== 'object' || Array.isArray(datos)) {
+            return res.status(400).json({
+                error: 'Debés enviar los datos del cliente en formato JSON'
+            });
+        }
+
         // Verificar que se envíen datos
         if (Object.keys(datos).length === 0) {
             return res.status(400).json({
@@ -620,6 +744,22 @@ app.put('/api/clientes/:id', async (req, res) => {
             });
         }
 
+        // Verificar permiso: Buscar el perfil para comprobar los permisos
+        const clienteExistente = await clienteModel.obtenerPorId(id);
+
+        if (!clienteExistente) {
+            return res.status(404).json({
+                error: 'No se encontró el cliente'
+            });
+        }
+
+        // Verificar que sea el dueño o administrador
+        if (Number(req.usuario.id) !== Number(clienteExistente.id_usuario) && req.usuario.rol !== 'administrador') {
+            return res.status(403).json({
+                error: 'No tenés permisos para modificar este perfil'
+            });
+        }
+        //----------
         const clienteActualizado = await clienteModel.actualizar(id, datos);
 
         // Verificar que el perfil exista
@@ -656,7 +796,8 @@ app.put('/api/clientes/:id', async (req, res) => {
 });
 
  // ELIMINAR PERFIL DE CLIENTE
-app.delete('/api/clientes/:id', async (req, res) => {
+//app.delete('/api/clientes/:id', async (req, res) => {
+app.delete('/api/clientes/:id', verificarToken, async (req, res) => {
     try {
         const id = Number(req.params.id);
 
@@ -664,6 +805,22 @@ app.delete('/api/clientes/:id', async (req, res) => {
         if (!Number.isInteger(id) || id <= 0) {
             return res.status(400).json({
                 error: 'El ID debe ser un número entero positivo'
+            });
+        }
+
+        // Verificar permiso: Buscar el perfil para comprobar los permisos
+        const clienteExistente = await clienteModel.obtenerPorId(id);
+
+        if (!clienteExistente) {
+            return res.status(404).json({
+                error: 'No se encontró el cliente'
+            });
+        }
+
+        // Verificar que sea el dueño o administrador
+        if (Number(req.usuario.id) !== Number(clienteExistente.id_usuario) && req.usuario.rol !== 'administrador') {
+            return res.status(403).json({
+                error: 'No tenés permisos para eliminar este perfil'
             });
         }
 
