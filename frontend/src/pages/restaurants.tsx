@@ -199,7 +199,7 @@ export function RestaurantesPage() {
 
         <div className="flex w-full flex-col gap-6">
           {/* Contador de locales dinámico según el filtro de la URL */}
-          {isLoading || loadError ? null : (
+          {isLoading || loadError || pageRestaurants.length === 0 ? null : (
             <p className="px-1 text-left text-sm font-semibold text-gray-500">
               {filteredRestaurants.length}{" "}
               {filteredRestaurants.length === 1 ? "local" : "locales"}
@@ -245,16 +245,17 @@ export function RestaurantesPage() {
               <RestaurantList restaurants={pageRestaurants} />
             ) : (
               <EmptyState
-                statusLabel="0 restaurantes encontrados"
-                indicator={<span aria-hidden="true" className="text-2xl font-light">∅</span>}
+                statusLabel="No hay locales disponibles"
+                indicatorClassName="!h-[120px] !w-[120px] !border-[3px]"
+                indicator={<span aria-hidden="true" className="text-5xl font-light">∅</span>}
                 title={
                   hasActiveFilters
-                    ? "No encontramos restaurantes con esos filtros"
-                    : "No hay restaurantes disponibles"
+                    ? "No encontramos locales con esos filtros"
+                    : "No hay locales disponibles"
                 }
                 description={
                   hasActiveFilters
-                    ? "Probá con otro tipo de comida o quitá el filtro."
+                    ? "Probá con otro tipo de comida o de envase, o quitá los filtros."
                     : "Vuelve a consultar más tarde para descubrir locales."
                 }
               >
@@ -272,7 +273,7 @@ export function RestaurantesPage() {
           </div>
 
           {/* Paginación limpia e independiente en la base */}
-          {!isLoading && !loadError && (
+          {!isLoading && !loadError && pageRestaurants.length > 0 && (
             <div className="mt-6 flex justify-center border-t border-gray-100 pt-8">
               <Pagination
                 currentPage={currentPage}

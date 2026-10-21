@@ -104,9 +104,6 @@ export function DetalleRestaurantePage({
     ...(restaurant.category ? [restaurant.category] : []),
     ...(restaurant.city ? [restaurant.city] : []),
     ...(restaurant.address ? [restaurant.address] : []),
-    ...(restaurant.openingTime && restaurant.closingTime
-      ? [`${restaurant.openingTime}–${restaurant.closingTime}`]
-      : []),
   ];
 
   return (

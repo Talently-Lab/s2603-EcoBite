@@ -7,6 +7,10 @@
      NO usar para texto.
   */
   --color-eco-light: #bbdb9b;
+  
+  --color-eco-background: #F7F9F3;
+  --color-eco-border: #D5DDD2;
+  --color-eco-text-secondary: #4A5A55;
 
   /* Verde salvia
      Uso: fondos y detalles.
@@ -42,7 +46,7 @@ body {
   margin: 0;
   /* min-width: 320px; */
   min-height: 100vh;
-  background: color-mix(in srgb, var(--color-eco-light) 30%, transparent);
+  background: var(--color-eco-background);
   color: var(--color-eco-dark);
   font-family: var(--font-sans);
 }

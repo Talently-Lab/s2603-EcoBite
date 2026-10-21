@@ -8,6 +8,7 @@ interface EmptyStateProps {
   description: string;
   indicator?: ReactNode;
   largeIndicator?: boolean;
+  indicatorClassName?: string;
   children?: ReactNode;
 }
 
@@ -17,6 +18,7 @@ export default function EmptyState({
   description,
   indicator = "0",
   largeIndicator = false,
+  indicatorClassName = "",
   children,
 }: EmptyStateProps) {
   return (
@@ -26,7 +28,7 @@ export default function EmptyState({
         aria-label={statusLabel}
         className={`mb-6 inline-flex items-center justify-center rounded-full border-2 border-eco-dark bg-eco-light/50 font-bold text-eco-dark ${
           largeIndicator ? "h-16 w-16" : "h-12 w-12 text-lg"
-        }`}
+        } ${indicatorClassName}`}
       >
         {indicator}
       </span>

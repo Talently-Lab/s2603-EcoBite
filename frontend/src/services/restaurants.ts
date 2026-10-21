@@ -1,16 +1,5 @@
-  // {
-  //   "id": 1,
-  //   "id_usuario": 5,
-  //   "nombre": "Verde Raiz",
-  //   "telefono": "2664000005",
-  //   "cuit": "30-71234567-8",
-  //   "direccion": "Av. Illia 250",
-  //   "descripcion": "Comida natural y saludable",
-  //   "categoria": "Cocina natural",
-  //   "ciudad": "San Luis",
-  //   "hora_apertura": null,
-  //   "hora_cierre": null
-  // },
+import { MOCK_PRODUCTS, MOCK_RESTAURANTS } from "./restaurants.mock";
+
 export interface RestaurantApiResponse {
   id: number;
   id_usuario: number;
@@ -21,11 +10,21 @@ export interface RestaurantApiResponse {
   descripcion: string | null;
   categoria: string | null;
   ciudad: string | null;
-  hora_apertura?: string | null;
-  hora_cierre?: string | null;
+  imagen: string | null;
 }
 
-  export interface MenuItemData {
+export interface RestaurantProductApiResponse {
+  id: number;
+  id_restaurante: number;
+  nombre: string;
+  descripcion: string | null;
+  precio: string | number;
+  disponible: boolean;
+  categoria: string | null;
+  imagen: string | null;
+}
+
+export interface MenuItemData {
   id: string;
   name: string;
   description: string;
@@ -43,16 +42,19 @@ export interface Restaurant {
   cuitId?: string | null;
   address?: string | null;
   description?: string | null;
+  image?: string | null;
   category?: string | null;
   city?: string | null;
-  openingTime?: string | null;
-  closingTime?: string | null;
   initialLetter: string;
 }
 
 export interface RestaurantMenu {
   dishes: MenuItemData[];
   drinks: MenuItemData[];
+}
+
+interface RestaurantStatusApiResponse {
+  abierto: boolean;
 }
 
 const API_BASE_URL = (
@@ -89,105 +91,12 @@ function mapRestaurant(data: RestaurantApiResponse): Restaurant {
     cuitId: data.cuit,
     address: data.direccion,
     description: data.descripcion,
+    image: data.imagen,
     category: data.categoria,
     city: data.ciudad,
-    openingTime: data.hora_apertura,
-    closingTime: data.hora_cierre,
     initialLetter: data.nombre.charAt(0).toUpperCase(),
   };
 }
-
-const MOCK_RESTAURANTS: RestaurantApiResponse[] = [
-  {
-    id: 1,
-    id_usuario: 5,
-    nombre: "Verde Raiz",
-    telefono: "2664000005",
-    cuit: "30-71234567-8",
-    direccion: "Av. Illia 250",
-    descripcion: "Comida natural y saludable",
-    categoria: "Cocina natural",
-    ciudad: "San Luis",
-    hora_apertura: null,
-    hora_cierre: null,
-  },
-  {
-    id: 2,
-    id_usuario: 6,
-    nombre: "Hoja y Fuego",
-    telefono: "2664000006",
-    cuit: "30-79876543-2",
-    direccion: "Calle Colon 580",
-    descripcion: "Propuesta de cocina vegetal",
-    categoria: "Parrilla vegetal",
-    ciudad: "San Luis",
-    hora_apertura: null,
-    hora_cierre: null,
-  },
-];
-
-const MOCK_MENUS: Record<string, RestaurantMenu> = {
-  "verde-raiz": {
-    dishes: [
-      {
-        id: "1",
-        name: "Bowl de quinoa",
-        description: "Quinoa, vegetales frescos y aderezo de la casa",
-        price: 8500,
-        classification: "Comida",
-        imageUrl: "bowl_quinoa.jpg",
-      },
-      {
-        id: "2",
-        name: "Ensalada mediterránea",
-        description: "Vegetales frescos, aceitunas y semillas",
-        price: 7200,
-        classification: "Comida",
-        imageUrl: "ensalada_mediterranea.jpg",
-      },
-    ],
-    drinks: [
-      {
-        id: "3",
-        name: "Limonada natural",
-        description: "Limonada casera con limón fresco",
-        price: 3000,
-        classification: "Bebidas",
-        imageUrl: "limonada.jpg",
-      },
-    ],
-  },
-  "hoja-y-fuego": {
-    dishes: [
-      {
-        id: "4",
-        name: "Parrillada vegetal",
-        description: "Vegetales grillados de temporada",
-        price: 9500,
-        classification: "Comida",
-        imageUrl: "parrillada_vegetal.jpg",
-      },
-      {
-        id: "5",
-        name: "Hamburguesa vegetal",
-        description: "Hamburguesa vegetal con pan artesanal",
-        price: 8000,
-        classification: "Comida",
-        imageUrl: "hamburguesa_vegetal.jpg",
-      },
-    ],
-    drinks: [
-      {
-        id: "6",
-        name: "Jugo natural",
-        description: "Jugo natural de frutas de temporada",
-        price: 3200,
-        classification: "Bebidas",
-        imageUrl: "jugo_natural.jpg",
-      },
-    ],
-  },
-};
 
 function getMockRestaurantBySlug(slug: string): Restaurant | undefined {
   return MOCK_RESTAURANTS.map(mapRestaurant).find(
@@ -209,6 +118,7 @@ async function fetchApi<T>(path: string): Promise<T> {
   return (await response.json()) as T;
 }
 
+// GET http://localhost:3000/api/restaurantes
 export async function getRestaurants(): Promise<Restaurant[]> {
   try {
     if (USE_MOCK_DATA) {
@@ -234,6 +144,28 @@ export async function getRestaurants(): Promise<Restaurant[]> {
   }
 }
 
+// GET http://localhost:3000/api/restaurantes/:id/estado
+// Ejemplo: http://localhost:3000/api/restaurantes/1/estado
+export async function getRestaurantIsOpen(
+  restaurantId: string,
+): Promise<boolean | null> {
+  if (USE_MOCK_DATA) {
+    return null;
+  }
+
+  const status = await fetchApi<RestaurantStatusApiResponse>(
+    `/restaurantes/${encodeURIComponent(restaurantId)}/estado`,
+  );
+
+  if (typeof status.abierto !== "boolean") {
+    throw new Error("La API devolvió un estado de restaurante inválido.");
+  }
+
+  return status.abierto;
+}
+
+// En modo API reutiliza GET http://localhost:3000/api/restaurantes
+// y busca el restaurante por slug en el frontend.
 export async function getRestaurantBySlug(
   slug: string,
 ): Promise<Restaurant> {
@@ -257,14 +189,41 @@ export async function getRestaurantBySlug(
   return restaurant;
 }
 
+// Intenta GET http://localhost:3000/api/restaurants/:slug/menu.
+// Esta ruta no existe en el backend actual; el menú solo funciona en modo mock.
 export async function getRestaurantMenu(
   slug: string,
 ): Promise<RestaurantMenu> {
   if (USE_MOCK_DATA) {
-    if (!getMockRestaurantBySlug(slug)) {
+    const restaurant = MOCK_RESTAURANTS.map(mapRestaurant).find(
+      (item) => item.slug === slug,
+    );
+
+    if (!restaurant) {
       throw new Error("No se encontró el restaurante solicitado.");
     }
-    return MOCK_MENUS[slug] ?? { dishes: [], drinks: [] };
+
+    const products = MOCK_PRODUCTS.filter(
+      (product) =>
+        product.id_restaurante === Number(restaurant.id) &&
+        product.disponible,
+    ).map((product) => ({
+      id: String(product.id),
+      name: product.nombre,
+      description: product.descripcion ?? "",
+      price: Number(product.precio),
+      classification: product.categoria ?? "",
+      imageUrl: product.imagen ?? undefined,
+    }));
+
+    return {
+      dishes: products.filter(
+        (product) => product.classification !== "Bebidas",
+      ),
+      drinks: products.filter(
+        (product) => product.classification === "Bebidas",
+      ),
+    };
   }
 
   try {

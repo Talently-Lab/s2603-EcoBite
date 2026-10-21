@@ -1,5 +1,6 @@
 import Button from "@/components/ui/Button";
 import { HeroTitle } from "../ui/HeroTitle";
+import { HeroDescription } from "../ui/HeroDescription";
 
 export default function HeroSection() {
   return (
@@ -9,12 +10,12 @@ export default function HeroSection() {
         {/* LADO IZQUIERDO: Textos y Botones */}
         <div className="flex flex-col justify-center gap-6">
           {/* Título y Subtítulo originales */}
-          <div className="space-y-4">
+          <div className="space-y-5">
             <HeroTitle>Nos importa lo que elegís comer y cómo cuidamos el planeta.</HeroTitle>
-            <p className="text-base md:text-lg text-gray-600 font-medium max-w-md leading-relaxed">
+            <HeroDescription className="pt-2">
               Elegí diferente. Elegí consciente. <br />
               Disfrutá tu comida mientras reducís el impacto de tu pedido.
-            </p>
+            </HeroDescription>
           </div>
 
           <div className="flex w-full flex-col gap-3 sm:w-fit sm:flex-row">
