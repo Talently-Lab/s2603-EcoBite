@@ -1,6 +1,7 @@
 import type {
   RestaurantApiResponse,
   RestaurantProductApiResponse,
+  RestaurantScheduleApiResponse,
 } from "./restaurants";
 
 export const MOCK_RESTAURANTS: RestaurantApiResponse[] = [
@@ -40,6 +41,23 @@ export const MOCK_RESTAURANTS: RestaurantApiResponse[] = [
     ciudad: "San Luis",
     imagen: null,
   },
+];
+
+// Horarios mock separados, con las mismas columnas de horario_restaurante del backend.
+export const MOCK_RESTAURANT_HOURS: RestaurantScheduleApiResponse[] = [
+  { id: 3, id_restaurante: 1, dia_semana: 1, hora_apertura: "19:00:00", hora_cierre: "23:59:00" },
+  { id: 15, id_restaurante: 1, dia_semana: 1, hora_apertura: "09:00:00", hora_cierre: "13:59:00" },
+  { id: 4, id_restaurante: 1, dia_semana: 2, hora_apertura: "09:00:00", hora_cierre: "13:59:00" },
+  { id: 5, id_restaurante: 1, dia_semana: 2, hora_apertura: "20:00:00", hora_cierre: "23:59:00" },
+  { id: 6, id_restaurante: 1, dia_semana: 3, hora_apertura: "09:00:00", hora_cierre: "13:59:00" },
+  { id: 7, id_restaurante: 1, dia_semana: 3, hora_apertura: "20:00:00", hora_cierre: "23:59:00" },
+  { id: 8, id_restaurante: 1, dia_semana: 4, hora_apertura: "09:00:00", hora_cierre: "13:59:00" },
+  { id: 9, id_restaurante: 1, dia_semana: 4, hora_apertura: "20:00:00", hora_cierre: "23:59:00" },
+  { id: 10, id_restaurante: 1, dia_semana: 5, hora_apertura: "09:00:00", hora_cierre: "13:59:00" },
+  { id: 11, id_restaurante: 1, dia_semana: 5, hora_apertura: "20:00:00", hora_cierre: "23:59:00" },
+  { id: 12, id_restaurante: 1, dia_semana: 6, hora_apertura: "09:00:00", hora_cierre: "13:59:00" },
+  { id: 13, id_restaurante: 1, dia_semana: 6, hora_apertura: "20:00:00", hora_cierre: "23:59:00" },
+  { id: 14, id_restaurante: 1, dia_semana: 7, hora_apertura: "09:00:00", hora_cierre: "13:59:00" },
 ];
 
 export const MOCK_PRODUCTS: RestaurantProductApiResponse[] = [

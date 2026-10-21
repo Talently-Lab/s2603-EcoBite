@@ -17,7 +17,7 @@ export default function Pagination({
   return (
     <nav
       aria-label="Paginación de restaurantes"
-      className="mt-12 grid grid-cols-1 justify-items-center gap-4 border-t border-gray-100 pt-8 sm:flex sm:items-center sm:justify-center sm:gap-6"
+      className="grid grid-cols-1 justify-items-center gap-4 sm:flex sm:items-center sm:justify-center sm:gap-6"
     >
       <button
         type="button"

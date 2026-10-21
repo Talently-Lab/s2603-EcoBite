@@ -1,31 +1,48 @@
-import { useState } from "react";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
+import { useState, type ChangeEvent, type FormEvent } from "react";
 import { z } from "zod";
 import { Link } from "react-router-dom";
 import Button from "../ui/Button";
 import { GlobalAlert } from "../ui/GlobalAlert";
 import { Input } from "../ui/Input";
+import { useAuth } from "../../contexts/AuthContext";
 import {
+  createRestaurantProfile,
+  loginAccount,
   registerAccount,
   type RegistrationAccountType,
 } from "../../services/auth";
 
-const registrationSchema = z
-  .object({
+const registrationFields = z.object({
     email: z.string().trim().email("Ingresá un email válido."),
     contrasena: z
       .string()
       .min(8, "La contraseña debe tener al menos 8 caracteres."),
     confirmPassword: z.string().min(1, "Confirmá tu contraseña."),
     canal_adquisicion: z.string().min(1, "Seleccioná una opción."),
+  });
+
+const registrationSchema = registrationFields
+  .refine((data) => data.contrasena === data.confirmPassword, {
+    message: "Las contraseñas no coinciden.",
+    path: ["confirmPassword"],
+  });
+
+const restaurantRegistrationSchema = registrationFields
+  .extend({
+    nombre: z.string().trim().min(1, "Ingresá el nombre del restaurante."),
+    cuit: z.string().trim().min(1, "Ingresá el CUIT del restaurante."),
+    categoria: z.string().trim().min(1, "Ingresá la categoría del restaurante."),
   })
   .refine((data) => data.contrasena === data.confirmPassword, {
     message: "Las contraseñas no coinciden.",
     path: ["confirmPassword"],
   });
 
-type RegistrationFormValues = z.infer<typeof registrationSchema>;
+type RegistrationFormValues = z.infer<typeof registrationFields> & {
+  nombre: string;
+  cuit: string;
+  categoria: string;
+};
 
 const accountTypes: { value: RegistrationAccountType; label: string }[] = [
   { value: "cliente", label: "Cliente" },
@@ -33,33 +50,74 @@ const accountTypes: { value: RegistrationAccountType; label: string }[] = [
 ];
 
 export function RegistrationForm() {
+  const { login } = useAuth();
   const [accountType, setAccountType] =
     useState<RegistrationAccountType>("cliente");
-  const [isRegistered, setIsRegistered] = useState(false);
-  const [submitError, setSubmitError] = useState<string | null>(null);
-  const {
-    register,
-    handleSubmit,
-    formState: { errors, isSubmitting },
-  } = useForm<RegistrationFormValues>({
-    resolver: zodResolver(registrationSchema),
-    defaultValues: {
-      email: "",
-      contrasena: "",
-      confirmPassword: "",
-      canal_adquisicion: "",
-    },
+  const [form, setForm] = useState<RegistrationFormValues>({
+    email: "",
+    contrasena: "",
+    confirmPassword: "",
+    canal_adquisicion: "",
+    nombre: "",
+    cuit: "",
+    categoria: "",
   });
+  const [errors, setErrors] = useState<Partial<Record<keyof RegistrationFormValues, string>>>({});
+  const [isRegistered, setIsRegistered] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
-  async function onSubmit(values: RegistrationFormValues) {
+  function handleChange(event: ChangeEvent<HTMLInputElement | HTMLSelectElement>) {
+    const { name, value } = event.currentTarget;
+    if (!(name in form)) return;
+
+    setForm((current) => ({ ...current, [name]: value }));
+    setErrors((current) => ({ ...current, [name]: undefined }));
     setSubmitError(null);
+  }
+
+  async function onSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSubmitError(null);
+    const result = (accountType === "restaurante"
+      ? restaurantRegistrationSchema
+      : registrationSchema
+    ).safeParse(form);
+
+    if (!result.success) {
+      const nextErrors: Partial<Record<keyof RegistrationFormValues, string>> = {};
+      for (const issue of result.error.issues) {
+        const field = issue.path[0];
+        if (typeof field === "string" && field in form) {
+          nextErrors[field as keyof RegistrationFormValues] = issue.message;
+        }
+      }
+      setErrors(nextErrors);
+      return;
+    }
+
+    setErrors({});
+    setIsSubmitting(true);
 
     try {
       await registerAccount(accountType, {
-        email: values.email,
-        contrasena: values.contrasena,
-        canal_adquisicion: values.canal_adquisicion,
+        email: result.data.email,
+        contrasena: result.data.contrasena,
+        canal_adquisicion: result.data.canal_adquisicion,
       });
+      if (accountType === "restaurante") {
+        const restaurantData = result.data as RegistrationFormValues;
+        const session = await loginAccount({
+          email: restaurantData.email,
+          contrasena: restaurantData.contrasena,
+        });
+        await createRestaurantProfile(session.token, {
+          nombre: restaurantData.nombre,
+          cuit: restaurantData.cuit,
+          categoria: restaurantData.categoria,
+        });
+        login(session.token, session.usuario);
+      }
       setIsRegistered(true);
     } catch (error) {
       setSubmitError(
@@ -69,6 +127,8 @@ export function RegistrationForm() {
             ? error.message
             : "No se pudo crear la cuenta. Intentá de nuevo.",
       );
+    } finally {
+      setIsSubmitting(false);
     }
   }
 
@@ -76,11 +136,18 @@ export function RegistrationForm() {
     return (
       <div className="flex flex-col gap-5">
         <GlobalAlert
-          message="Tu cuenta se creó correctamente. Ya podés iniciar sesión."
+          message={
+            accountType === "restaurante"
+              ? "Tu cuenta y el perfil del restaurante se crearon correctamente."
+              : "Tu cuenta se creó correctamente. Ya podés iniciar sesión."
+          }
           variant="info"
         />
-        <Button to="/login" className="w-full text-center">
-          Ir a iniciar sesión
+        <Button
+          to={accountType === "restaurante" ? "/" : "/login"}
+          className="w-full text-center"
+        >
+          {accountType === "restaurante" ? "Ir al inicio" : "Ir a iniciar sesión"}
         </Button>
       </div>
     );
@@ -99,6 +166,7 @@ export function RegistrationForm() {
             <button
               key={type.value}
               type="button"
+              disabled={isSubmitting}
               aria-pressed={accountType === type.value}
               onClick={() => {
                 setAccountType(type.value);
@@ -118,39 +186,81 @@ export function RegistrationForm() {
 
       <form
         className="flex flex-col gap-5"
-        onSubmit={handleSubmit(onSubmit)}
-        onChange={() => setSubmitError(null)}
+        onSubmit={onSubmit}
         noValidate
       >
         {submitError && <GlobalAlert message={submitError} />}
 
         <Input
-          {...register("email")}
           label="Email"
+          name="email"
           type="email"
           autoComplete="email"
           placeholder="nombre@ejemplo.com"
+          value={form.email}
+          onChange={handleChange}
           error={Boolean(errors.email)}
-          errorMessage={errors.email?.message}
+          errorMessage={errors.email}
         />
         <Input
-          {...register("contrasena")}
           label="Contraseña"
+          name="contrasena"
           type="password"
           autoComplete="new-password"
           placeholder="Al menos 8 caracteres"
+          value={form.contrasena}
+          onChange={handleChange}
           error={Boolean(errors.contrasena)}
-          errorMessage={errors.contrasena?.message}
+          errorMessage={errors.contrasena}
         />
         <Input
-          {...register("confirmPassword")}
           label="Confirmar contraseña"
+          name="confirmPassword"
           type="password"
           autoComplete="new-password"
           placeholder="Repetí tu contraseña"
+          value={form.confirmPassword}
+          onChange={handleChange}
           error={Boolean(errors.confirmPassword)}
-          errorMessage={errors.confirmPassword?.message}
+          errorMessage={errors.confirmPassword}
         />
+
+        {accountType === "restaurante" && (
+          <>
+            <Input
+              label="Nombre del restaurante"
+              name="nombre"
+              type="text"
+              autoComplete="organization"
+              placeholder="Nombre del local"
+              value={form.nombre}
+              onChange={handleChange}
+              error={Boolean(errors.nombre)}
+              errorMessage={errors.nombre}
+            />
+            <Input
+              label="CUIT"
+              name="cuit"
+              type="text"
+              inputMode="numeric"
+              placeholder="30-12345678-9"
+              value={form.cuit}
+              onChange={handleChange}
+              error={Boolean(errors.cuit)}
+              errorMessage={errors.cuit}
+            />
+            <Input
+              label="Categoría"
+              name="categoria"
+              type="text"
+              placeholder="Cocina natural"
+              value={form.categoria}
+              onChange={handleChange}
+              error={Boolean(errors.categoria)}
+              errorMessage={errors.categoria}
+            />
+          </>
+        )}
 
         <div className="flex w-full flex-col font-sans text-sm">
           <label
@@ -161,7 +271,9 @@ export function RegistrationForm() {
           </label>
           <select
             id="registration-channel"
-            {...register("canal_adquisicion")}
+            name="canal_adquisicion"
+            value={form.canal_adquisicion}
+            onChange={handleChange}
             aria-invalid={Boolean(errors.canal_adquisicion) || undefined}
             aria-describedby={
               errors.canal_adquisicion
@@ -178,13 +290,13 @@ export function RegistrationForm() {
             <option value="busqueda_web">Búsqueda en internet</option>
             <option value="otro">Otro</option>
           </select>
-          {errors.canal_adquisicion?.message && (
+          {errors.canal_adquisicion && (
             <span
               id="registration-channel-error"
               className="mt-1 flex items-center gap-1 text-xs text-red-600"
             >
               <span aria-hidden="true">✕</span>
-              {errors.canal_adquisicion.message}
+              {errors.canal_adquisicion}
             </span>
           )}
         </div>

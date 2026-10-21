@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import Logo from "../ui/Logo";
 import NavLinks from "./NavLinks";
@@ -6,15 +6,46 @@ import MobileMenu from "./MobileMenu";
 import Modal from "../modal/Modal";
 import Button from "../ui/Button";
 import { ShoppingCart } from "lucide-react";
+import { useAuth } from "../../contexts/AuthContext";
+import { getRestaurants } from "../../services/restaurants";
 
 interface NavbarProps {
   cartCount: number;
 }
 
 export default function Navbar({ cartCount }: NavbarProps) {
+  const { user, isAuthenticated, loading, logout } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isImpactOpen, setIsImpactOpen] = useState(false);
   const [isHowItWorksOpen, setIsHowItWorksOpen] = useState(false);
+  const [restaurantName, setRestaurantName] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isAuthenticated || user?.rol !== "restaurante" || !user.id) {
+      setRestaurantName(null);
+      return;
+    }
+
+    let isCurrent = true;
+    getRestaurants()
+      .then((restaurants) => {
+        if (!isCurrent) return;
+        const restaurant = restaurants.find((item) => item.userId === user.id);
+        setRestaurantName(restaurant?.name ?? null);
+      })
+      .catch(() => {
+        if (isCurrent) setRestaurantName(null);
+      });
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [isAuthenticated, user]);
+
+  const userName =
+    user?.rol === "restaurante"
+      ? restaurantName ?? user.email ?? "tu restaurante"
+      : user?.email ?? "usuario";
   const cartLink = (
     <Link
       to="/carrito"
@@ -46,32 +77,66 @@ export default function Navbar({ cartCount }: NavbarProps) {
           </div>
 
           <div className="hidden shrink-0 items-center gap-1 whitespace-nowrap text-sm md:flex md:gap-2 lg:gap-4 xl:gap-5">
-            <Button
-              to="/login"
-              variant="light"
-              className="px-2 py-1.5 text-xs hover:bg-gray-50 lg:px-3.5 lg:py-2 lg:text-sm"
-            >
-              Iniciar sesión
-            </Button>
-            <Button
-              to="/registro"
-              variant="dark"
-              className="px-2 py-1.5 text-xs hover:bg-eco-dark/90 lg:px-3.5 lg:py-2 lg:text-sm"
-            >
-              Registrarme
-            </Button>
+            {!loading && (isAuthenticated ? (
+              <>
+                <span className="px-2 py-1.5 text-sm font-semibold text-eco-dark">
+                  Hola, {userName}
+                </span>
+                <Button
+                  type="button"
+                  variant="dark"
+                  onClick={logout}
+                  className="px-2 py-1.5 text-xs hover:bg-eco-dark/90 lg:px-3.5 lg:py-2 lg:text-sm"
+                >
+                  Cerrar sesión
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button
+                  to="/login"
+                  variant="light"
+                  className="px-2 py-1.5 text-xs hover:bg-gray-50 lg:px-3.5 lg:py-2 lg:text-sm"
+                >
+                  Iniciar sesión
+                </Button>
+                <Button
+                  to="/registro"
+                  variant="dark"
+                  className="px-2 py-1.5 text-xs hover:bg-eco-dark/90 lg:px-3.5 lg:py-2 lg:text-sm"
+                >
+                  Registrarme
+                </Button>
+              </>
+            ))}
             {cartLink}
           </div>
 
           {/* orden mobile */}
           <div className="flex items-center gap-3 md:hidden">
-            <Button
-              to="/registro"
-              variant="dark"
-              className="hover:bg-eco-dark/90"
-            >
-              Registrarme
-            </Button>
+            {!loading && (isAuthenticated ? (
+              <>
+                <span className="text-sm font-semibold text-eco-dark">
+                  Hola, {userName}
+                </span>
+                <Button
+                  type="button"
+                  variant="dark"
+                  onClick={logout}
+                  className="hover:bg-eco-dark/90"
+                >
+                  Cerrar sesión
+                </Button>
+              </>
+            ) : (
+              <Button
+                to="/registro"
+                variant="dark"
+                className="hover:bg-eco-dark/90"
+              >
+                Registrarme
+              </Button>
+            ))}
             {cartLink}
             <button
               type="button"

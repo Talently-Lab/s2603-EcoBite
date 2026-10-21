@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import Button from "../ui/Button";
+import { useAuth } from "../../contexts/AuthContext";
 
 interface NavLinksProps {
   mobile?: boolean;
@@ -14,6 +15,7 @@ export default function NavLinks({
   onOpenImpactModal,
   onOpenHowItWorksModal,
 }: NavLinksProps) {
+  const { isAuthenticated, loading } = useAuth();
   
   // Estilo único para las filas del menú móvil
   const itemStyle = mobile 
@@ -57,7 +59,7 @@ export default function NavLinks({
         {mobile && <span className="text-eco-dark font-normal">&gt;</span>}
       </Link>
 
-      {mobile && (
+      {mobile && !loading && !isAuthenticated && (
         <Button
           to="/login"
           variant="light"

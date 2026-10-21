@@ -36,8 +36,13 @@ export default function HeroSection() {
           </div>
         </div>
 
+
         {/* Placeholder hasta contar con la imagen principal */}
-        <div className="min-h-68 w-full rounded-2xl bg-eco-light shadow-sm md:min-h-112" />
+        {/* <div className="min-h-68 w-full rounded-2xl bg-eco-light shadow-sm md:min-h-112" /> */}
+        <div className="min-h-68 w-full rounded-2xl bg-eco-light shadow-sm md:min-h-112">
+          <img src={"/public/images/EcoBadge.png"} alt="EcoBadge" className="h-full w-full object-contain" />
+        </div>
+        
       </div>
     </section>
   );

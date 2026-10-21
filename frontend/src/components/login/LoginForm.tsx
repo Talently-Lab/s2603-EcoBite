@@ -1,7 +1,10 @@
 import { useState, type ChangeEvent, type FormEvent } from "react";
+import { useNavigate } from "react-router-dom";
 import Button from "../ui/Button";
 import { GlobalAlert } from "../ui/GlobalAlert";
 import { Input } from "../ui/Input";
+import { useAuth } from "../../contexts/AuthContext";
+import { loginAccount } from "../../services/auth";
 
 type LoginFields = {
   email: string;
@@ -11,8 +14,11 @@ type LoginFields = {
 type LoginErrors = Partial<Record<keyof LoginFields, string>>;
 
 export function LoginForm() {
+  const navigate = useNavigate();
+  const { login } = useAuth();
   const [form, setForm] = useState<LoginFields>({ email: "", password: "" });
   const [errors, setErrors] = useState<LoginErrors>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [feedback, setFeedback] = useState<{
     message: string;
     variant: "error" | "info";
@@ -27,7 +33,7 @@ export function LoginForm() {
     setFeedback(null);
   }
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const nextErrors: LoginErrors = {};
 
@@ -42,17 +48,35 @@ export function LoginForm() {
     }
 
     setErrors(nextErrors);
-    setFeedback(
-      Object.keys(nextErrors).length === 0
-        ? {
-            message: "El inicio de sesión estará disponible próximamente.",
-            variant: "info",
-          }
-        : {
-            message: "Revisá los campos marcados e intentá nuevamente.",
-            variant: "error",
-          },
-    );
+    if (Object.keys(nextErrors).length > 0) {
+      setFeedback({
+        message: "Revisá los campos marcados e intentá nuevamente.",
+        variant: "error",
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const session = await loginAccount({
+        email: form.email.trim(),
+        contrasena: form.password,
+      });
+      login(session.token, session.usuario);
+      navigate("/");
+    } catch (error) {
+      setFeedback({
+        message:
+          error instanceof TypeError
+            ? "No pudimos conectar con el servidor. Revisá tu conexión e intentá de nuevo."
+            : error instanceof Error
+              ? error.message
+              : "No se pudo iniciar sesión. Intentá de nuevo.",
+        variant: "error",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -98,9 +122,10 @@ export function LoginForm() {
 
         <Button
           type="submit"
+          disabled={isSubmitting}
           className="w-full text-center shadow-sm transition-colors hover:brightness-110"
         >
-          Ingresar
+          {isSubmitting ? "Ingresando..." : "Ingresar"}
         </Button>
       </form>
     </>

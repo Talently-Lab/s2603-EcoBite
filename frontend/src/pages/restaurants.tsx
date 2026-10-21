@@ -11,7 +11,7 @@ import EmptyState from "../components/ui/EmptyState";
 import { ErrorState } from "../components/ui/ErrorState";
 import { Loader } from "../components/ui/Loader";
 
-const RESTAURANTS_PER_PAGE = 3;
+const RESTAURANTS_PER_PAGE = 6;
 
 // Función utilitaria para normalizar texto a slugs de URL
 function categoryToSlug(category: string) {
@@ -68,11 +68,13 @@ export function RestaurantesPage() {
 
   // Validaciones lógicas de la URL
   const validPage = Number.isInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1;
-  const categories = [
-    ...new Set(
-      restaurants.flatMap(({ category }) => (category ? [category] : [])),
-    ),
-  ];
+  const categories = Array.from(
+    new Map(
+      restaurants
+        .flatMap(({ category }) => (category ? [category] : []))
+        .map((category) => [categoryToSlug(category), category]),
+    ).values(),
+  );
   const validCategories = categories.map(categoryToSlug);
   const selectedCategory = validCategories.includes(category) ? category : "";
 
@@ -179,7 +181,7 @@ export function RestaurantesPage() {
       </HeroDescription>
 
       <div className="mt-10 flex flex-col gap-8">
-        <div className="flex w-full flex-col gap-4 rounded-2xl border border-gray-100 bg-white p-6 shadow-sm sm:flex-row sm:items-center">
+        <div className="flex w-full flex-col gap-4 rounded-2xl border border-gray-100 bg-white p-6 shadow-sm sm:flex-row sm:items-center sm:justify-between">
           <FilterDropdown
             label="Tipo de comida"
             value={selectedCategory}
@@ -274,7 +276,7 @@ export function RestaurantesPage() {
 
           {/* Paginación limpia e independiente en la base */}
           {!isLoading && !loadError && pageRestaurants.length > 0 && (
-            <div className="mt-6 flex justify-center border-t border-gray-100 pt-8">
+            <div className="mt-0 flex justify-center border-t-0 pt-0">
               <Pagination
                 currentPage={currentPage}
                 totalPages={totalPages}

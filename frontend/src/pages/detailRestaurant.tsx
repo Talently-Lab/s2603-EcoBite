@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { HeroTitle } from "../components/ui/HeroTitle";
-import { HeroDescription } from "../components/ui/HeroDescription";
 import EmptyState from "../components/ui/EmptyState";
 import { MenuItem } from "../components/detailRestaurant/menuItem";
+import { RestaurantInfoTags } from "../components/detailRestaurant/RestaurantInfoTags";
+import { useAuth } from "../contexts/AuthContext";
 import {
   OrderSummary,
   type CartItem,
@@ -11,10 +12,16 @@ import {
 import {
   getRestaurantBySlug,
   getRestaurantMenu,
+  getRestaurantSchedules,
   type MenuItemData,
   type Restaurant,
   type RestaurantMenu,
+  type RestaurantScheduleApiResponse,
 } from "../services/restaurants";
+
+const WEEKDAYS = [
+  "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo",
+];
 
 type DetalleRestaurantePageProps = {
   items: CartItem[];
@@ -26,10 +33,12 @@ export function DetalleRestaurantePage({
   onAdd,
 }: DetalleRestaurantePageProps) {
   const { slug } = useParams();
+  const { token } = useAuth();
   const [loadedData, setLoadedData] = useState<{
     slug: string;
     restaurant: Restaurant;
     menu: RestaurantMenu;
+    schedules: RestaurantScheduleApiResponse[];
   } | null>(null);
   const [loadError, setLoadError] = useState<{
     slug: string;
@@ -42,12 +51,14 @@ export function DetalleRestaurantePage({
     let isCurrent = true;
 
     Promise.all([getRestaurantBySlug(slug), getRestaurantMenu(slug)])
-      .then(([restaurantData, menuData]) => {
+      .then(async ([restaurantData, menuData]) => {
+        const schedules = await getRestaurantSchedules(restaurantData.id, token);
         if (!isCurrent) return;
         setLoadedData({
           slug,
           restaurant: restaurantData,
           menu: menuData,
+          schedules,
         });
         setLoadError(null);
       })
@@ -66,7 +77,7 @@ export function DetalleRestaurantePage({
     return () => {
       isCurrent = false;
     };
-  }, [slug]);
+  }, [slug, token]);
 
   if (!slug) {
     return (
@@ -99,7 +110,18 @@ export function DetalleRestaurantePage({
     );
   }
 
-  const { restaurant, menu } = currentData;
+  const { restaurant, menu, schedules } = currentData;
+  const scheduleSentence = schedules.length === 0
+    ? "Horarios no disponibles."
+    : WEEKDAYS.map((day, index) => {
+        const shifts = schedules
+          .filter((schedule) => schedule.dia_semana === index + 1)
+          .sort((a, b) => a.hora_apertura.localeCompare(b.hora_apertura));
+        const hours = shifts.length > 0
+          ? shifts.map((shift) => `de ${shift.hora_apertura.slice(0, 5)} a ${shift.hora_cierre.slice(0, 5)}`).join(" y ")
+          : "cerrado";
+        return `${day}: ${hours}`;
+      }).join(" · ") + ".";
   const restaurantDetails = [
     ...(restaurant.category ? [restaurant.category] : []),
     ...(restaurant.city ? [restaurant.city] : []),
@@ -116,15 +138,17 @@ export function DetalleRestaurantePage({
       <section className="mt-8 flex flex-col items-start gap-5">
         <div className="flex flex-col gap-3">
           <HeroTitle>{restaurant.name}</HeroTitle>
-          <HeroDescription>
-            Conocé el menú y elegí tus platos favoritos.
-          </HeroDescription>
         </div>
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm font-medium text-gray-600">
           {restaurantDetails.map((detail) => (
             <span key={detail}>{detail}</span>
           ))}
         </div>
+        <p className="m-0 text-sm font-medium text-eco-text-secondary">
+          <span className="font-semibold text-eco-dark">Horario:</span>{" "}
+          {scheduleSentence}
+        </p>
+        <RestaurantInfoTags labels={["biodegradable", "sin-emisiones", "ahorro-co2"]} />
       </section>
 
       <div className="mt-12 grid gap-10 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start">

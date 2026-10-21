@@ -1,4 +1,8 @@
-import { MOCK_PRODUCTS, MOCK_RESTAURANTS } from "./restaurants.mock";
+import {
+  MOCK_PRODUCTS,
+  MOCK_RESTAURANTS,
+  MOCK_RESTAURANT_HOURS,
+} from "./restaurants.mock";
 
 export interface RestaurantApiResponse {
   id: number;
@@ -11,6 +15,14 @@ export interface RestaurantApiResponse {
   categoria: string | null;
   ciudad: string | null;
   imagen: string | null;
+}
+
+export interface RestaurantScheduleApiResponse {
+  id: number;
+  id_restaurante: number;
+  dia_semana: number;
+  hora_apertura: string;
+  hora_cierre: string;
 }
 
 export interface RestaurantProductApiResponse {
@@ -62,6 +74,24 @@ const API_BASE_URL = (
 ).replace(/\/$/, "");
 
 const USE_MOCK_DATA = import.meta.env.VITE_DATA_SOURCE !== "api";
+
+function getSanLuisDayAndTime(now: Date) {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/Argentina/San_Luis",
+    weekday: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(now);
+  const part = (type: string) => parts.find((item) => item.type === type)?.value;
+  const dayNames: Record<string, number> = {
+    Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6, Sun: 7,
+  };
+  return {
+    day: dayNames[part("weekday") ?? ""],
+    minutes: Number(part("hour")) * 60 + Number(part("minute")),
+  };
+}
 
 class ApiRequestError extends Error {
   readonly status: number;
@@ -150,7 +180,47 @@ export async function getRestaurantIsOpen(
   restaurantId: string,
 ): Promise<boolean | null> {
   if (USE_MOCK_DATA) {
-    return null;
+    const dayNames: Record<string, number> = {
+      Mon: 1,
+      Tue: 2,
+      Wed: 3,
+      Thu: 4,
+      Fri: 5,
+      Sat: 6,
+      Sun: 7,
+    };
+    const parts = new Intl.DateTimeFormat("en-US", {
+      timeZone: "America/Argentina/San_Luis",
+      weekday: "short",
+      hour: "2-digit",
+      minute: "2-digit",
+      hourCycle: "h23",
+    }).formatToParts(new Date());
+    const part = (type: string) => parts.find((item) => item.type === type)?.value;
+    const day = dayNames[part("weekday") ?? ""];
+    const currentTime = Number(part("hour")) * 60 + Number(part("minute"));
+
+    return MOCK_RESTAURANT_HOURS.some((schedule) => {
+      if (
+        schedule.id_restaurante !== Number(restaurantId) ||
+        schedule.dia_semana !== day
+      ) {
+        return false;
+      }
+
+      const [openHour, openMinute] = schedule.hora_apertura
+        .slice(0, 5)
+        .split(":")
+        .map(Number);
+      const [closeHour, closeMinute] = schedule.hora_cierre
+        .slice(0, 5)
+        .split(":")
+        .map(Number);
+      const opensAt = openHour * 60 + openMinute;
+      const closesAt = closeHour * 60 + closeMinute;
+
+      return currentTime >= opensAt && currentTime < closesAt + 1;
+    });
   }
 
   const status = await fetchApi<RestaurantStatusApiResponse>(
@@ -162,6 +232,37 @@ export async function getRestaurantIsOpen(
   }
 
   return status.abierto;
+}
+
+export async function getRestaurantSchedules(
+  restaurantId: string,
+  token: string | null,
+): Promise<RestaurantScheduleApiResponse[]> {
+  if (USE_MOCK_DATA) {
+    return MOCK_RESTAURANT_HOURS.filter(
+      (schedule) => schedule.id_restaurante === Number(restaurantId),
+    );
+  }
+
+  if (!token) return [];
+
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}/restaurantes/${encodeURIComponent(restaurantId)}/horarios`,
+      { headers: { Authorization: `Bearer ${token}` } },
+    );
+    if (!response.ok) return [];
+
+    const body: unknown = await response.json();
+    if (
+      typeof body !== "object" || body === null ||
+      !("horarios" in body) || !Array.isArray(body.horarios)
+    ) return [];
+
+    return body.horarios as RestaurantScheduleApiResponse[];
+  } catch {
+    return [];
+  }
 }
 
 // En modo API reutiliza GET http://localhost:3000/api/restaurantes

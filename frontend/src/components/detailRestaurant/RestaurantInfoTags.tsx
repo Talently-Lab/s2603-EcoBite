@@ -1,17 +1,17 @@
-import { Leaf, Zap } from "lucide-react";
+import { Leaf, Zap, Cloud } from "lucide-react";
 import Badge from '../ui/Badge';
 
 // Centralizamos las configuraciones de los 3 tipos de la imagen
 const LABEL_CONFIG: Record<string, { className: string; icon: React.ReactNode; text: string }> = {
   "sin-emisiones": {
     text: "Transporte sin emisiones",
-    className: "bg-green-100 text-green-800",
+    className: "bg-[#E5F2F1] text-[#245856] ",
     icon: <Zap className="h-3.5 w-3.5" />
   },
   "ahorro-co2": {
-    text: "Ahorra ~200 g CO₂ por pedido",
-    className: "bg-[#DDEEF3] text-[#144B5B]",
-    icon: <span className="text-[10px] font-extrabold tracking-tighter">CO₂</span>
+    text: "Ahorra ~300 g CO₂ por pedido",
+    className: "bg-[#E6F0F5] text-[#255261]",
+    icon: <Cloud className="h-3.5 w-3.5" />
   }
 };
 
@@ -31,7 +31,7 @@ export function RestaurantInfoTags({ labels = [] }: RestaurantInfoTagsProps) {
           return (
             <Badge
               key={labelKey}
-              text="Envase biodegradable"
+              text="Envase 100 % biodegradable"
               className="bg-eco-light text-eco-dark"
               icon={<Leaf className="h-3.5 w-3.5" />}
             />

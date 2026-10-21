@@ -14,7 +14,7 @@ interface FilterDropdownProps {
 
 export function FilterDropdown({ label, value, options, onChange }: FilterDropdownProps) {
   return (
-    <div className="relative w-full font-sans">
+    <div className="relative w-full shrink-0 font-sans sm:w-56">
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
