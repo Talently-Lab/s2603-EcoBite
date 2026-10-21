@@ -1,12 +1,14 @@
 import Button from "../ui/Button";
 import { ImpactBadge } from "../ui/ImpactBadge";
 import { Title } from "../ui/Title";
-import { Link } from "react-router-dom";
 import type { CartItem } from "../detailRestaurant/OrderSummary";
+import { CheckoutSubmitLoader } from "./CheckoutSubmitLoader";
+import { Link } from "react-router-dom";
 
 interface CheckoutOrderSummaryProps {
   items: CartItem[];
   savedCo2Kg: number | null;
+  isLoading: boolean;
 }
 
 function formatCurrency(value: number) {
@@ -19,6 +21,7 @@ function formatCurrency(value: number) {
 export function CheckoutOrderSummary({
   items,
   savedCo2Kg,
+  isLoading,
 }: CheckoutOrderSummaryProps) {
   const subtotal = items.reduce((total, item) => total + item.price, 0);
 
@@ -76,13 +79,19 @@ export function CheckoutOrderSummary({
 
       <Button
         type="submit"
-        className="block w-full text-center shadow-sm transition-colors hover:brightness-110"
+        disabled={isLoading}
+        className="block w-full cursor-pointer text-center shadow-sm transition-colors hover:brightness-110 disabled:cursor-not-allowed"
       >
-        Confirmar pedido
+        {isLoading ? <CheckoutSubmitLoader /> : "Confirmar pedido"}
       </Button>
       <Link
         to="/carrito"
-        className="text-center text-sm font-semibold text-eco-dark underline underline-offset-2 hover:text-eco-dark/70"
+        aria-disabled={isLoading}
+        tabIndex={isLoading ? -1 : undefined}
+        onClick={(event) => {
+          if (isLoading) event.preventDefault();
+        }}
+        className={`text-center text-sm font-semibold text-eco-dark underline underline-offset-2 hover:text-eco-dark/70 ${isLoading ? "pointer-events-none cursor-not-allowed opacity-50" : ""}`}
       >
         Volver al carrito
       </Link>
