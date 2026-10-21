@@ -221,11 +221,12 @@ export async function getRestaurants(): Promise<Restaurant[]> {
     return restaurants.map(mapRestaurant);
   } catch (error) {
     if (!USE_MOCK_DATA && error instanceof TypeError) {
-      console.warn(
-        "La API no está disponible; se usarán los restaurantes de muestra.",
-        error,
+      const connectionError = new Error(
+        "No se pudo conectar cargar los restarunates. ",
+        { cause: error },
       );
-      return MOCK_RESTAURANTS.map(mapRestaurant);
+      console.error(connectionError.message, error);
+      throw connectionError;
     }
 
     console.error("No se pudieron cargar los restaurantes.", error);
@@ -276,18 +277,15 @@ export async function getRestaurantMenu(
     }
 
     if (error instanceof TypeError) {
-      console.warn(
-        "La API no está disponible; se usará el menú de muestra.",
-        error,
+      const connectionError = new Error(
+        "No se pudo conectar con la API para cargar el menú. Verificá que el backend esté iniciado y que VITE_API_URL sea correcta.",
+        { cause: error },
       );
-      if (!getMockRestaurantBySlug(slug)) {
-        throw new Error("No se encontró el restaurante solicitado.", {
-          cause: error,
-        });
-      }
-      return MOCK_MENUS[slug] ?? { dishes: [], drinks: [] };
+      console.error(connectionError.message, error);
+      throw connectionError;
     }
 
+    console.error("No se pudo cargar el menú desde la API.", error);
     throw error;
   }
 }

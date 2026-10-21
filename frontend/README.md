@@ -44,7 +44,8 @@ Para conectarte a la API, cambiá el valor a `VITE_DATA_SOURCE=api` y configurá
 `VITE_API_URL` con su URL base. Se esperan los endpoints `GET /restaurantes` y
 `GET /restaurants/:slug/menu`; las respuestas deben coincidir con los tipos
 `RestaurantApiResponse` y `RestaurantMenu` del servicio. Si la conexión falla,
-se usan los datos locales como alternativa.
+se registra un error en la consola del navegador y la interfaz muestra el
+mensaje de error; no se sustituyen los datos de la API por datos mock.
 
 Después de crear o modificar `.env.local`, detené y volvé a iniciar Vite con
 `pnpm dev` para que lea la configuración nueva. Los cambios en los datos mock
