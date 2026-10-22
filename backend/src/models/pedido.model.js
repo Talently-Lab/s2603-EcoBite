@@ -251,6 +251,22 @@ async function confirmarEntrega(idPedido, idUsuario) {
     return resultado.rows[0];
 }
 
+async function marcarNoEntregado(idPedido, idUsuario) {
+    const resultado = await pool.query(
+        `UPDATE pedido AS p
+         SET estado_pedido = 'no_entregado'
+         FROM cliente AS c
+         WHERE p.id = $1
+           AND c.id_usuario = $2
+           AND p.id_cliente = c.id
+           AND p.estado_pedido = 'despachado'
+         RETURNING p.*`,
+        [idPedido, idUsuario]
+    );
+
+    return resultado.rows[0] || null;
+}
+
 
 async function calificarPedido(idPedido, idUsuario, calificacion) {
     const resultado = await pool.query(
@@ -331,6 +347,7 @@ module.exports = {
     aceptarPedido,
     despacharPedido,
     confirmarEntrega,
+    marcarNoEntregado,
     calificarPedido,
     rechazarPedido,
     cancelarPedido,

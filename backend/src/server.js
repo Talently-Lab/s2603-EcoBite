@@ -1599,6 +1599,41 @@ app.patch('/api/ordenes/:id/recibido',verificarToken,verificarRol('cliente'),asy
     }
 );
 
+app.patch('/api/ordenes/:id/no-entregado', verificarToken, verificarRol('cliente'), async (req, res) => {
+    try {
+        const idPedido = Number(req.params.id);
+
+        if (!Number.isInteger(idPedido) || idPedido <= 0) {
+            return res.status(400).json({
+                mensaje: 'El ID del pedido no es válido'
+            });
+        }
+
+        const pedido = await pedidoModel.marcarNoEntregado(
+            idPedido,
+            req.usuario.id
+        );
+
+        if (!pedido) {
+            return res.status(404).json({
+                mensaje: 'Pedido no encontrado, no pertenece a este cliente o no está en estado despachado'
+            });
+        }
+
+        return res.status(200).json({
+            mensaje: 'Pedido marcado como no entregado',
+            pedido
+        });
+
+    } catch (error) {
+        console.error('Error al marcar el pedido como no entregado:', error);
+
+        return res.status(500).json({
+            mensaje: 'Error interno al marcar el pedido como no entregado'
+        });
+    }
+});
+
  // CALIFICAR PEDIDO
 app.patch('/api/ordenes/:id/calificar',verificarToken,verificarRol('cliente'),async (req, res) => {
         try {
@@ -1647,7 +1682,7 @@ app.patch('/api/ordenes/:id/calificar',verificarToken,verificarRol('cliente'),as
     }
 );
 
-// Rechazar un pedido
+// RECHAZAR PEDIDO
 app.patch('/api/ordenes/:id/rechazar',verificarToken,verificarRol('restaurante'),async (req, res) => {
         try {
             const idPedido = Number(req.params.id);
@@ -1683,7 +1718,7 @@ app.patch('/api/ordenes/:id/rechazar',verificarToken,verificarRol('restaurante')
     }
 );
 
-// Cancelar un pedido
+// CANCELAR UN PEDIDO
 app.patch('/api/ordenes/:id/cancelar',verificarToken,verificarRol('cliente'),async (req, res) => {
         try {
             const idPedido = Number(req.params.id);
@@ -1719,7 +1754,7 @@ app.patch('/api/ordenes/:id/cancelar',verificarToken,verificarRol('cliente'),asy
     }
 );
 
-// Revisar pedidos demorados cada minuto
+// REVISAR PEDIDOS DEMORADOS MINUTO A MINUTO
 cron.schedule('* * * * *', async () => {
     try {
         const pedidosCancelados =
