@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import Logo from "../ui/Logo";
 import NavLinks from "./NavLinks";
 import MobileMenu from "./MobileMenu";
@@ -15,10 +15,17 @@ interface NavbarProps {
 
 export default function Navbar({ cartCount }: NavbarProps) {
   const { user, isAuthenticated, loading, logout } = useAuth();
+  const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isImpactOpen, setIsImpactOpen] = useState(false);
   const [isHowItWorksOpen, setIsHowItWorksOpen] = useState(false);
   const [restaurantName, setRestaurantName] = useState<string | null>(null);
+
+  function handleLogout() {
+    logout();
+    setIsMobileMenuOpen(false);
+    navigate("/");
+  }
 
   useEffect(() => {
     if (!isAuthenticated || user?.rol !== "restaurante" || !user.id) {
@@ -42,10 +49,11 @@ export default function Navbar({ cartCount }: NavbarProps) {
     };
   }, [isAuthenticated, user]);
 
+  const emailName = user?.email?.split("@")[0];
   const userName =
     user?.rol === "restaurante"
-      ? restaurantName ?? user.email ?? "tu restaurante"
-      : user?.email ?? "usuario";
+      ? restaurantName ?? emailName ?? "tu restaurante"
+      : user?.nombre ?? user?.name ?? emailName ?? "usuario";
   const cartLink = (
     <Link
       to="/carrito"
@@ -85,7 +93,7 @@ export default function Navbar({ cartCount }: NavbarProps) {
                 <Button
                   type="button"
                   variant="dark"
-                  onClick={logout}
+                  onClick={handleLogout}
                   className="px-2 py-1.5 text-xs hover:bg-eco-dark/90 lg:px-3.5 lg:py-2 lg:text-sm"
                 >
                   Cerrar sesión
@@ -119,14 +127,6 @@ export default function Navbar({ cartCount }: NavbarProps) {
                 <span className="text-sm font-semibold text-eco-dark">
                   Hola, {userName}
                 </span>
-                <Button
-                  type="button"
-                  variant="dark"
-                  onClick={logout}
-                  className="hover:bg-eco-dark/90"
-                >
-                  Cerrar sesión
-                </Button>
               </>
             ) : (
               <Button
@@ -151,6 +151,7 @@ export default function Navbar({ cartCount }: NavbarProps) {
           <MobileMenu
             isOpen={isMobileMenuOpen}
             onClose={() => setIsMobileMenuOpen(false)}
+            onLogout={handleLogout}
             onOpenImpactModal={() => {
               setIsMobileMenuOpen(false);
               setIsImpactOpen(true);

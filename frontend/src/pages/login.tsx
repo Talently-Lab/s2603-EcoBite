@@ -5,9 +5,6 @@ export function LoginPage() {
   return (
     <>
       <h1 className="sr-only">Iniciar sesión</h1>
-      <p className="mb-6 mt-0 text-sm text-gray-600">
-        Ingresá a tu cuenta de EcoBite.
-      </p>
       <LoginForm />
       <p className="mb-0 mt-6 text-center text-sm text-gray-600">
         ¿No tenés cuenta?{" "}

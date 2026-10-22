@@ -9,6 +9,7 @@ interface EmptyStateProps {
   indicator?: ReactNode;
   largeIndicator?: boolean;
   indicatorClassName?: string;
+  descriptionClassName?: string;
   children?: ReactNode;
 }
 
@@ -19,6 +20,7 @@ export default function EmptyState({
   indicator = "0",
   largeIndicator = false,
   indicatorClassName = "",
+  descriptionClassName = "",
   children,
 }: EmptyStateProps) {
   return (
@@ -34,7 +36,7 @@ export default function EmptyState({
       </span>
       <section className="mx-auto max-w-2xl">
         <HeroTitle>{title}</HeroTitle>
-        <HeroDescription className="mx-auto mt-5">
+        <HeroDescription className={`mx-auto mt-5 ${descriptionClassName}`}>
           {description}
         </HeroDescription>
         {children}

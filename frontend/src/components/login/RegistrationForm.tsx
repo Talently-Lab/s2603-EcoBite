@@ -6,6 +6,7 @@ import { GlobalAlert } from "../ui/GlobalAlert";
 import { Input } from "../ui/Input";
 import { useAuth } from "../../contexts/AuthContext";
 import {
+  createClientProfile,
   createRestaurantProfile,
   loginAccount,
   registerAccount,
@@ -13,40 +14,63 @@ import {
 } from "../../services/auth";
 
 const registrationFields = z.object({
-    email: z.string().trim().email("Ingresá un email válido."),
+    email: z
+      .string()
+      .trim()
+      .email("Ingresá un email válido, por ejemplo ana@correo.com."),
     contrasena: z
       .string()
       .min(8, "La contraseña debe tener al menos 8 caracteres."),
     confirmPassword: z.string().min(1, "Confirmá tu contraseña."),
-    canal_adquisicion: z.string().min(1, "Seleccioná una opción."),
+    canal_adquisicion: z.string().min(1, "Elegí una opción."),
+    termsAccepted: z.boolean(),
   });
 
 const registrationSchema = registrationFields
-  .refine((data) => data.contrasena === data.confirmPassword, {
-    message: "Las contraseñas no coinciden.",
-    path: ["confirmPassword"],
-  });
-
-const restaurantRegistrationSchema = registrationFields
   .extend({
-    nombre: z.string().trim().min(1, "Ingresá el nombre del restaurante."),
-    cuit: z.string().trim().min(1, "Ingresá el CUIT del restaurante."),
-    categoria: z.string().trim().min(1, "Ingresá la categoría del restaurante."),
+    nombre: z.string().trim().min(1, "Ingresá tu nombre."),
+    apellido: z.string().trim().min(1, "Ingresá tu apellido."),
   })
   .refine((data) => data.contrasena === data.confirmPassword, {
     message: "Las contraseñas no coinciden.",
     path: ["confirmPassword"],
+  })
+  .refine((data) => data.termsAccepted, {
+    message: "Aceptá los términos y condiciones para continuar.",
+    path: ["termsAccepted"],
+  });
+
+const restaurantRegistrationSchema = registrationFields
+  .extend({
+    nombre: z.string().trim().min(1, "Ingresá el nombre del local."),
+    cuit: z.string().trim().superRefine((value, context) => {
+      if (!value) {
+        context.addIssue({ code: "custom", message: "Ingresá un CUIT válido: 11 números, por ejemplo:\n30-12345678-9." });
+      } else if (!/^\d{2}-?\d{8}-?\d$/.test(value)) {
+        context.addIssue({ code: "custom", message: "Ingresá un CUIT válido: 11 números, por ejemplo:\n30-12345678-9." });
+      }
+    }),
+    categoria: z.string().trim().min(1, "Elegí una categoría."),
+  })
+  .refine((data) => data.contrasena === data.confirmPassword, {
+    message: "Las contraseñas no coinciden.",
+    path: ["confirmPassword"],
+  })
+  .refine((data) => data.termsAccepted, {
+    message: "Aceptá los términos y condiciones para continuar.",
+    path: ["termsAccepted"],
   });
 
 type RegistrationFormValues = z.infer<typeof registrationFields> & {
   nombre: string;
+  apellido: string;
   cuit: string;
   categoria: string;
 };
 
 const accountTypes: { value: RegistrationAccountType; label: string }[] = [
-  { value: "cliente", label: "Cliente" },
-  { value: "restaurante", label: "Restaurante" },
+  { value: "cliente", label: "Soy cliente" },
+  { value: "restaurante", label: "Soy restaurante" },
 ];
 
 export function RegistrationForm() {
@@ -58,7 +82,9 @@ export function RegistrationForm() {
     contrasena: "",
     confirmPassword: "",
     canal_adquisicion: "",
+    termsAccepted: false,
     nombre: "",
+    apellido: "",
     cuit: "",
     categoria: "",
   });
@@ -93,6 +119,7 @@ export function RegistrationForm() {
         }
       }
       setErrors(nextErrors);
+      setSubmitError("Revisá los campos marcados para poder crear tu cuenta.");
       return;
     }
 
@@ -100,33 +127,70 @@ export function RegistrationForm() {
     setIsSubmitting(true);
 
     try {
+      const registrationData = result.data as RegistrationFormValues;
       await registerAccount(accountType, {
         email: result.data.email,
         contrasena: result.data.contrasena,
         canal_adquisicion: result.data.canal_adquisicion,
       });
+      const session = await loginAccount({
+        email: registrationData.email,
+        contrasena: registrationData.contrasena,
+      });
+
+      let clientName: string | null = null;
       if (accountType === "restaurante") {
-        const restaurantData = result.data as RegistrationFormValues;
-        const session = await loginAccount({
-          email: restaurantData.email,
-          contrasena: restaurantData.contrasena,
-        });
         await createRestaurantProfile(session.token, {
-          nombre: restaurantData.nombre,
-          cuit: restaurantData.cuit,
-          categoria: restaurantData.categoria,
+          nombre: registrationData.nombre,
+          cuit: registrationData.cuit,
+          categoria: registrationData.categoria,
         });
-        login(session.token, session.usuario);
+      } else {
+        const clientProfile = await createClientProfile(session.token, {
+          nombre: registrationData.nombre,
+          apellido: registrationData.apellido,
+        });
+        clientName = `${clientProfile.nombre} ${clientProfile.apellido}`;
       }
+
+      login(
+        session.token,
+        clientName
+          ? {
+              ...session.usuario,
+              nombre: clientName,
+            }
+          : session.usuario,
+      );
       setIsRegistered(true);
     } catch (error) {
-      setSubmitError(
-        error instanceof TypeError
-          ? "No pudimos conectar con el servidor. Revisá tu conexión e intentá de nuevo."
-          : error instanceof Error
-            ? error.message
-            : "No se pudo crear la cuenta. Intentá de nuevo.",
-      );
+      if (
+        error instanceof Error &&
+        "status" in error &&
+        error.status === 409
+      ) {
+        setErrors((current) => ({
+          ...current,
+          email: error.message,
+        }));
+      } else if (
+        accountType === "restaurante" &&
+        error instanceof Error &&
+        /cuit.*registrad/i.test(error.message)
+      ) {
+        setErrors((current) => ({
+          ...current,
+          cuit: "Ese CUIT ya está registrado. Revisá el número o iniciá sesión.",
+        }));
+      } else {
+        setSubmitError(
+          error instanceof TypeError
+            ? "No pudimos conectar con el servidor. Revisá tu conexión e intentá de nuevo."
+            : error instanceof Error
+              ? error.message
+              : "No se pudo crear la cuenta. Intentá de nuevo.",
+        );
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -139,15 +203,15 @@ export function RegistrationForm() {
           message={
             accountType === "restaurante"
               ? "Tu cuenta y el perfil del restaurante se crearon correctamente."
-              : "Tu cuenta se creó correctamente. Ya podés iniciar sesión."
+              : "Tu cuenta y el perfil de cliente se crearon correctamente."
           }
           variant="info"
         />
         <Button
-          to={accountType === "restaurante" ? "/" : "/login"}
+          to="/"
           className="w-full text-center"
         >
-          {accountType === "restaurante" ? "Ir al inicio" : "Ir a iniciar sesión"}
+          Ir al inicio
         </Button>
       </div>
     );
@@ -155,12 +219,13 @@ export function RegistrationForm() {
 
   return (
     <div className="flex flex-col gap-5">
+      {submitError && <GlobalAlert message={submitError} />}
       <fieldset className="border-0 p-0">
         <legend className="mb-2 block text-xs font-bold text-gray-700">
-          Tipo de cuenta
+          Quiero registrarme como
         </legend>
         <div
-          className="grid grid-cols-2 rounded-lg bg-gray-100 p-1"
+          className="grid grid-cols-2 gap-2 rounded-lg bg-transparent p-1"
         >
           {accountTypes.map((type) => (
             <button
@@ -172,10 +237,10 @@ export function RegistrationForm() {
                 setAccountType(type.value);
                 setSubmitError(null);
               }}
-              className={`rounded-md px-3 py-2 text-sm font-semibold transition-colors ${
+              className={`cursor-pointer rounded-full px-3 py-2 text-xs font-semibold transition-colors disabled:cursor-not-allowed ${
                 accountType === type.value
-                  ? "bg-white text-eco-dark shadow-sm"
-                  : "text-gray-600 hover:text-eco-dark"
+                  ? "bg-eco-dark text-white shadow-sm"
+                  : "bg-eco-light/50 text-eco-dark hover:text-eco-dark"
               }`}
             >
               {type.label}
@@ -189,7 +254,69 @@ export function RegistrationForm() {
         onSubmit={onSubmit}
         noValidate
       >
-        {submitError && <GlobalAlert message={submitError} />}
+        {accountType === "restaurante" && (
+          <>
+            <Input
+              label="Nombre del local"
+              name="nombre"
+              type="text"
+              autoComplete="organization"
+              placeholder="Nombre del local"
+              value={form.nombre}
+              onChange={handleChange}
+              error={Boolean(errors.nombre)}
+              errorMessage={errors.nombre}
+            />
+            <Input
+              label="CUIT"
+              name="cuit"
+              type="text"
+              inputMode="numeric"
+              placeholder="30-12345678-9"
+              value={form.cuit}
+              onChange={handleChange}
+              error={Boolean(errors.cuit)}
+              errorMessage={errors.cuit}
+            />
+            <Input
+              label="Categoría"
+              name="categoria"
+              type="text"
+              placeholder="Cocina natural"
+              value={form.categoria}
+              onChange={handleChange}
+              error={Boolean(errors.categoria)}
+              errorMessage={errors.categoria}
+            />
+          </>
+        )}
+
+        {accountType === "cliente" && (
+          <>
+            <Input
+              label="Nombre"
+              name="nombre"
+              type="text"
+              autoComplete="given-name"
+              placeholder="Tu nombre"
+              value={form.nombre}
+              onChange={handleChange}
+              error={Boolean(errors.nombre)}
+              errorMessage={errors.nombre}
+            />
+            <Input
+              label="Apellido"
+              name="apellido"
+              type="text"
+              autoComplete="family-name"
+              placeholder="Tu apellido"
+              value={form.apellido}
+              onChange={handleChange}
+              error={Boolean(errors.apellido)}
+              errorMessage={errors.apellido}
+            />
+          </>
+        )}
 
         <Input
           label="Email"
@@ -225,43 +352,6 @@ export function RegistrationForm() {
           errorMessage={errors.confirmPassword}
         />
 
-        {accountType === "restaurante" && (
-          <>
-            <Input
-              label="Nombre del restaurante"
-              name="nombre"
-              type="text"
-              autoComplete="organization"
-              placeholder="Nombre del local"
-              value={form.nombre}
-              onChange={handleChange}
-              error={Boolean(errors.nombre)}
-              errorMessage={errors.nombre}
-            />
-            <Input
-              label="CUIT"
-              name="cuit"
-              type="text"
-              inputMode="numeric"
-              placeholder="30-12345678-9"
-              value={form.cuit}
-              onChange={handleChange}
-              error={Boolean(errors.cuit)}
-              errorMessage={errors.cuit}
-            />
-            <Input
-              label="Categoría"
-              name="categoria"
-              type="text"
-              placeholder="Cocina natural"
-              value={form.categoria}
-              onChange={handleChange}
-              error={Boolean(errors.categoria)}
-              errorMessage={errors.categoria}
-            />
-          </>
-        )}
-
         <div className="flex w-full flex-col font-sans text-sm">
           <label
             htmlFor="registration-channel"
@@ -284,7 +374,7 @@ export function RegistrationForm() {
               errors.canal_adquisicion ? "border-red-500" : "border-gray-300"
             }`}
           >
-            <option value="">Seleccioná una opción</option>
+            <option value="">Elegí una opción</option>
             <option value="redes_sociales">Redes sociales</option>
             <option value="recomendacion">Recomendación</option>
             <option value="busqueda_web">Búsqueda en internet</option>
@@ -297,6 +387,32 @@ export function RegistrationForm() {
             >
               <span aria-hidden="true">✕</span>
               {errors.canal_adquisicion}
+            </span>
+          )}
+        </div>
+
+        <div>
+          <label className="flex cursor-pointer items-center gap-2 text-sm text-gray-700">
+            <input
+              type="checkbox"
+              name="termsAccepted"
+              checked={form.termsAccepted}
+              aria-invalid={Boolean(errors.termsAccepted) || undefined}
+              aria-describedby={errors.termsAccepted ? "terms-error" : undefined}
+              onChange={(event) => {
+                const termsAccepted = event.currentTarget.checked;
+                setForm((current) => ({ ...current, termsAccepted }));
+                setErrors((current) => ({ ...current, termsAccepted: undefined }));
+                setSubmitError(null);
+              }}
+              className="h-4 w-4 accent-eco-dark"
+            />
+            <span>Acepto los términos y condiciones</span>
+          </label>
+          {errors.termsAccepted && (
+            <span id="terms-error" className="mt-1 flex items-center gap-1 text-xs text-red-600">
+              <span aria-hidden="true">✕</span>
+              {errors.termsAccepted}
             </span>
           )}
         </div>

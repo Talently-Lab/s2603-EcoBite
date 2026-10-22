@@ -7,11 +7,14 @@ export default function EmptyCart() {
       statusLabel="0 productos en el carrito"
       title="Tu carrito está vacío"
       description="Agrega platos de tus locales favoritos para empezar a medir tu impacto."
+      largeIndicator
+      indicatorClassName="text-3xl"
+      descriptionClassName="w-full !max-w-none"
     >
       <Button
         to="/restaurantes"
         variant="dark"
-        className="mx-auto mt-6 inline-flex w-full justify-center hover:bg-eco-dark/90"
+        className="mx-auto mt-6 flex w-fit justify-center hover:bg-eco-dark/90"
       >
         Explorar locales
       </Button>

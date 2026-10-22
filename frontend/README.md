@@ -161,3 +161,7 @@ Por ejemplo, si Vite muestra `http://localhost:5173`, el listado estará en
 `http://localhost:5173/restaurantes`. Los datos mock de restaurantes y menús
 están definidos en `src/services/restaurants.ts`; no hace falta iniciar el
 backend.
+
+#esta semana 
+M-15-16-16
+Al final eran 3 llamadas a la API porque se loguea entre el registro y la creacion de perfil

@@ -52,10 +52,10 @@ export function Input({
       {hasErrorMessage ? (
         <span
           id={messageId}
-          className="mt-1 flex items-center gap-1 text-xs text-red-600"
+          className="mt-1 flex items-start gap-2 text-xs text-red-600"
         >
-          <span aria-hidden="true">✕</span>
-          {errorMessage}
+          <span aria-hidden="true" className="mt-0.5 shrink-0">✕</span>
+          <span className="min-w-0 whitespace-pre-line">{errorMessage}</span>
         </span>
       ) : (
         helperText && (

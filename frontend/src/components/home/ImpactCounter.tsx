@@ -25,7 +25,7 @@ export default function ImpactCounter({
         </div>
 
         {footerText && (
-          <p className="m-0 text-xl text-eco-dark md:text-right">
+          <p className="m-0 text-sm text-eco-dark md:text-right md:text-xl">
             {footerText}
           </p>
         )}

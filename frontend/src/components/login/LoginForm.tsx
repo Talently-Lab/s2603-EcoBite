@@ -81,8 +81,11 @@ export function LoginForm() {
 
   return (
     <>
+      {feedback && <GlobalAlert {...feedback} className="mb-4 w-full" />}
+      <p className="mb-6 mt-0 text-sm text-gray-600">
+        Ingresá a tu cuenta de EcoBite.
+      </p>
       <form className="flex flex-col gap-5" onSubmit={handleSubmit} noValidate>
-        {feedback && <GlobalAlert {...feedback} />}
         <Input
           label="Email"
           name="email"
