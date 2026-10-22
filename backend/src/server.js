@@ -62,6 +62,13 @@ app.post('/api/usuario/registro-cliente', async (req, res) => {
         //--------------------
         const usuario = await usuarioModel.crearCliente(req.body);
 
+        //Token para poder crear perfil
+        const token = jwt.sign(
+            { id: usuario.id, rol: usuario.rol },
+            process.env.JWT_SECRET,
+            { expiresIn: '2h' }
+        );
+        //----------------------
         //Envio de email
         try {
             await enviarBienvenida(usuario.email,'cliente');
@@ -72,6 +79,7 @@ app.post('/api/usuario/registro-cliente', async (req, res) => {
 
         res.status(201).json({
             mensaje: 'Usuario registrado correctamente',
+            token,//se devuelve token
             usuario
         });
     } catch (error) {
@@ -108,6 +116,14 @@ app.post('/api/usuario/registro-restaurante', async (req, res) => {
         //------------------
         const usuario = await usuarioModel.crearRestaurante(req.body);
 
+        //Token para poder crear perfil
+        const token = jwt.sign(
+            { id: usuario.id, rol: usuario.rol },
+            process.env.JWT_SECRET,
+            { expiresIn: '2h' }
+        );
+        //-----------------------
+        
         //Envio de email
         try {
             await enviarBienvenida(usuario.email, 'restaurante');
@@ -118,6 +134,7 @@ app.post('/api/usuario/registro-restaurante', async (req, res) => {
 
         res.status(201).json({
             mensaje: 'Cuenta de restaurante creada correctamente',
+            token,//se devuelve token
             usuario
         });
     } catch (error) {
