@@ -5,23 +5,73 @@
 
 const pool = require('../db');//require() trae algo de un archivo; ..→ subir una carpeta, de models a src/db → entrar al archivo db.js
 
-//OBTENER TODOS LOS RESTAURANTES
-async function obtenerTodos() {
+//OBTENER TODOS LOS RESTAURANTES CON SUS HORARIOS
+/* async function obtenerTodos() {
     const resultado = await pool.query(
         'SELECT * FROM restaurante'
     );
     return resultado.rows;
+} */
+async function obtenerTodos() {
+    const resultado = await pool.query(
+        `SELECT
+            r.*,
+            COALESCE(
+                (
+                    SELECT json_agg(
+                        json_build_object(
+                            'dia_semana', h.dia_semana,
+                            'hora_apertura', h.hora_apertura,
+                            'hora_cierre', h.hora_cierre
+                        )
+                        ORDER BY h.dia_semana
+                    )
+                    FROM horario_restaurante h
+                    WHERE h.id_restaurante = r.id
+                ),
+                '[]'::json
+            ) AS horarios
+        FROM restaurante r
+        ORDER BY r.id`
+    );
+
+    return resultado.rows;
 }
 
 //OBTENER UN RESTAURANTE ESPECIFICO
-async function obtenerPorId(id) {
+/* async function obtenerPorId(id) {
     const resultado = await pool.query(
         'SELECT * FROM restaurante WHERE id = $1',
         [id]
     );
     return resultado.rows[0] || null;
-}
+} */
+async function obtenerPorId(id) {
+    const resultado = await pool.query(
+        `SELECT
+            r.*,
+            COALESCE(
+                (
+                    SELECT json_agg(
+                        json_build_object(
+                            'dia_semana', h.dia_semana,
+                            'hora_apertura', h.hora_apertura,
+                            'hora_cierre', h.hora_cierre
+                        )
+                        ORDER BY h.dia_semana
+                    )
+                    FROM horario_restaurante h
+                    WHERE h.id_restaurante = r.id
+                ),
+                '[]'::json
+            ) AS horarios
+        FROM restaurante r
+        WHERE r.id = $1`,
+        [id]
+    );
 
+    return resultado.rows[0] || null;
+}
 //CREAR RESTAURANTE
 async function crear(restaurante) {//recibe un objeto restaurante
     //desestructuración: extraemos las propiedades del objeto para utilizarlas individualmente.

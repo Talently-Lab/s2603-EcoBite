@@ -3,16 +3,19 @@
 // SERVIDOR Y RUTAS DE LA API
 // Configuración de Express y atención de solicitudes HTTP
 // ==========================================
+
 const express = require('express');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { enviarBienvenida } = require('./services/email.service');
+const cron = require('node-cron');
 
 const restauranteModel = require('./models/restaurante.model');//importa restaurante.model
 const usuarioModel = require('./models/usuario.model');//importar usuario.model
 const clienteModel = require('./models/cliente.model');//importar cliente.model
 const { verificarToken, verificarRol } = require('./middlewares/auth.middleware');
 const horarioRestauranteModel = require('./models/horario_restaurante.model');
+const pedidoModel = require('./models/pedido.model');
 
 const app = express();
 const PORT = 3000;
@@ -1351,6 +1354,390 @@ app.get('/api/restaurantes/:id/estado', async (req, res) => {
 });
 
 
+ //============ PEDIDOS ============
+
+// CREAR PEDIDO
+app.post('/api/ordenes',verificarToken,verificarRol('cliente'),async (req, res) => {
+        try {
+            // 1. Validar que el cuerpo sea un objeto JSON
+            if (
+                !req.body ||
+                typeof req.body !== 'object' ||
+                Array.isArray(req.body)
+            ) {
+                return res.status(400).json({
+                    error: 'Debés enviar los datos del pedido en formato JSON'
+                });
+            }
+
+            const {
+                id_restaurante,
+                id_zona,
+                productos,
+                tipo_pago,
+                costo_envio
+            } = req.body;
+
+            // 2. Validar los IDs
+            if (!Number.isInteger(id_restaurante) || id_restaurante <= 0 || !Number.isInteger(id_zona) ||
+                id_zona <= 0) {
+                return res.status(400).json({
+                    error: 'El restaurante y la zona deben tener IDs enteros positivos'
+                });
+            }
+
+            // 3. Validar el medio de pago
+            if (!['efectivo', 'tarjeta'].includes(tipo_pago)) {
+                return res.status(400).json({
+                    error: 'El tipo de pago debe ser efectivo o tarjeta'
+                });
+            }
+
+            // 4. Validar los productos del carrito
+            if (!Array.isArray(productos) || productos.length === 0) {
+                return res.status(400).json({
+                    error: 'El carrito debe contener al menos un producto'
+                });
+            }
+
+            for (const producto of productos) {
+                if (
+                    !producto ||
+                    !Number.isInteger(producto.id_producto) ||
+                    producto.id_producto <= 0 ||
+                    !Number.isInteger(producto.cantidad) ||
+                    producto.cantidad <= 0
+                ) {
+                    return res.status(400).json({
+                        error: 'Cada producto debe tener un ID válido y una cantidad entera positiva'
+                    });
+                }
+            }
+
+            // Evitar que un mismo producto aparezca repetido
+            const idsProductos = productos.map(producto => producto.id_producto);
+
+            if (new Set(idsProductos).size !== idsProductos.length) {
+                return res.status(400).json({
+                    error: 'No repitas productos en el carrito; indicá su cantidad en una sola línea'
+                });
+            }
+
+            // 5. Validar el costo de envío si fue enviado
+            if (
+                costo_envio !== undefined &&
+                (
+                    typeof costo_envio !== 'number' ||
+                    !Number.isFinite(costo_envio) ||
+                    costo_envio < 0
+                )
+            ) {
+                return res.status(400).json({
+                    error: 'El costo de envío debe ser un número mayor o igual a cero'
+                });
+            }
+
+            // 6. Crear el pedido
+            // El ID del usuario sale del token, no del body
+            const nuevoPedido = await pedidoModel.crear({
+                ...req.body,
+                id_usuario: req.usuario.id
+            });
+
+            return res.status(201).json({
+                mensaje: 'Pedido creado correctamente',
+                pedido: nuevoPedido
+            });
+
+        } catch (error) {
+            // Errores de validación del modelo
+            const erroresValidacion = [
+                'El usuario no tiene un perfil de cliente',
+                'El restaurante no existe',
+                'La zona no existe',
+                'Hay productos que no existen, no están disponibles o no pertenecen al restaurante'
+            ];
+
+            if (erroresValidacion.includes(error.message)) {
+                const estadoHTTP =
+                    error.message === 'El usuario no tiene un perfil de cliente' ||
+                    error.message === 'El restaurante no existe' ||
+                    error.message === 'La zona no existe'
+                        ? 404
+                        : 400;
+
+                return res.status(estadoHTTP).json({
+                    error: error.message
+                });
+            }
+
+            // Error de clave foránea en PostgreSQL
+            if (error.code === '23503') {
+                return res.status(400).json({
+                    error: 'Alguna referencia del pedido no es válida'
+                });
+            }
+
+            console.error('Error al crear el pedido:', error.message);
+
+            return res.status(500).json({
+                error: 'Error interno al crear el pedido'
+            });
+        }
+    }
+);
+
+
+ // ACEPTAR PEDIDO
+app.patch('/api/ordenes/:id/aceptar',verificarToken,verificarRol('restaurante'),async (req, res) => {
+        try {
+            const idPedido = Number(req.params.id);
+
+            if (!Number.isInteger(idPedido) || idPedido <= 0) {
+                return res.status(400).json({
+                    error: 'El ID del pedido debe ser un entero positivo'
+                });
+            }
+
+            const pedido = await pedidoModel.aceptarPedido(
+                idPedido,
+                req.usuario.id
+            );
+
+            if (!pedido) {
+                return res.status(404).json({
+                    error: 'El pedido no existe, no pertenece a tu restaurante o ya no está pendiente'
+                });
+            }
+
+            return res.status(200).json({
+                mensaje: 'Pedido aceptado correctamente',
+                pedido
+            });
+        } catch (error) {
+            console.error('Error al aceptar el pedido:', error.message);
+
+            return res.status(500).json({
+                error: 'Error interno al aceptar el pedido'
+            });
+        }
+    }
+);
+
+ // DESPACHAR PEDIDO
+app.patch('/api/ordenes/:id/despachar',verificarToken,verificarRol('restaurante'),async (req, res) => {
+        try {
+            const idPedido = Number(req.params.id);
+
+            if (!Number.isInteger(idPedido) || idPedido <= 0) {
+                return res.status(400).json({
+                    error: 'El ID del pedido debe ser un entero positivo'
+                });
+            }
+
+            const pedido = await pedidoModel.despacharPedido(
+                idPedido,
+                req.usuario.id
+            );
+
+            if (!pedido) {
+                return res.status(404).json({
+                    error: 'El pedido no existe, no pertenece a tu restaurante o no está en preparación'
+                });
+            }
+
+            return res.status(200).json({
+                mensaje: 'Pedido despachado correctamente',
+                pedido
+            });
+        } catch (error) {
+            console.error('Error al despachar el pedido:', error.message);
+
+            return res.status(500).json({
+                error: 'Error interno al despachar el pedido'
+            });
+        }
+    }
+);
+
+// CONFIRMAR RECEPCIÓN DEL PEDIDO
+app.patch('/api/ordenes/:id/recibido',verificarToken,verificarRol('cliente'),async (req, res) => {
+        try {
+            const idPedido = Number(req.params.id);
+
+            if (!Number.isInteger(idPedido) || idPedido <= 0) {
+                return res.status(400).json({
+                    error: 'El ID del pedido debe ser un entero positivo'
+                });
+            }
+
+            const pedido = await pedidoModel.confirmarEntrega(
+                idPedido,
+                req.usuario.id
+            );
+
+            if (!pedido) {
+                return res.status(404).json({
+                    error: 'El pedido no existe, no te pertenece o no está despachado'
+                });
+            }
+
+            return res.status(200).json({
+                mensaje: 'Recepción del pedido confirmada correctamente',
+                pedido
+            });
+        } catch (error) {
+            console.error(
+                'Error al confirmar la entrega:',
+                error.message
+            );
+
+            return res.status(500).json({
+                error: 'Error interno al confirmar la entrega'
+            });
+        }
+    }
+);
+
+ // CALIFICAR PEDIDO
+app.patch('/api/ordenes/:id/calificar',verificarToken,verificarRol('cliente'),async (req, res) => {
+        try {
+            const idPedido = Number(req.params.id);
+            const { calificacion } = req.body;
+
+            if (!Number.isInteger(idPedido) || idPedido <= 0) {
+                return res.status(400).json({
+                    error: 'El ID del pedido debe ser un entero positivo'
+                });
+            }
+
+            if (
+                !Number.isInteger(calificacion) ||
+                calificacion < 1 ||
+                calificacion > 5
+            ) {
+                return res.status(400).json({
+                    error: 'La calificación debe ser un número entero del 1 al 5'
+                });
+            }
+
+            const pedido = await pedidoModel.calificarPedido(
+                idPedido,
+                req.usuario.id,
+                calificacion
+            );
+
+            if (!pedido) {
+                return res.status(404).json({
+                    error: 'El pedido no existe, no te pertenece, no está entregado o ya fue calificado'
+                });
+            }
+
+            return res.status(200).json({
+                mensaje: 'Pedido calificado correctamente',
+                pedido
+            });
+        } catch (error) {
+            console.error('Error al calificar el pedido:', error.message);
+
+            return res.status(500).json({
+                error: 'Error interno al calificar el pedido'
+            });
+        }
+    }
+);
+
+// Rechazar un pedido
+app.patch('/api/ordenes/:id/rechazar',verificarToken,verificarRol('restaurante'),async (req, res) => {
+        try {
+            const idPedido = Number(req.params.id);
+
+            if (!Number.isInteger(idPedido) || idPedido <= 0) {
+                return res.status(400).json({
+                    mensaje: 'El ID del pedido no es válido'
+                });
+            }
+
+            const pedido = await pedidoModel.rechazarPedido(
+                idPedido,
+                req.usuario.id
+            );
+
+            if (!pedido) {
+                return res.status(404).json({
+                    mensaje: 'Pedido no encontrado, no pendiente o no pertenece a este restaurante'
+                });
+            }
+
+            return res.status(200).json({
+                mensaje: 'Pedido rechazado correctamente',
+                pedido
+            });
+        } catch (error) {
+            console.error('Error al rechazar el pedido:', error);
+
+            return res.status(500).json({
+                mensaje: 'Error interno al rechazar el pedido'
+            });
+        }
+    }
+);
+
+// Cancelar un pedido
+app.patch('/api/ordenes/:id/cancelar',verificarToken,verificarRol('cliente'),async (req, res) => {
+        try {
+            const idPedido = Number(req.params.id);
+
+            if (!Number.isInteger(idPedido) || idPedido <= 0) {
+                return res.status(400).json({
+                    mensaje: 'El ID del pedido no es válido'
+                });
+            }
+
+            const pedido = await pedidoModel.cancelarPedido(
+                idPedido,
+                req.usuario.id
+            );
+
+            if (!pedido) {
+                return res.status(404).json({
+                    mensaje: 'Pedido no encontrado, no pertenece a este cliente o no se puede cancelar'
+                });
+            }
+
+            return res.status(200).json({
+                mensaje: 'Pedido cancelado correctamente',
+                pedido
+            });
+        } catch (error) {
+            console.error('Error al cancelar el pedido:', error);
+
+            return res.status(500).json({
+                mensaje: 'Error interno al cancelar el pedido'
+            });
+        }
+    }
+);
+
+// Revisar pedidos demorados cada minuto
+cron.schedule('* * * * *', async () => {
+    try {
+        const pedidosCancelados =
+            await pedidoModel.cancelarPedidosDemorados();
+
+        if (pedidosCancelados.length > 0) {
+            console.log(
+                'Pedidos cancelados automáticamente:',
+                pedidosCancelados.map(pedido => pedido.id)
+            );
+        }
+    } catch (error) {
+        console.error(
+            'Error al cancelar pedidos demorados:',
+            error
+        );
+    }
+});
 
 // Iniciar el servidor
 app.listen(PORT, () => {
