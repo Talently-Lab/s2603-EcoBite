@@ -3,19 +3,25 @@
 // SERVIDOR Y RUTAS DE LA API
 // Configuración de Express y atención de solicitudes HTTP
 // ==========================================
-
+require('dotenv').config();
 const express = require('express');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { enviarBienvenida } = require('./services/email.service');
 const cron = require('node-cron');
+const cloudinary = require('./cloudinary');
+const subirImagen = require('./middlewares/subirImagen');
+const { Readable } = require('stream');
 
+const { verificarToken, verificarRol } = require('./middlewares/auth.middleware');
+const { obtenerPublicIdDesdeUrl } = require('./cloudinary.utils');
+//Modelos
 const restauranteModel = require('./models/restaurante.model');//importa restaurante.model
 const usuarioModel = require('./models/usuario.model');//importar usuario.model
 const clienteModel = require('./models/cliente.model');//importar cliente.model
-const { verificarToken, verificarRol } = require('./middlewares/auth.middleware');
 const horarioRestauranteModel = require('./models/horario_restaurante.model');
 const pedidoModel = require('./models/pedido.model');
+const productoModel = require('./models/producto.model');
 
 const app = express();
 const PORT = 3000;
@@ -635,6 +641,285 @@ app.delete('/api/restaurantes/:id', verificarToken, async (req, res) => {
         });
     }
 });
+
+//SUBIR IMAGEN RESTAURANTE
+app.patch('/api/restaurantes/:id/imagen',verificarToken,subirImagen.single('imagen'),async (req, res) => {
+        try {
+            const id = Number(req.params.id);
+
+            if (!Number.isInteger(id) || id <= 0) {
+                return res.status(400).json({
+                    error: 'El ID debe ser un número entero positivo'
+                });
+            }
+
+            if (!req.file) {
+                return res.status(400).json({
+                    error: 'Debés seleccionar una imagen JPG, PNG o WEBP'
+                });
+            }
+
+            const restauranteExistente =await restauranteModel.obtenerPorId(id);
+
+            if (!restauranteExistente) {
+                return res.status(404).json({
+                    error: 'Restaurante no encontrado'
+                });
+            }
+
+            if (Number(req.usuario.id) !== Number(restauranteExistente.id_usuario) && req.usuario.rol !== 'administrador'
+            ) {
+                return res.status(403).json({
+                    error: 'No tenés permisos para modificar este restaurante'
+                });
+            }
+
+            const resultadoCloudinary = await new Promise(
+                (resolve, reject) => {
+                    const stream = cloudinary.uploader.upload_stream(
+                        {
+                            folder: 'ecobite/restaurantes',
+                            resource_type: 'image'
+                        },
+                        (error, resultado) => {
+                            if (error) {
+                                return reject(error);
+                            }
+                            resolve(resultado);
+                        }
+                    );
+                    Readable.from(req.file.buffer).pipe(stream);
+                }
+            );
+
+            const restauranteActualizado =await restauranteModel.actualizarImagen(
+                    id,
+                    resultadoCloudinary.secure_url
+                );
+
+            if (!restauranteActualizado) {
+                return res.status(404).json({
+                    error: 'Restaurante no encontrado'
+                });
+            }
+
+            // Eliminar la imagen anterior de Cloudinary, si existía
+            if (restauranteExistente.imagen && restauranteExistente.imagen !== resultadoCloudinary.secure_url
+            ) {
+                const publicIdAnterior = obtenerPublicIdDesdeUrl(
+                    restauranteExistente.imagen
+                );
+
+                if (publicIdAnterior) {
+                    try {
+                        const resultadoEliminacion = await cloudinary.uploader.destroy(
+                            publicIdAnterior,
+                            {
+                                resource_type: 'image',
+                                type: 'upload',
+                                invalidate: true
+                            }
+                        );
+                        console.log('Resultado de eliminación:', resultadoEliminacion);
+                    } catch (error) {
+                        console.error('Error al eliminar imagen:', error);
+                    }
+                }
+
+                /* if (publicIdAnterior) {
+                    try {
+                        await cloudinary.uploader.destroy(publicIdAnterior, {
+                            resource_type: 'image'
+                        });
+                    } catch (error) {
+                        console.error(
+                            'No se pudo eliminar la imagen anterior del restaurante:',
+                            error.message
+                        );
+                    }
+                } */
+            }
+            //--
+            return res.status(200).json({
+                mensaje: 'Imagen del restaurante actualizada correctamente',
+                imagen: restauranteActualizado.imagen
+            });
+
+        } catch (error) {
+            console.error('Error al subir la imagen del restaurante:', error.message);
+
+            return res.status(500).json({
+                error: 'Error interno al subir la imagen'
+            });
+        }
+    }
+);
+
+//======== PRODUCTOS =========
+// OBTENER PRODUCTOS DE UN RESTAURANTE
+app.get('/api/restaurantes/:id/productos', async (req, res) => {
+    try {
+        const idRestaurante = Number(req.params.id);
+
+        if (!Number.isInteger(idRestaurante) || idRestaurante <= 0) {
+            return res.status(400).json({
+                error: 'El ID del restaurante debe ser un número entero positivo'
+            });
+        }
+
+        const restaurante = await restauranteModel.obtenerPorId(idRestaurante);
+
+        if (!restaurante) {
+            return res.status(404).json({
+                error: 'Restaurante no encontrado'
+            });
+        }
+
+        const productos = await productoModel.obtenerPorRestaurante(idRestaurante);
+
+        return res.status(200).json({
+            restaurante_id: idRestaurante,
+            productos
+        });
+    } catch (error) {
+        console.error('Error al obtener los productos:', error.message);
+
+        return res.status(500).json({
+            error: 'Error interno al obtener los productos'
+        });
+    }
+});
+
+// SUBIR O ACTUALIZAR IMAGEN DE UN PRODUCTO
+app.patch('/api/productos/:id/imagen',verificarToken,subirImagen.single('imagen'),async (req, res) => {
+        try {
+            const id = Number(req.params.id);
+
+            if (!Number.isInteger(id) || id <= 0) {
+                return res.status(400).json({
+                    error: 'El ID debe ser un número entero positivo'
+                });
+            }
+
+            if (!req.file) {
+                return res.status(400).json({
+                    error: 'Debés seleccionar una imagen JPG, PNG o WEBP'
+                });
+            }
+
+            // Buscar el producto mediante su modelo
+            const productoExistente = await productoModel.obtenerPorId(id);
+
+            if (!productoExistente) {
+                return res.status(404).json({
+                    error: 'Producto no encontrado'
+                });
+            }
+
+            // Buscar el restaurante propietario del producto
+            const restauranteExistente = await restauranteModel.obtenerPorId(
+                productoExistente.id_restaurante
+            );
+
+            if (!restauranteExistente) {
+                return res.status(404).json({
+                    error: 'Restaurante no encontrado'
+                });
+            }
+
+            // Verificar permisos del dueño del restaurante
+            if (
+                Number(req.usuario.id) !== Number(restauranteExistente.id_usuario) &&
+                req.usuario.rol !== 'administrador'
+            ) {
+                return res.status(403).json({
+                    error: 'No tenés permisos para modificar este producto'
+                });
+            }
+
+            // Subir la imagen a Cloudinary
+            const resultadoCloudinary = await new Promise((resolve, reject) => {
+                const stream = cloudinary.uploader.upload_stream(
+                    {
+                        folder: 'ecobite/productos',
+                        resource_type: 'image'
+                    },
+                    (error, resultado) => {
+                        if (error) return reject(error);
+                        resolve(resultado);
+                    }
+                );
+
+                Readable.from(req.file.buffer).pipe(stream);
+            });
+
+            // Actualizar la URL mediante el modelo
+            const productoActualizado = await productoModel.actualizarImagen(
+                id,
+                resultadoCloudinary.secure_url
+            );
+
+            if (!productoActualizado) {
+                return res.status(404).json({
+                    error: 'Producto no encontrado'
+                });
+            }
+
+            // Eliminar la imagen anterior de Cloudinary, si existía
+            if (productoExistente.imagen && productoExistente.imagen !== resultadoCloudinary.secure_url
+            ) {
+                const publicIdAnterior = obtenerPublicIdDesdeUrl(
+                    productoExistente.imagen
+                );
+                
+                /* if (publicIdAnterior) {
+                    try {
+                        await cloudinary.uploader.destroy(publicIdAnterior, {
+                            resource_type: 'image'
+                        });
+                    } catch (error) {
+                        console.error(
+                            'No se pudo eliminar la imagen anterior del producto:',
+                            error.message
+                        );
+                    }
+                } */
+
+                if (publicIdAnterior) {
+                    try {
+                        const resultadoEliminacion = await cloudinary.uploader.destroy(
+                            publicIdAnterior,
+                            {
+                                resource_type: 'image',
+                                type: 'upload',
+                                invalidate: true
+                            }
+                        );
+                        console.log('Resultado de eliminación:', resultadoEliminacion);
+                    } catch (error) {
+                        console.error('Error al eliminar imagen:', error);
+                    }
+                }
+            }
+            //--
+            return res.status(200).json({
+                mensaje: 'Imagen del producto actualizada correctamente',
+                producto: productoActualizado
+            });
+
+        } catch (error) {
+            console.error(
+                'Error al subir la imagen del producto:',
+                error.message
+            );
+
+            return res.status(500).json({
+                error: 'Error interno al subir la imagen del producto'
+            });
+        }
+    }
+);
+
 
 //============CLIENTE==============
  // CREAR CLIENTE

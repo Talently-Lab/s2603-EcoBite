@@ -189,6 +189,19 @@ async function eliminar(id) {
     return resultado.rows[0] || null;
 }
 
+//prueba
+async function actualizarImagen(id, imagen) {
+    const resultado = await pool.query(
+        `UPDATE restaurante
+         SET imagen = $2
+         WHERE id = $1
+         RETURNING *`,
+        [id, imagen]
+    );
+
+    return resultado.rows[0] || null;
+}
+
 
 //Exportamos los modulos: permite que otros archivos del backend,como server.js utilicen estas funciones.
 module.exports = {
@@ -196,5 +209,6 @@ module.exports = {
     obtenerPorId,
     crear,
     actualizar,
+    actualizarImagen,//prueba
     eliminar
 };
