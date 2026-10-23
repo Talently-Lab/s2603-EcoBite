@@ -790,6 +790,122 @@ app.get('/api/restaurantes/:id/productos', async (req, res) => {
     }
 });
 
+// CREAR PRODUCTO DE UN RESTAURANTE
+app.post('/api/productos', verificarToken, async (req, res) => {
+    try {
+        // Validar el cuerpo recibido
+        const datos = req.body;
+
+        if (!datos || typeof datos !== 'object' || Array.isArray(datos)) {
+            return res.status(400).json({
+                error: 'Debés enviar los datos en formato JSON'
+            });
+        }
+
+        // Obtener los datos enviados
+        const {
+            id_restaurante,
+            nombre,
+            descripcion,
+            precio,
+            categoria
+        } = req.body;
+
+        // Validar los campos obligatorios
+        if (
+            !id_restaurante ||
+            !nombre ||
+            precio === undefined ||
+            precio === null ||
+            !categoria
+        ) {
+            return res.status(400).json({
+                mensaje: 'Faltan campos obligatorios: id_restaurante, nombre, precio y categoria'
+            });
+        }
+
+        // Validar el ID del restaurante
+        if (!Number.isInteger(id_restaurante) || id_restaurante <= 0) {
+            return res.status(400).json({
+                error: 'Dato inválido',
+                detalle: 'id_restaurante debe ser un número entero positivo'
+            });
+        }
+
+        // Validar el nombre
+        if (typeof nombre !== 'string' || nombre.trim() === '') {
+            return res.status(400).json({
+                error: 'Dato inválido',
+                detalle: 'nombre debe ser un texto no vacío'
+            });
+        }
+
+        // Validar la descripción
+        if (descripcion !== undefined && descripcion !== null && typeof descripcion !== 'string') {
+            return res.status(400).json({
+                error: 'Dato inválido',
+                detalle: 'descripcion debe ser un texto o null'
+            });
+        }
+
+        // Validar el precio
+        if (typeof precio !== 'number' || !Number.isFinite(precio) || precio <= 0) {
+            return res.status(400).json({
+                error: 'Dato inválido',
+                detalle: 'precio debe ser un número mayor que cero, sin comillas'
+            });
+        }
+
+        // Validar la categoría
+        if (typeof categoria !== 'string' || categoria.trim() === '') {
+            return res.status(400).json({
+                error: 'Dato inválido',
+                detalle: 'categoria debe ser un texto no vacío'
+            });
+        }
+
+        // Verificar que el restaurante exista
+        const restaurante = await restauranteModel.obtenerPorId(id_restaurante);
+
+        if (!restaurante) {
+            return res.status(404).json({
+                mensaje: 'Restaurante no encontrado'
+            });
+        }
+
+        // Verificar que el usuario sea dueño o administrador
+        if (
+            req.usuario.rol !== 'admin' &&
+            restaurante.id_usuario !== req.usuario.id
+        ) {
+            return res.status(403).json({
+                mensaje: 'No tenés permiso para crear productos en este restaurante'
+            });
+        }
+
+        // Crear el producto
+        const nuevoProducto = await productoModel.crear({
+            id_restaurante,
+            nombre,
+            descripcion,
+            precio,
+            categoria
+        });
+
+        return res.status(201).json({
+            mensaje: 'Producto creado correctamente',
+            producto: nuevoProducto
+        });
+
+    } catch (error) {
+        console.error('Error al crear producto:', error);
+
+        return res.status(500).json({
+            mensaje: 'Error interno al crear el producto'
+        });
+    }
+});
+
 // SUBIR O ACTUALIZAR IMAGEN DE UN PRODUCTO
 app.patch('/api/productos/:id/imagen',verificarToken,subirImagen.single('imagen'),async (req, res) => {
         try {
@@ -919,6 +1035,213 @@ app.patch('/api/productos/:id/imagen',verificarToken,subirImagen.single('imagen'
         }
     }
 );
+
+//MODIFICAR UN PRODUCTO
+app.patch('/api/productos/:id', verificarToken, async (req, res) => {
+    try {
+        const idProducto = Number(req.params.id);
+
+        if (!Number.isInteger(idProducto) || idProducto <= 0) {
+            return res.status(400).json({
+               error: 'Dato inválido',
+               detalle: 'El ID del producto debe ser un entero positivo'
+            });
+        }
+
+        // Validar el cuerpo recibido
+        const datos = req.body;
+
+        if (!datos || typeof datos !== 'object' || Array.isArray(datos)) {
+            return res.status(400).json({
+                error: 'Debés enviar los datos en formato JSON'
+            });
+        }
+
+        // Obtener los campos enviados
+        const {
+            nombre,
+            descripcion,
+            precio,
+            categoria,
+            disponible
+        } = req.body;
+
+        // Verificar que se haya enviado al menos un campo
+        if (Object.keys(datos).length === 0) {
+            return res.status(400).json({
+                error: 'No se enviaron datos para modificar'
+            });
+        }
+
+         // Validar los campos enviados
+        if (nombre !== undefined && (typeof nombre !== 'string' || nombre.trim() === '')) {
+            return res.status(400).json({
+                error: 'Dato inválido',
+                detalle: 'nombre debe ser un texto no vacío'
+            });
+        }
+
+        if (descripcion !== undefined && descripcion !== null && typeof descripcion !== 'string') {
+            return res.status(400).json({
+                error: 'Dato inválido',
+                detalle: 'descripcion debe ser un texto o null'
+            });
+        }
+
+        if (precio !== undefined && (typeof precio !== 'number' ||!Number.isFinite(precio) || precio <= 0)) {
+            return res.status(400).json({
+                error: 'Dato inválido',
+                detalle: 'precio debe ser un número mayor que cero, sin comillas'
+            });
+        }
+
+        if (categoria !== undefined && (typeof categoria !== 'string' || categoria.trim() === '')) {
+            return res.status(400).json({
+                error: 'Dato inválido',
+                detalle: 'categoria debe ser un texto no vacío'
+            });
+        }
+
+        if (disponible !== undefined && typeof disponible !== 'boolean') {
+            return res.status(400).json({
+                error: 'Dato inválido',
+                detalle: 'disponible debe ser un booleano: true o false, sin comillas'
+            });
+        }
+
+        // Evitar aceptar campos que no se pueden modificar
+        const camposPermitidos = [
+            'nombre',
+            'descripcion',
+            'precio',
+            'categoria',
+            'disponible'
+        ];
+
+        const camposNoPermitidos = Object.keys(datos).filter(
+            campo => !camposPermitidos.includes(campo)
+        );
+
+        if (camposNoPermitidos.length > 0) {
+            return res.status(400).json({
+                error: 'Campos no permitidos',
+                detalle: `No se pueden modificar estos campos: ${camposNoPermitidos.join(', ')}`
+            });
+        }
+
+        // Buscar el producto
+        const producto = await productoModel.obtenerPorId(idProducto);
+
+        if (!producto) {
+            return res.status(404).json({
+                mensaje: 'Producto no encontrado'
+            });
+        }
+
+        // Buscar el restaurante propietario
+        const restaurante = await restauranteModel.obtenerPorId(
+            producto.id_restaurante
+        );
+
+        if (!restaurante) {
+            return res.status(404).json({
+                mensaje: 'Restaurante no encontrado'
+            });
+        }
+
+        // Verificar permisos
+        if (
+            req.usuario.rol !== 'admin' &&
+            restaurante.id_usuario !== req.usuario.id
+        ) {
+            return res.status(403).json({
+                mensaje: 'No tenés permiso para modificar este producto'
+            });
+        }
+
+        // Actualizar los datos
+        const productoActualizado = await productoModel.actualizar(
+            idProducto,
+            {
+                nombre,
+                descripcion,
+                precio,
+                categoria,
+                disponible
+            }
+        );
+
+        return res.status(200).json({
+            mensaje: 'Producto actualizado correctamente',
+            producto: productoActualizado
+        });
+
+    } catch (error) {
+        console.error('Error al modificar producto:', error);
+
+        return res.status(500).json({
+            mensaje: 'Error interno al modificar el producto'
+        });
+    }
+});
+
+//ELIMINAR PRODUCTO (DISPONIBLE:FALSE)
+app.delete('/api/productos/:id', verificarToken, async (req, res) => {
+    try {
+        const idProducto = Number(req.params.id);
+
+        if (!Number.isInteger(idProducto) || idProducto <= 0) {
+            return res.status(400).json({
+                mensaje: 'El ID del producto no es válido'
+            });
+        }
+
+        // Buscar el producto
+        const producto = await productoModel.obtenerPorId(idProducto);
+
+        if (!producto) {
+            return res.status(404).json({
+                mensaje: 'Producto no encontrado'
+            });
+        }
+
+        // Buscar el restaurante propietario
+        const restaurante = await restauranteModel.obtenerPorId(
+            producto.id_restaurante
+        );
+
+        if (!restaurante) {
+            return res.status(404).json({
+                mensaje: 'Restaurante no encontrado'
+            });
+        }
+
+        // Verificar permisos
+        if (
+            req.usuario.rol !== 'admin' &&
+            restaurante.id_usuario !== req.usuario.id
+        ) {
+            return res.status(403).json({
+                mensaje: 'No tenés permiso para desactivar este producto'
+            });
+        }
+
+        // Desactivar sin borrar el registro
+        const productoDesactivado = await productoModel.eliminar(idProducto);
+
+        return res.status(200).json({
+            mensaje: 'Producto desactivado correctamente',
+            producto: productoDesactivado
+        });
+
+    } catch (error) {
+        console.error('Error al desactivar producto:', error);
+
+        return res.status(500).json({
+            mensaje: 'Error interno al desactivar el producto'
+        });
+    }
+});
 
 
 //============CLIENTE==============
