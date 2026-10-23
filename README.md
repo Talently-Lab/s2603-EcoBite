@@ -35,9 +35,15 @@ Desarrollar una plataforma de delivery que permita:
 
 ## Plan de Testing
 
-El plan de testing del proyecto se encuentra disponible en el siguiente enlace:
+La documentación de testing del proyecto está centralizada en Google Drive:
 
-*[Insertar enlace al documento de Google Drive]*
+**[Acceder a la carpeta de Testing — EcoBite](https://drive.google.com/drive/folders/1u0dHy75aMJyqiXqOvlvtUyAHdIVAhIp7?usp=sharing)**
+
+| Documento | Descripción |
+|-----------|-------------|
+| **Plan de Testing** | Alcance, estrategia, tipos de prueba, recursos, cronograma y criterios de entrada/salida. |
+| **Casos de Prueba** | Pasos, datos de prueba y resultados esperados para cada funcionalidad. |
+| **Reportes de Bugs** | Incidentes detectados durante la ejecución y su seguimiento. |
 
 ---
 
@@ -45,8 +51,15 @@ El plan de testing del proyecto se encuentra disponible en el siguiente enlace:
 
 | Rol | Nombre | LinkedIn |
 |-----|--------|----------|
-| | | |
-| | | |
+| Tester | Erika Helfenstern | https://www.linkedin.com/in/hevieri/ |
+| Tester | Mayra Chazarreta | https://www.linkedin.com/in/mayra-chazarreta-33a3b9406?utm_source=share_via&utm_content=profile&utm_medium=member_android |
+| Frontend | Franco Alex Torrico | https://www.linkedin.com/in/francotorrico/ | 
+| Diseñador Gráfico | Maria Pilar Donovan | |
+| Diseñador UX/UI | Carina Alejandra Luna | https://www.linkedin.com/in/carina-alejandra-luna |
+| Marketing | Jorgelina Riquelme | https://ar.linkedin.com/in/jorgelina-riquelmee- |
+| Data Analyst | Fernando Romero | |
+| Project Manager | Jeanette Ruiz Valiente | https://www.linkedin.com/in/jeanette-elizabeth-ruiz-valiente-a4b480370?utm_source=share_via&utm_content=profile&utm_medium=member_android |
+|Backend |Sabrina Tolay | https://www.linkedin.com/in/sabrinatolay/|
 | | | |
 | | | |
 
