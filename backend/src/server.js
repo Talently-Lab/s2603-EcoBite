@@ -402,8 +402,53 @@ app.post('/api/usuario/login', async (req, res) => {
 //GET para traer todos los restaurantes
 app.get('/api/restaurantes', async (req, res) => {
     try {
-        const restaurantes = await restauranteModel.obtenerTodos();
-        res.status(200).json(restaurantes);
+         const { categoria, abierto } = req.query;
+
+        // Validar el filtro abierto
+        if (abierto !== undefined && abierto !== 'true' && abierto !== 'false') {
+            return res.status(400).json({
+                error: 'El filtro abierto debe ser true o false'
+            });
+        }
+
+        // Validar categoría si fue enviada
+        if (categoria !== undefined && (typeof categoria !== 'string' || categoria.trim() === '')) {
+            return res.status(400).json({
+                error: 'La categoría debe ser un texto no vacío'
+            });
+        }
+
+        // Obtener todos o filtrar por categoría
+        let restaurantes;
+
+        if (categoria !== undefined) {
+            restaurantes = await restauranteModel.obtenerPorCategoria(categoria.trim());
+        } else {
+            restaurantes = await restauranteModel.obtenerTodos();
+        }
+
+        // Filtrar por estado abierto/cerrado si se solicitó
+        if (abierto !== undefined) {
+            const restaurantesConEstado = await Promise.all(
+                restaurantes.map(async (restaurante) => {
+                    const estado = await horarioRestauranteModel.obtenerEstadoRestaurante(restaurante.id);
+                    return {
+                        ...restaurante,
+                        abierto: estado.abierto
+                    };
+                })
+            );
+
+            restaurantes = restaurantesConEstado.filter(
+                restaurante => restaurante.abierto === (abierto === 'true')
+            );
+        }
+
+        return res.status(200).json(restaurantes);
+
+        /* const restaurantes = await restauranteModel.obtenerTodos();
+        res.status(200).json(restaurantes); */
+
     } catch (error) {
         console.error('Error al obtener restaurantes:', error.message);
         res.status(500).json({
@@ -760,10 +805,17 @@ app.patch('/api/restaurantes/:id/imagen',verificarToken,subirImagen.single('imag
 app.get('/api/restaurantes/:id/productos', async (req, res) => {
     try {
         const idRestaurante = Number(req.params.id);
+        const { categoria } = req.query;
 
         if (!Number.isInteger(idRestaurante) || idRestaurante <= 0) {
             return res.status(400).json({
                 error: 'El ID del restaurante debe ser un número entero positivo'
+            });
+        }
+
+        if (categoria !== undefined && (typeof categoria !== 'string' || categoria.trim() === '')) {
+            return res.status(400).json({
+                error: 'La categoría debe ser un texto no vacío'
             });
         }
 
@@ -775,7 +827,8 @@ app.get('/api/restaurantes/:id/productos', async (req, res) => {
             });
         }
 
-        const productos = await productoModel.obtenerPorRestaurante(idRestaurante);
+        const productos = await productoModel.obtenerPorRestaurante(idRestaurante,
+                categoria === undefined ? null : categoria.trim());
 
         return res.status(200).json({
             restaurante_id: idRestaurante,
@@ -1243,6 +1296,68 @@ app.delete('/api/productos/:id', verificarToken, async (req, res) => {
     }
 });
 
+//CONSULTAR TODOS LOS PRODUCTOS ADMIN Y DUEÑO
+app.get('/api/restaurantes/:id/productos/gestion',verificarToken,verificarRol('restaurante', 'administrador'),
+    async (req, res) => {
+        try {
+            const idRestaurante = Number(req.params.id);
+            const { categoria, disponible } = req.query;
+
+            if (!Number.isInteger(idRestaurante) || idRestaurante <= 0) {
+                return res.status(400).json({
+                    error: 'El ID del restaurante debe ser un entero positivo'
+                });
+            }
+            if (categoria !== undefined && (typeof categoria !== 'string' || categoria.trim() === '')) {
+                return res.status(400).json({
+                    error: 'La categoría debe ser un texto no vacío'
+                });
+            }
+
+            if (
+                disponible !== undefined &&
+                disponible !== 'true' &&
+                disponible !== 'false'
+            ) {
+                return res.status(400).json({
+                    error: 'El filtro disponible debe ser true o false'
+                });
+            }
+
+            const restaurante = await restauranteModel.obtenerPorId(idRestaurante);
+
+            if (!restaurante) {
+                return res.status(404).json({
+                    error: 'Restaurante no encontrado'
+                });
+            }
+
+            // El restaurante solo puede gestionar sus propios productos.
+            // El administrador puede gestionar cualquier restaurante.
+            if (req.usuario.rol !== 'administrador' && restaurante.id_usuario !== req.usuario.id) {
+                return res.status(403).json({
+                    error: 'No tenés permiso para gestionar este restaurante'
+                });
+            }
+
+            const productos = await productoModel.obtenerFiltradosPorRestaurante(
+                    idRestaurante,
+                    categoria === undefined ? null : categoria.trim(),
+                    disponible === undefined ? null : disponible === 'true'
+                );
+
+            return res.status(200).json({
+                restaurante_id: idRestaurante,
+                productos
+            });
+        } catch (error) {
+            console.error('Error al gestionar productos:', error.message);
+            return res.status(500).json({
+                error: 'Error al obtener los productos'
+            });
+        }
+    }
+);
 
 //============CLIENTE==============
  // CREAR CLIENTE
