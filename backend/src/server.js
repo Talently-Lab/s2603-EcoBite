@@ -2088,136 +2088,113 @@ app.get('/api/restaurantes/:id/estado', async (req, res) => {
  //============ PEDIDOS ============
 
 // CREAR PEDIDO
-app.post('/api/ordenes',verificarToken,verificarRol('cliente'),async (req, res) => {
-        try {
-            // 1. Validar que el cuerpo sea un objeto JSON
-            if (
-                !req.body ||
-                typeof req.body !== 'object' ||
-                Array.isArray(req.body)
-            ) {
-                return res.status(400).json({
-                    error: 'Debés enviar los datos del pedido en formato JSON'
-                });
-            }
-
-            const {
-                id_restaurante,
-                id_zona,
-                productos,
-                tipo_pago,
-                costo_envio
-            } = req.body;
-
-            // 2. Validar los IDs
-            if (!Number.isInteger(id_restaurante) || id_restaurante <= 0 || !Number.isInteger(id_zona) ||
-                id_zona <= 0) {
-                return res.status(400).json({
-                    error: 'El restaurante y la zona deben tener IDs enteros positivos'
-                });
-            }
-
-            // 3. Validar el medio de pago
-            if (!['efectivo', 'tarjeta'].includes(tipo_pago)) {
-                return res.status(400).json({
-                    error: 'El tipo de pago debe ser efectivo o tarjeta'
-                });
-            }
-
-            // 4. Validar los productos del carrito
-            if (!Array.isArray(productos) || productos.length === 0) {
-                return res.status(400).json({
-                    error: 'El carrito debe contener al menos un producto'
-                });
-            }
-
-            for (const producto of productos) {
-                if (
-                    !producto ||
-                    !Number.isInteger(producto.id_producto) ||
-                    producto.id_producto <= 0 ||
-                    !Number.isInteger(producto.cantidad) ||
-                    producto.cantidad <= 0
-                ) {
-                    return res.status(400).json({
-                        error: 'Cada producto debe tener un ID válido y una cantidad entera positiva'
-                    });
-                }
-            }
-
-            // Evitar que un mismo producto aparezca repetido
-            const idsProductos = productos.map(producto => producto.id_producto);
-
-            if (new Set(idsProductos).size !== idsProductos.length) {
-                return res.status(400).json({
-                    error: 'No repitas productos en el carrito; indicá su cantidad en una sola línea'
-                });
-            }
-
-            // 5. Validar el costo de envío si fue enviado
-            if (
-                costo_envio !== undefined &&
-                (
-                    typeof costo_envio !== 'number' ||
-                    !Number.isFinite(costo_envio) ||
-                    costo_envio < 0
-                )
-            ) {
-                return res.status(400).json({
-                    error: 'El costo de envío debe ser un número mayor o igual a cero'
-                });
-            }
-
-            // 6. Crear el pedido
-            // El ID del usuario sale del token, no del body
-            const nuevoPedido = await pedidoModel.crear({
-                ...req.body,
-                id_usuario: req.usuario.id
-            });
-
-            return res.status(201).json({
-                mensaje: 'Pedido creado correctamente',
-                pedido: nuevoPedido
-            });
-
-        } catch (error) {
-            // Errores de validación del modelo
-            const erroresValidacion = [
-                'El usuario no tiene un perfil de cliente',
-                'El restaurante no existe',
-                'La zona no existe',
-                'Hay productos que no existen, no están disponibles o no pertenecen al restaurante'
-            ];
-
-            if (erroresValidacion.includes(error.message)) {
-                const estadoHTTP =
-                    error.message === 'El usuario no tiene un perfil de cliente' ||
-                    error.message === 'El restaurante no existe' ||
-                    error.message === 'La zona no existe'
-                        ? 404
-                        : 400;
-
-                return res.status(estadoHTTP).json({
-                    error: error.message
-                });
-            }
-
-            // Error de clave foránea en PostgreSQL
-            if (error.code === '23503') {
-                return res.status(400).json({
-                    error: 'Alguna referencia del pedido no es válida'
-                });
-            }
-
-            console.error('Error al crear el pedido:', error.message);
-
-            return res.status(500).json({
-                error: 'Error interno al crear el pedido'
+app.post('/api/ordenes', verificarToken, verificarRol('cliente'), async (req, res) => {
+    try {
+        if (!req.body || typeof req.body !== 'object' || Array.isArray(req.body)) {
+            return res.status(400).json({
+                mensaje: 'El cuerpo de la solicitud debe ser un objeto válido'
             });
         }
-    }
-);
 
+        const {
+            id_carrito,
+            id_zona,
+            tipo_pago,
+            costo_envio,
+            direccion_entrega,
+            piso_entrega,
+            departamento_entrega,
+            indicacion_entrega
+        } = req.body;
+
+        // Validar identificadores
+        if (!Number.isInteger(id_carrito) || id_carrito <= 0) {
+            return res.status(400).json({
+                mensaje: 'El id_carrito debe ser un entero positivo'
+            });
+        }
+
+        if (!Number.isInteger(id_zona) || id_zona <= 0) {
+            return res.status(400).json({
+                mensaje: 'El id_zona debe ser un entero positivo'
+            });
+        }
+
+        // Validar forma de pago
+        if (!['efectivo', 'tarjeta'].includes(tipo_pago)) {
+            return res.status(400).json({
+                mensaje: 'El tipo de pago debe ser efectivo o tarjeta'
+            });
+        }
+
+        // Validar costo de envío si se envía
+        if (
+            costo_envio !== undefined &&
+            (typeof costo_envio !== 'number' ||
+                !Number.isFinite(costo_envio) ||
+                costo_envio < 0)
+        ) {
+            return res.status(400).json({
+                mensaje: 'El costo de envío debe ser un número mayor o igual a cero'
+            });
+        }
+
+        const nuevoPedido = await pedidoModel.crear({
+            id_usuario: req.usuario.id,
+            id_carrito,
+            id_zona,
+            tipo_pago,
+            costo_envio,
+            direccion_entrega,
+            piso_entrega,
+            departamento_entrega,
+            indicacion_entrega
+        });
+
+        return res.status(201).json({
+            mensaje: 'Pedido creado correctamente',
+            pedido: nuevoPedido
+        });
+
+    } catch (error) {
+        const erroresNoEncontrados = [
+            'El usuario no tiene un perfil de cliente',
+            'El carrito no existe',
+            'El carrito no pertenece al cliente',
+            'La zona no existe'
+        ];
+
+        const erroresSolicitud = [
+            'El carrito no está pendiente',
+            'El carrito está vacío',
+            'Hay productos que no están disponibles o no pertenecen al restaurante'
+        ];
+
+        if (erroresNoEncontrados.includes(error.message)) {
+            return res.status(404).json({
+                mensaje: error.message
+            });
+        }
+
+        if (erroresSolicitud.includes(error.message)) {
+            return res.status(400).json({
+                mensaje: error.message
+            });
+        }
+
+        if (error.code === '23503') {
+            return res.status(400).json({
+                mensaje: 'Alguno de los datos enviados no existe o no es válido'
+            });
+        }
+
+        console.error('Error al crear pedido:', error);
+
+        return res.status(500).json({
+            mensaje: 'Error interno al crear el pedido'
+        });
+    }
+});
 
  // ACEPTAR PEDIDO
 app.patch('/api/ordenes/:id/aceptar',verificarToken,verificarRol('restaurante'),async (req, res) => {
