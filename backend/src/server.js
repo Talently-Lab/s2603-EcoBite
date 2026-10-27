@@ -7,21 +7,24 @@ require('dotenv').config();
 const express = require('express');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-const { enviarBienvenida } = require('./services/email.service');
 const cron = require('node-cron');
 const cloudinary = require('./cloudinary');
-const subirImagen = require('./middlewares/subirImagen');
 const { Readable } = require('stream');
 
+const { enviarBienvenida } = require('./services/email.service');
+const subirImagen = require('./middlewares/subirImagen');
 const { verificarToken, verificarRol } = require('./middlewares/auth.middleware');
 const { obtenerPublicIdDesdeUrl } = require('./cloudinary.utils');
-//Modelos
+
+//MODELOS
 const restauranteModel = require('./models/restaurante.model');//importa restaurante.model
 const usuarioModel = require('./models/usuario.model');//importar usuario.model
 const clienteModel = require('./models/cliente.model');//importar cliente.model
 const horarioRestauranteModel = require('./models/horario_restaurante.model');
 const pedidoModel = require('./models/pedido.model');
 const productoModel = require('./models/producto.model');
+const carritoModel = require('./models/carrito.model');
+const detalleCarritoModel = require('./models/detalleCarrito.model');
 
 const app = express();
 const PORT = 3000;
@@ -167,7 +170,6 @@ app.post('/api/usuario/registro-restaurante', async (req, res) => {
 
 
 // CONSULTAR TODOS LOS USUARIOS
-//app.get('/api/usuario', async (req, res) => {
 app.get('/api/usuarios', verificarToken, verificarRol('administrador'),async (req, res) => {
     try {
         const usuarios = await usuarioModel.obtenerTodos();
@@ -181,7 +183,6 @@ app.get('/api/usuarios', verificarToken, verificarRol('administrador'),async (re
 });
 
 // CONSULTAR UN USUARIO POR ID
-//app.get('/api/usuario/:id', async (req, res) => {
 app.get('/api/usuarios/:id', verificarToken, async (req, res) => {
     try {
         const id = Number(req.params.id);
@@ -217,7 +218,6 @@ app.get('/api/usuarios/:id', verificarToken, async (req, res) => {
 });
 
 //MODIFICAR UN USUARIO
-//app.put('/api/usuario/:id', async (req, res) => {
 app.put('/api/usuarios/:id', verificarToken, async (req, res) => {
     try {
         const id = Number(req.params.id);
@@ -290,7 +290,6 @@ app.put('/api/usuarios/:id', verificarToken, async (req, res) => {
 });
 
 //ELIMINAR USUARIO
-//app.delete('/api/usuario/:id',async (req, res) => {
 app.delete('/api/usuarios/:id', verificarToken, async (req, res) => {
     try {
         const id = Number(req.params.id);
@@ -484,7 +483,6 @@ app.get('/api/restaurantes/:id', async (req,res)=>{
 });
 
 //POST para crear un restaurante
-//app.post('/api/restaurantes', async(req,res)=>{
 app.post('/api/restaurantes', verificarToken, async (req, res) => {
     try{
         // Validar el formato de los datos recibidos
@@ -569,7 +567,6 @@ app.post('/api/restaurantes', verificarToken, async (req, res) => {
 });
 
 //PUT para modificar un restaurante
-//app.put('/api/restaurantes/:id', async (req, res) => {
 app.put('/api/restaurantes/:id', verificarToken, async (req, res) => {
     try {
         const id = Number(req.params.id);
@@ -638,7 +635,6 @@ app.put('/api/restaurantes/:id', verificarToken, async (req, res) => {
 });
 
 //DELETE para eliminar un restaurante
-//app.delete('/api/restaurantes/:id', async (req, res) => {
 app.delete('/api/restaurantes/:id', verificarToken, async (req, res) => {
     try {
         const id = Number(req.params.id);
@@ -1361,7 +1357,6 @@ app.get('/api/restaurantes/:id/productos/gestion',verificarToken,verificarRol('r
 
 //============CLIENTE==============
  // CREAR CLIENTE
-//app.post('/api/clientes', async (req, res) => {
 app.post('/api/clientes', verificarToken, async (req, res) => {
     try {
 
@@ -1432,7 +1427,6 @@ app.post('/api/clientes', verificarToken, async (req, res) => {
 });
 
 // OBTENER TODOS LOS CLIENTES
-//app.get('/api/clientes', async (req, res) => {
 app.get('/api/clientes', verificarToken,verificarRol('administrador'),async (req, res) => {
     try {
         const clientes = await clienteModel.obtenerTodos();
@@ -1449,7 +1443,6 @@ app.get('/api/clientes', verificarToken,verificarRol('administrador'),async (req
 
 
 // OBTENER UN CLIENTE POR ID
-//app.get('/api/clientes/:id', async (req, res) => {
 app.get('/api/clientes/:id', verificarToken, async (req, res) => {
     try {
         const id = Number(req.params.id);
@@ -1488,7 +1481,6 @@ app.get('/api/clientes/:id', verificarToken, async (req, res) => {
 });
 
 // ACTUALIZAR PERFIL DE CLIENTE
-//app.put('/api/clientes/:id', async (req, res) => {
 app.put('/api/clientes/:id', verificarToken, async (req, res) => {
     try {
         const id = Number(req.params.id);
@@ -1568,7 +1560,6 @@ app.put('/api/clientes/:id', verificarToken, async (req, res) => {
 });
 
  // ELIMINAR PERFIL DE CLIENTE
-//app.delete('/api/clientes/:id', async (req, res) => {
 app.delete('/api/clientes/:id', verificarToken, async (req, res) => {
     try {
         const id = Number(req.params.id);
@@ -2513,6 +2504,424 @@ cron.schedule('* * * * *', async () => {
         );
     }
 });
+
+//========CARRITO============
+// Listar los carritos del cliente autenticado
+app.get('/api/carritos', verificarToken, verificarRol('cliente'), async (req, res) => {
+    try {
+        const idCliente = await carritoModel.obtenerIdClientePorUsuario(
+            req.usuario.id
+        );
+
+        if (!idCliente) {
+            return res.status(404).json({
+                mensaje: 'No se encontró el perfil del cliente.'
+            });
+        }
+
+        const carritos = await carritoModel.listarPorCliente(idCliente);
+
+        return res.status(200).json({ carritos });
+
+    } catch (error) {
+        console.error('Error al listar los carritos:', error);
+
+        return res.status(500).json({
+            mensaje: 'Error al listar los carritos.'
+        });
+    }
+});
+
+// Obtener un carrito específico con sus productos
+app.get('/api/carritos/:idCarrito', verificarToken, verificarRol('cliente'), async (req, res) => {
+    try {
+        const idCarrito = Number(req.params.idCarrito);
+
+        if (!Number.isInteger(idCarrito) || idCarrito <= 0) {
+            return res.status(400).json({
+                mensaje: 'El ID del carrito debe ser un entero positivo.'
+            });
+        }
+
+        const idCliente = await carritoModel.obtenerIdClientePorUsuario(req.usuario.id);
+
+        if (!idCliente) {
+            return res.status(404).json({
+                mensaje: 'No se encontró el perfil del cliente.'
+            });
+        }
+
+        const carrito = await carritoModel.obtenerPorId(idCarrito);
+
+        if (!carrito || carrito.id_cliente !== idCliente) {
+            return res.status(404).json({
+                mensaje: 'No se encontró el carrito.'
+            });
+        }
+
+        const productos = await detalleCarritoModel.obtenerPorCarrito(
+            carrito.id
+        );
+
+        return res.status(200).json({
+            carrito,
+            productos
+        });
+
+    } catch (error) {
+        console.error('Error al consultar el carrito:', error);
+
+        return res.status(500).json({
+            mensaje: 'Error al consultar el carrito.'
+        });
+    }
+});
+
+// Agregar un producto al carrito y si no hay un carrito crear uno nuevo
+app.post('/api/carritos/:idRestaurante/productos',verificarToken,verificarRol('cliente'),async (req, res) => {
+        try {
+            const idRestaurante = Number(req.params.idRestaurante);
+            const { productoId, cantidad } = req.body;
+
+            // Validar restaurante
+            if (!Number.isInteger(idRestaurante) || idRestaurante <= 0) {
+                return res.status(400).json({
+                    mensaje: 'El ID del restaurante debe ser un entero positivo.'
+                });
+            }
+
+            // Validar producto y cantidad
+            const idProducto = Number(productoId);
+            const cantidadProducto = Number(cantidad);
+
+            if (!Number.isInteger(idProducto) || idProducto <= 0) {
+                return res.status(400).json({
+                    mensaje: 'El ID del producto debe ser un entero positivo.'
+                });
+            }
+
+            if (!Number.isInteger(cantidadProducto) || cantidadProducto <= 0) {
+                return res.status(400).json({
+                    mensaje: 'La cantidad debe ser un entero positivo.'
+                });
+            }
+
+            // Obtener el cliente autenticado
+            const idCliente = await carritoModel.obtenerIdClientePorUsuario(req.usuario.id);
+
+            if (!idCliente) {
+                return res.status(404).json({
+                    mensaje: 'No se encontró el perfil del cliente.'
+                });
+            }
+
+            // Verificar que el restaurante exista
+            const restaurante = await restauranteModel.obtenerPorId(idRestaurante);
+
+            if (!restaurante) {
+                return res.status(404).json({
+                    mensaje: 'No se encontró el restaurante.'
+                });
+            }
+
+            // Buscar el producto
+            const producto = await productoModel.obtenerPorId(idProducto);
+
+            if (!producto) {
+                return res.status(404).json({
+                    mensaje: 'No se encontró el producto.'
+                });
+            }
+
+            // Verificar que pertenezca al restaurante indicado
+            if (Number(producto.id_restaurante) !== idRestaurante) {
+                return res.status(400).json({
+                    mensaje: 'El producto no pertenece a este restaurante.'
+                });
+            }
+
+            // Verificar que esté disponible
+            if (!producto.disponible) {
+                return res.status(400).json({
+                    mensaje: 'El producto no está disponible.'
+                });
+            }
+
+            // Buscar el carrito pendiente del cliente para ese restaurante
+            let carrito = await carritoModel.obtenerPendientePorClienteYRestaurante(idCliente,idRestaurante);
+
+            // Si no existe, crear uno
+            if (!carrito) {
+                carrito = await carritoModel.crear(
+                    idCliente,
+                    idRestaurante
+                );
+            }
+
+            // Agregar el producto o aumentar su cantidad
+            await detalleCarritoModel.agregarProducto(
+                carrito.id,
+                idProducto,
+                cantidadProducto
+            );
+
+            // Actualizar la fecha de modificación del carrito
+            carrito = await carritoModel.actualizarFechaActualizacion(
+                carrito.id
+            );
+
+            // Obtener los productos actualizados
+            const productos = await detalleCarritoModel.obtenerPorCarrito(
+                carrito.id
+            );
+
+            return res.status(200).json({
+                mensaje: 'Producto agregado al carrito correctamente.',
+                carrito,
+                productos
+            });
+
+        } catch (error) {
+            console.error('Error al agregar producto al carrito:', error);
+
+            return res.status(500).json({
+                mensaje: 'Error al agregar el producto al carrito.'
+            });
+        }
+    }
+);
+
+// Modificar la cantidad de un producto del carrito
+app.patch('/api/carritos/:idCarrito/productos/:idProducto',verificarToken,verificarRol('cliente'),
+    async (req, res) => {
+        try {
+            const idCarrito = Number(req.params.idCarrito);
+            const idProducto = Number(req.params.idProducto);
+            const { cantidad } = req.body;
+
+            // Validar IDs
+            if (!Number.isInteger(idCarrito) || idCarrito <= 0 || !Number.isInteger(idProducto) || idProducto <= 0) {
+                return res.status(400).json({
+                    mensaje: 'Los IDs deben ser enteros positivos.'
+                });
+            }
+
+            // Validar cantidad
+            if (!Number.isInteger(cantidad) || cantidad <= 0) {
+                return res.status(400).json({
+                    mensaje: 'La cantidad debe ser un entero positivo.'
+                });
+            }
+
+            // Obtener el cliente autenticado
+            const idCliente = await carritoModel.obtenerIdClientePorUsuario(req.usuario.id);
+
+            if (!idCliente) {
+                return res.status(404).json({
+                    mensaje: 'No se encontró el perfil del cliente.'
+                });
+            }
+
+            // Verificar que el carrito exista y pertenezca al cliente
+            const carrito = await carritoModel.obtenerPorId(idCarrito);
+
+            if (!carrito || Number(carrito.id_cliente) !== Number(idCliente)) {
+                return res.status(404).json({
+                    mensaje: 'No se encontró el carrito.'
+                });
+            }
+
+            // Solo se pueden modificar carritos pendientes
+            if (carrito.estado !== 'pendiente') {
+                return res.status(400).json({
+                    mensaje: 'Solo se pueden modificar carritos pendientes.'
+                });
+            }
+
+            // Actualizar la cantidad del producto
+            const detalle = await detalleCarritoModel.actualizarCantidad(
+                idCarrito,
+                idProducto,
+                cantidad
+            );
+
+            if (!detalle) {
+                return res.status(404).json({
+                    mensaje: 'El producto no se encuentra en este carrito.'
+                });
+            }
+
+            // Actualizar la fecha de modificación del carrito
+            const carritoActualizado =
+                await carritoModel.actualizarFechaActualizacion(idCarrito);
+
+            // Obtener los productos actualizados
+            const productos = await detalleCarritoModel.obtenerPorCarrito(idCarrito);
+
+            return res.status(200).json({
+                mensaje: 'Cantidad actualizada correctamente.',
+                carrito: carritoActualizado,
+                productos
+            });
+
+        } catch (error) {
+            console.error('Error al modificar la cantidad:', error);
+
+            return res.status(500).json({
+                mensaje: 'Error al modificar la cantidad del producto.'
+            });
+        }
+    }
+);
+
+// Eliminar un producto del carrito
+app.delete('/api/carritos/:idCarrito/productos/:idProducto',verificarToken,verificarRol('cliente'),
+    async (req, res) => {
+        try {
+            const idCarrito = Number(req.params.idCarrito);
+            const idProducto = Number(req.params.idProducto);
+
+            // Validar IDs
+            if (
+                !Number.isInteger(idCarrito) || idCarrito <= 0 ||
+                !Number.isInteger(idProducto) || idProducto <= 0
+            ) {
+                return res.status(400).json({
+                    mensaje: 'Los IDs deben ser enteros positivos.'
+                });
+            }
+
+            // Obtener el cliente autenticado
+            const idCliente = await carritoModel.obtenerIdClientePorUsuario(req.usuario.id);
+
+            if (!idCliente) {
+                return res.status(404).json({
+                    mensaje: 'No se encontró el perfil del cliente.'
+                });
+            }
+
+            // Verificar que el carrito exista y pertenezca al cliente
+            const carrito = await carritoModel.obtenerPorId(idCarrito);
+
+            if (!carrito || Number(carrito.id_cliente) !== Number(idCliente)) {
+                return res.status(404).json({
+                    mensaje: 'No se encontró el carrito.'
+                });
+            }
+
+            // Solo se pueden modificar carritos pendientes
+            if (carrito.estado !== 'pendiente') {
+                return res.status(400).json({
+                    mensaje: 'Solo se pueden modificar carritos pendientes.'
+                });
+            }
+
+            // Eliminar el producto del carrito
+            const detalle = await detalleCarritoModel.eliminarProducto(
+                idCarrito,
+                idProducto
+            );
+
+            if (!detalle) {
+                return res.status(404).json({
+                    mensaje: 'El producto no se encuentra en este carrito.'
+                });
+            }
+
+           // Obtener los productos restantes
+            const productos = await detalleCarritoModel.obtenerPorCarrito(idCarrito);
+
+            let carritoActualizado;
+
+            // Si no quedan productos, marcar el carrito como abandonado
+            if (productos.length === 0) {
+                carritoActualizado = await carritoModel.actualizarEstado(
+                    idCarrito,
+                    'abandonado'
+                );
+            } else {
+                // Si todavía quedan productos, actualizar la fecha de modificación
+                carritoActualizado = await carritoModel.actualizarFechaActualizacion(
+                    idCarrito
+                );
+            }
+
+            return res.status(200).json({
+                mensaje: 'Producto eliminado del carrito correctamente.',
+                carrito: carritoActualizado,
+                productos
+            });
+
+        } catch (error) {
+            console.error('Error al eliminar producto del carrito:', error);
+
+            return res.status(500).json({
+                mensaje: 'Error al eliminar el producto del carrito.'
+            });
+        }
+    }
+);
+
+// Abandonar un carrito completo
+app.delete('/api/carritos/:idCarrito',verificarToken,verificarRol('cliente'),async (req, res) => {
+        try {
+            const idCarrito = Number(req.params.idCarrito);
+
+            // Validar ID
+            if (!Number.isInteger(idCarrito) || idCarrito <= 0) {
+                return res.status(400).json({
+                    mensaje: 'El ID del carrito debe ser un entero positivo.'
+                });
+            }
+
+            // Obtener el cliente autenticado
+            const idCliente = await carritoModel.obtenerIdClientePorUsuario(req.usuario.id);
+
+            if (!idCliente) {
+                return res.status(404).json({
+                    mensaje: 'No se encontró el perfil del cliente.'
+                });
+            }
+
+            // Verificar que el carrito exista y pertenezca al cliente
+            const carrito = await carritoModel.obtenerPorId(idCarrito);
+
+            if (!carrito || Number(carrito.id_cliente) !== Number(idCliente)) {
+                return res.status(404).json({
+                    mensaje: 'No se encontró el carrito.'
+                });
+            }
+
+            // Solo se pueden abandonar carritos pendientes
+            if (carrito.estado !== 'pendiente') {
+                return res.status(400).json({
+                    mensaje: 'Solo se pueden abandonar carritos pendientes.'
+                });
+            }
+
+            // Eliminar todos los productos del carrito
+            await detalleCarritoModel.eliminarTodosPorCarrito(idCarrito);
+
+            // Cambiar el estado a abandonado
+            const carritoActualizado = await carritoModel.actualizarEstado(
+                idCarrito,
+                'abandonado'
+            );
+
+            return res.status(200).json({
+                mensaje: 'Carrito abandonado correctamente.',
+                carrito: carritoActualizado
+            });
+
+        } catch (error) {
+            console.error('Error al abandonar el carrito:', error);
+
+            return res.status(500).json({
+                mensaje: 'Error al abandonar el carrito.'
+            });
+        }
+    }
+);
 
 // Iniciar el servidor
 app.listen(PORT, () => {
