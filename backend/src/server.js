@@ -10,6 +10,7 @@ const jwt = require('jsonwebtoken');
 const cron = require('node-cron');
 const cloudinary = require('./cloudinary');
 const { Readable } = require('stream');
+const cors = require('cors');
 
 const { enviarBienvenida } = require('./services/email.service');
 const subirImagen = require('./middlewares/subirImagen');
@@ -30,6 +31,10 @@ const dashboardModel = require('./models/dashboard.model');
 const app = express();
 const PORT = 3000;
 
+// Configuración CORS para permitir conexiones desde el frontend
+app.use(cors({
+    origin: 'http://localhost:5173'
+}));
 // Permite recibir datos en formato JSON
 app.use(express.json());
 
