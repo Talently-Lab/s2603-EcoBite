@@ -15,6 +15,13 @@ export interface RestaurantApiResponse {
   categoria: string | null;
   ciudad: string | null;
   imagen: string | null;
+  horarios?: RestaurantHours[] | null;
+}
+
+export interface RestaurantHours {
+  dia_semana: number;
+  hora_apertura: string;
+  hora_cierre: string;
 }
 
 export interface RestaurantScheduleApiResponse {
@@ -57,6 +64,7 @@ export interface Restaurant {
   image?: string | null;
   category?: string | null;
   city?: string | null;
+  schedules: RestaurantHours[];
   initialLetter: string;
 }
 
@@ -124,12 +132,22 @@ function mapRestaurant(data: RestaurantApiResponse): Restaurant {
     image: data.imagen,
     category: data.categoria,
     city: data.ciudad,
+    schedules: data.horarios ?? [],
     initialLetter: data.nombre.charAt(0).toUpperCase(),
   };
 }
 
+function mapMockRestaurant(data: RestaurantApiResponse): Restaurant {
+  return {
+    ...mapRestaurant(data),
+    schedules: MOCK_RESTAURANT_HOURS.filter(
+      (schedule) => schedule.id_restaurante === data.id,
+    ),
+  };
+}
+
 function getMockRestaurantBySlug(slug: string): Restaurant | undefined {
-  return MOCK_RESTAURANTS.map(mapRestaurant).find(
+  return MOCK_RESTAURANTS.map(mapMockRestaurant).find(
     (restaurant) => restaurant.slug === slug,
   );
 }
@@ -152,7 +170,7 @@ async function fetchApi<T>(path: string): Promise<T> {
 export async function getRestaurants(): Promise<Restaurant[]> {
   try {
     if (USE_MOCK_DATA) {
-      return MOCK_RESTAURANTS.map(mapRestaurant);
+      return MOCK_RESTAURANTS.map(mapMockRestaurant);
     }
 
     const restaurants =
@@ -296,7 +314,7 @@ export async function getRestaurantMenu(
   slug: string,
 ): Promise<RestaurantMenu> {
   if (USE_MOCK_DATA) {
-    const restaurant = MOCK_RESTAURANTS.map(mapRestaurant).find(
+    const restaurant = MOCK_RESTAURANTS.map(mapMockRestaurant).find(
       (item) => item.slug === slug,
     );
 

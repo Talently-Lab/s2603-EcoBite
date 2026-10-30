@@ -4,7 +4,6 @@ import { HeroTitle } from "../components/ui/HeroTitle";
 import EmptyState from "../components/ui/EmptyState";
 import { MenuItem } from "../components/detailRestaurant/menuItem";
 import { RestaurantInfoTags } from "../components/detailRestaurant/RestaurantInfoTags";
-import { useAuth } from "../contexts/AuthContext";
 import {
   OrderSummary,
   type CartItem,
@@ -12,11 +11,10 @@ import {
 import {
   getRestaurantBySlug,
   getRestaurantMenu,
-  getRestaurantSchedules,
   type MenuItemData,
   type Restaurant,
+  type RestaurantHours,
   type RestaurantMenu,
-  type RestaurantScheduleApiResponse,
 } from "../services/restaurants";
 
 const WEEKDAYS = [
@@ -33,12 +31,11 @@ export function DetalleRestaurantePage({
   onAdd,
 }: DetalleRestaurantePageProps) {
   const { slug } = useParams();
-  const { token } = useAuth();
   const [loadedData, setLoadedData] = useState<{
     slug: string;
     restaurant: Restaurant;
     menu: RestaurantMenu;
-    schedules: RestaurantScheduleApiResponse[];
+    schedules: RestaurantHours[];
   } | null>(null);
   const [loadError, setLoadError] = useState<{
     slug: string;
@@ -51,14 +48,13 @@ export function DetalleRestaurantePage({
     let isCurrent = true;
 
     Promise.all([getRestaurantBySlug(slug), getRestaurantMenu(slug)])
-      .then(async ([restaurantData, menuData]) => {
-        const schedules = await getRestaurantSchedules(restaurantData.id, token);
+      .then(([restaurantData, menuData]) => {
         if (!isCurrent) return;
         setLoadedData({
           slug,
           restaurant: restaurantData,
           menu: menuData,
-          schedules,
+          schedules: restaurantData.schedules,
         });
         setLoadError(null);
       })
@@ -77,7 +73,7 @@ export function DetalleRestaurantePage({
     return () => {
       isCurrent = false;
     };
-  }, [slug, token]);
+  }, [slug]);
 
   if (!slug) {
     return (

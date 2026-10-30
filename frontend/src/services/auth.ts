@@ -1,11 +1,14 @@
+// Tipos de cuenta disponibles para el registro.
 export type RegistrationAccountType = "cliente" | "restaurante";
 
+// Datos comunes enviados al crear una cuenta.
 export interface RegistrationData {
   email: string;
   contrasena: string;
   canal_adquisicion: string;
 }
 
+// Usuario autenticado devuelto por la API.
 export interface AuthUser {
   id: number;
   email: string;
@@ -14,23 +17,27 @@ export interface AuthUser {
   name?: string;
 }
 
+// Respuesta de registro o inicio de sesión.
 export interface LoginResponse {
   mensaje: string;
   token: string;
   usuario: AuthUser;
 }
 
+// Credenciales enviadas para iniciar sesión.
 export interface LoginCredentials {
   email: string;
   contrasena: string;
 }
 
+// Datos del perfil de restaurante.
 export interface RestaurantProfileData {
   nombre: string;
   cuit: string;
   categoria: string;
 }
 
+// Datos del perfil de cliente.
 export interface ClientProfileData {
   nombre: string;
   apellido: string;
@@ -97,7 +104,7 @@ function getErrorMessage(responseBody: unknown): string | null {
 export async function registerAccount(
   accountType: RegistrationAccountType,
   data: RegistrationData,
-): Promise<void> {
+): Promise<LoginResponse> {
   const response = await fetch(
     `${API_BASE_URL}/usuario/registro-${accountType}`,
     {
@@ -117,6 +124,28 @@ export async function registerAccount(
       { status: response.status },
     );
   }
+
+  if (
+    typeof responseBody !== "object" ||
+    responseBody === null ||
+    !("mensaje" in responseBody) ||
+    typeof responseBody.mensaje !== "string" ||
+    !("token" in responseBody) ||
+    typeof responseBody.token !== "string" ||
+    !("usuario" in responseBody) ||
+    typeof responseBody.usuario !== "object" ||
+    responseBody.usuario === null ||
+    !("id" in responseBody.usuario) ||
+    typeof responseBody.usuario.id !== "number" ||
+    !("email" in responseBody.usuario) ||
+    typeof responseBody.usuario.email !== "string" ||
+    !("rol" in responseBody.usuario) ||
+    typeof responseBody.usuario.rol !== "string"
+  ) {
+    throw new Error("El servidor devolvió una respuesta de registro inválida.");
+  }
+
+  return responseBody as LoginResponse;
 }
 
 export async function loginAccount(
@@ -172,7 +201,7 @@ export async function loginAccount(
 export async function createRestaurantProfile(
   token: string,
   data: RestaurantProfileData,
-): Promise<void> {
+): Promise<number> {
   const response = await fetch(`${API_BASE_URL}/restaurantes`, {
     method: "POST",
     headers: {
@@ -189,6 +218,57 @@ export async function createRestaurantProfile(
         `No se pudo crear el perfil del restaurante (estado ${response.status}).`,
     );
   }
+
+  if (
+    typeof responseBody !== "object" ||
+    responseBody === null ||
+    !("restaurante" in responseBody) ||
+    typeof responseBody.restaurante !== "object" ||
+    responseBody.restaurante === null ||
+    !("id" in responseBody.restaurante) ||
+    typeof responseBody.restaurante.id !== "number"
+  ) {
+    throw new Error("El servidor no devolvió el ID del restaurante creado.");
+  }
+
+  return responseBody.restaurante.id;
+}
+
+export async function uploadRestaurantImage(
+  token: string,
+  restaurantId: number,
+  image: File,
+): Promise<string> {
+  const formData = new FormData();
+  formData.append("imagen", image);
+
+  const response = await fetch(
+    `${API_BASE_URL}/restaurantes/${restaurantId}/imagen`,
+    {
+      method: "PATCH",
+      headers: { Authorization: `Bearer ${token}` },
+      body: formData,
+    },
+  );
+  const responseBody: unknown = await response.json();
+
+  if (!response.ok) {
+    throw new Error(
+      getErrorMessage(responseBody) ??
+        `No se pudo subir la imagen del restaurante (estado ${response.status}).`,
+    );
+  }
+
+  if (
+    typeof responseBody !== "object" ||
+    responseBody === null ||
+    !("imagen" in responseBody) ||
+    typeof responseBody.imagen !== "string"
+  ) {
+    throw new Error("El servidor no devolvió la URL de la imagen.");
+  }
+
+  return responseBody.imagen;
 }
 
 export async function createClientProfile(

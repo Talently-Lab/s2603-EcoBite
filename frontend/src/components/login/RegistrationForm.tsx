@@ -4,13 +4,15 @@ import { Link } from "react-router-dom";
 import Button from "../ui/Button";
 import { GlobalAlert } from "../ui/GlobalAlert";
 import { Input } from "../ui/Input";
+import { RestaurantImagePicker } from "./RestaurantImagePicker";
 import { useAuth } from "../../contexts/AuthContext";
 import {
   createClientProfile,
   createRestaurantProfile,
-  loginAccount,
   registerAccount,
+  uploadRestaurantImage,
   type RegistrationAccountType,
+  type LoginResponse,
 } from "../../services/auth";
 
 const registrationFields = z.object({
@@ -92,6 +94,39 @@ export function RegistrationForm() {
   const [isRegistered, setIsRegistered] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [pendingRestaurantSession, setPendingRestaurantSession] =
+    useState<LoginResponse | null>(null);
+  const [restaurantImage, setRestaurantImage] = useState<File | null>(null);
+  const [imageUploadError, setImageUploadError] = useState<string | null>(null);
+  const [createdRestaurantId, setCreatedRestaurantId] = useState<number | null>(
+    null,
+  );
+  const [createdRestaurantToken, setCreatedRestaurantToken] = useState<
+    string | null
+  >(null);
+  const [isRetryingImage, setIsRetryingImage] = useState(false);
+
+  async function retryRestaurantImageUpload() {
+    if (!restaurantImage || !createdRestaurantId || !createdRestaurantToken) {
+      return;
+    }
+
+    setIsRetryingImage(true);
+    setImageUploadError(null);
+    try {
+      await uploadRestaurantImage(
+        createdRestaurantToken,
+        createdRestaurantId,
+        restaurantImage,
+      );
+    } catch (error) {
+      setImageUploadError(
+        error instanceof Error ? error.message : "No se pudo subir la imagen.",
+      );
+    } finally {
+      setIsRetryingImage(false);
+    }
+  }
 
   function handleChange(event: ChangeEvent<HTMLInputElement | HTMLSelectElement>) {
     const { name, value } = event.currentTarget;
@@ -128,23 +163,48 @@ export function RegistrationForm() {
 
     try {
       const registrationData = result.data as RegistrationFormValues;
-      await registerAccount(accountType, {
-        email: result.data.email,
-        contrasena: result.data.contrasena,
-        canal_adquisicion: result.data.canal_adquisicion,
-      });
-      const session = await loginAccount({
-        email: registrationData.email,
-        contrasena: registrationData.contrasena,
-      });
+      const pendingSession =
+        accountType === "restaurante" ? pendingRestaurantSession : null;
+      const isCompletingRestaurantProfile = pendingSession !== null;
+      const session =
+        pendingSession ??
+        (await registerAccount(accountType, {
+          email: result.data.email,
+          contrasena: result.data.contrasena,
+          canal_adquisicion: result.data.canal_adquisicion,
+        }));
+
+      if (!isCompletingRestaurantProfile) {
+        login(session.token, session.usuario);
+        if (accountType === "restaurante") {
+          setPendingRestaurantSession(session);
+        }
+      }
 
       let clientName: string | null = null;
       if (accountType === "restaurante") {
-        await createRestaurantProfile(session.token, {
+        const restaurantId = await createRestaurantProfile(session.token, {
           nombre: registrationData.nombre,
           cuit: registrationData.cuit,
           categoria: registrationData.categoria,
         });
+        setPendingRestaurantSession(null);
+        setCreatedRestaurantId(restaurantId);
+        setCreatedRestaurantToken(session.token);
+
+        if (restaurantImage) {
+          try {
+            await uploadRestaurantImage(
+              session.token,
+              restaurantId,
+              restaurantImage,
+            );
+          } catch (error) {
+            setImageUploadError(
+              error instanceof Error ? error.message : "No se pudo subir la imagen.",
+            );
+          }
+        }
       } else {
         const clientProfile = await createClientProfile(session.token, {
           nombre: registrationData.nombre,
@@ -207,6 +267,21 @@ export function RegistrationForm() {
           }
           variant="info"
         />
+        {imageUploadError && (
+          <>
+            <GlobalAlert
+              message={`El perfil se creó, pero no se pudo subir la imagen: ${imageUploadError}`}
+            />
+            <Button
+              type="button"
+              onClick={retryRestaurantImageUpload}
+              disabled={isRetryingImage}
+              className="w-full text-center disabled:cursor-wait disabled:opacity-60"
+            >
+              {isRetryingImage ? "Subiendo imagen..." : "Reintentar imagen"}
+            </Button>
+          </>
+        )}
         <Button
           to="/"
           className="w-full text-center"
@@ -220,6 +295,12 @@ export function RegistrationForm() {
   return (
     <div className="flex flex-col gap-5">
       {submitError && <GlobalAlert message={submitError} />}
+      {pendingRestaurantSession && (
+        <GlobalAlert
+          variant="info"
+          message="La cuenta ya está creada. Corregí los datos del perfil y continuá; no volveremos a registrar el email."
+        />
+      )}
       <fieldset className="border-0 p-0">
         <legend className="mb-2 block text-xs font-bold text-gray-700">
           Quiero registrarme como
@@ -231,7 +312,10 @@ export function RegistrationForm() {
             <button
               key={type.value}
               type="button"
-              disabled={isSubmitting}
+              disabled={
+                isSubmitting ||
+                (pendingRestaurantSession !== null && type.value !== "restaurante")
+              }
               aria-pressed={accountType === type.value}
               onClick={() => {
                 setAccountType(type.value);
@@ -264,6 +348,7 @@ export function RegistrationForm() {
               placeholder="Nombre del local"
               value={form.nombre}
               onChange={handleChange}
+              disabled={isSubmitting}
               error={Boolean(errors.nombre)}
               errorMessage={errors.nombre}
             />
@@ -275,6 +360,7 @@ export function RegistrationForm() {
               placeholder="30-12345678-9"
               value={form.cuit}
               onChange={handleChange}
+              disabled={isSubmitting}
               error={Boolean(errors.cuit)}
               errorMessage={errors.cuit}
             />
@@ -285,6 +371,7 @@ export function RegistrationForm() {
               placeholder="Cocina natural"
               value={form.categoria}
               onChange={handleChange}
+              disabled={isSubmitting}
               error={Boolean(errors.categoria)}
               errorMessage={errors.categoria}
             />
@@ -326,6 +413,7 @@ export function RegistrationForm() {
           placeholder="nombre@ejemplo.com"
           value={form.email}
           onChange={handleChange}
+          disabled={isSubmitting || pendingRestaurantSession !== null}
           error={Boolean(errors.email)}
           errorMessage={errors.email}
         />
@@ -337,6 +425,7 @@ export function RegistrationForm() {
           placeholder="Al menos 8 caracteres"
           value={form.contrasena}
           onChange={handleChange}
+          disabled={isSubmitting || pendingRestaurantSession !== null}
           error={Boolean(errors.contrasena)}
           errorMessage={errors.contrasena}
         />
@@ -348,6 +437,7 @@ export function RegistrationForm() {
           placeholder="Repetí tu contraseña"
           value={form.confirmPassword}
           onChange={handleChange}
+          disabled={isSubmitting || pendingRestaurantSession !== null}
           error={Boolean(errors.confirmPassword)}
           errorMessage={errors.confirmPassword}
         />
@@ -364,6 +454,7 @@ export function RegistrationForm() {
             name="canal_adquisicion"
             value={form.canal_adquisicion}
             onChange={handleChange}
+            disabled={isSubmitting || pendingRestaurantSession !== null}
             aria-invalid={Boolean(errors.canal_adquisicion) || undefined}
             aria-describedby={
               errors.canal_adquisicion
@@ -391,12 +482,23 @@ export function RegistrationForm() {
           )}
         </div>
 
+        {accountType === "restaurante" && (
+          <RestaurantImagePicker
+            onChange={(image) => {
+              setRestaurantImage(image);
+              setImageUploadError(null);
+            }}
+            disabled={isSubmitting}
+          />
+        )}
+
         <div>
           <label className="flex cursor-pointer items-center gap-2 text-sm text-gray-700">
             <input
               type="checkbox"
               name="termsAccepted"
               checked={form.termsAccepted}
+              disabled={isSubmitting || pendingRestaurantSession !== null}
               aria-invalid={Boolean(errors.termsAccepted) || undefined}
               aria-describedby={errors.termsAccepted ? "terms-error" : undefined}
               onChange={(event) => {
