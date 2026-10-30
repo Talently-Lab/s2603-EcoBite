@@ -4,6 +4,8 @@ import { Link } from "react-router-dom";
 import Button from "../ui/Button";
 import { GlobalAlert } from "../ui/GlobalAlert";
 import { Input } from "../ui/Input";
+import { HeroTitle } from "../ui/HeroTitle";
+import { Arrow } from "../ui/ArrowButton";
 import { RestaurantImagePicker } from "./RestaurantImagePicker";
 import { useAuth } from "../../contexts/AuthContext";
 import {
@@ -28,10 +30,46 @@ const registrationFields = z.object({
     termsAccepted: z.boolean(),
   });
 
+const accountStepSchema = registrationFields
+  .refine((data) => data.contrasena === data.confirmPassword, {
+    message: "Las contraseñas no coinciden.",
+    path: ["confirmPassword"],
+  })
+  .refine((data) => data.termsAccepted, {
+    message: "Aceptá los términos y condiciones para continuar.",
+    path: ["termsAccepted"],
+  });
+
 const registrationSchema = registrationFields
   .extend({
-    nombre: z.string().trim().min(1, "Ingresá tu nombre."),
-    apellido: z.string().trim().min(1, "Ingresá tu apellido."),
+    nombre: z
+      .string()
+      .trim()
+      .min(1, "Ingresá tu nombre.")
+      .refine((value) => !/\d/.test(value), {
+        message: "El nombre no puede tener números.",
+      }),
+    apellido: z
+      .string()
+      .trim()
+      .min(1, "Ingresá tu apellido.")
+      .refine((value) => !/\d/.test(value), {
+        message: "El apellido no puede tener números.",
+      }),
+    telefono: z
+      .string()
+      .trim()
+      .min(1, "Ingresá tu teléfono.")
+      .refine((value) => /^(?=.*\d)[\d+()\s-]+$/.test(value), {
+        message: "El teléfono no puede contener letras.",
+      }),
+    direccion: z.string().trim().min(1, "Ingresá tu calle y número."),
+    piso: z.string().regex(/^\d*$/, "El piso solo puede contener números."),
+    departamento: z
+      .string()
+      .regex(/^\d*$/, "El departamento solo puede contener números."),
+    ciudad: z.string().trim().min(1, "Ingresá tu ciudad."),
+    id_zona: z.string().min(1, "Elegí tu zona de domicilio."),
   })
   .refine((data) => data.contrasena === data.confirmPassword, {
     message: "Las contraseñas no coinciden.",
@@ -68,6 +106,12 @@ type RegistrationFormValues = z.infer<typeof registrationFields> & {
   apellido: string;
   cuit: string;
   categoria: string;
+  telefono: string;
+  direccion: string;
+  piso: string;
+  departamento: string;
+  ciudad: string;
+  id_zona: string;
 };
 
 const accountTypes: { value: RegistrationAccountType; label: string }[] = [
@@ -75,8 +119,24 @@ const accountTypes: { value: RegistrationAccountType; label: string }[] = [
   { value: "restaurante", label: "Soy restaurante" },
 ];
 
-export function RegistrationForm() {
+const residentialZones = [
+  { id: "1", label: "Centro" },
+  { id: "2", label: "Norte" },
+  { id: "3", label: "Sur" },
+  { id: "4", label: "Este" },
+  { id: "5", label: "Oeste" },
+];
+
+const existingClientAccountMessage =
+  "No pudimos guardar tu perfil. Tu cuenta ya está creada: revisá el campo marcado y probá de nuevo.";
+
+interface RegistrationFormProps {
+  onStepChange: (step: 1 | 2) => void;
+}
+
+export function RegistrationForm({ onStepChange }: RegistrationFormProps) {
   const { login } = useAuth();
+  const [step, setStep] = useState<1 | 2>(1);
   const [accountType, setAccountType] =
     useState<RegistrationAccountType>("cliente");
   const [form, setForm] = useState<RegistrationFormValues>({
@@ -89,12 +149,20 @@ export function RegistrationForm() {
     apellido: "",
     cuit: "",
     categoria: "",
+    telefono: "",
+    direccion: "",
+    piso: "",
+    departamento: "",
+    ciudad: "",
+    id_zona: "",
   });
   const [errors, setErrors] = useState<Partial<Record<keyof RegistrationFormValues, string>>>({});
   const [isRegistered, setIsRegistered] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [pendingRestaurantSession, setPendingRestaurantSession] =
+    useState<LoginResponse | null>(null);
+  const [pendingClientSession, setPendingClientSession] =
     useState<LoginResponse | null>(null);
   const [restaurantImage, setRestaurantImage] = useState<File | null>(null);
   const [imageUploadError, setImageUploadError] = useState<string | null>(null);
@@ -105,6 +173,11 @@ export function RegistrationForm() {
     string | null
   >(null);
   const [isRetryingImage, setIsRetryingImage] = useState(false);
+
+  function changeStep(nextStep: 1 | 2) {
+    setStep(nextStep);
+    onStepChange(nextStep);
+  }
 
   async function retryRestaurantImageUpload() {
     if (!restaurantImage || !createdRestaurantId || !createdRestaurantToken) {
@@ -140,6 +213,27 @@ export function RegistrationForm() {
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSubmitError(null);
+
+    if (step === 1) {
+      const accountResult = accountStepSchema.safeParse(form);
+      if (!accountResult.success) {
+        const nextErrors: Partial<Record<keyof RegistrationFormValues, string>> = {};
+        for (const issue of accountResult.error.issues) {
+          const field = issue.path[0];
+          if (typeof field === "string" && field in form) {
+            nextErrors[field as keyof RegistrationFormValues] = issue.message;
+          }
+        }
+        setErrors(nextErrors);
+        setSubmitError("Revisá los campos marcados para continuar.");
+        return;
+      }
+
+      setErrors({});
+      changeStep(2);
+      return;
+    }
+
     const result = (accountType === "restaurante"
       ? restaurantRegistrationSchema
       : registrationSchema
@@ -154,18 +248,25 @@ export function RegistrationForm() {
         }
       }
       setErrors(nextErrors);
-      setSubmitError("Revisá los campos marcados para poder crear tu cuenta.");
+      setSubmitError(
+        pendingClientSession
+          ? existingClientAccountMessage
+          : "Revisá los campos marcados para poder crear tu cuenta.",
+      );
       return;
     }
 
     setErrors({});
     setIsSubmitting(true);
 
+    let clientAccountCreated = pendingClientSession !== null;
     try {
       const registrationData = result.data as RegistrationFormValues;
       const pendingSession =
-        accountType === "restaurante" ? pendingRestaurantSession : null;
-      const isCompletingRestaurantProfile = pendingSession !== null;
+        accountType === "restaurante"
+          ? pendingRestaurantSession
+          : pendingClientSession;
+      const isCompletingProfile = pendingSession !== null;
       const session =
         pendingSession ??
         (await registerAccount(accountType, {
@@ -174,10 +275,13 @@ export function RegistrationForm() {
           canal_adquisicion: result.data.canal_adquisicion,
         }));
 
-      if (!isCompletingRestaurantProfile) {
+      if (!isCompletingProfile) {
         login(session.token, session.usuario);
         if (accountType === "restaurante") {
           setPendingRestaurantSession(session);
+        } else {
+          clientAccountCreated = true;
+          setPendingClientSession(session);
         }
       }
 
@@ -209,7 +313,14 @@ export function RegistrationForm() {
         const clientProfile = await createClientProfile(session.token, {
           nombre: registrationData.nombre,
           apellido: registrationData.apellido,
+          telefono: registrationData.telefono,
+          direccion: registrationData.direccion,
+          piso: registrationData.piso || null,
+          departamento: registrationData.departamento || null,
+          ciudad: registrationData.ciudad,
+          id_zona: Number(registrationData.id_zona),
         });
+        setPendingClientSession(null);
         clientName = `${clientProfile.nombre} ${clientProfile.apellido}`;
       }
 
@@ -224,7 +335,9 @@ export function RegistrationForm() {
       );
       setIsRegistered(true);
     } catch (error) {
-      if (
+      if (accountType === "cliente" && clientAccountCreated) {
+        setSubmitError(existingClientAccountMessage);
+      } else if (
         error instanceof Error &&
         "status" in error &&
         error.status === 409
@@ -233,6 +346,10 @@ export function RegistrationForm() {
           ...current,
           email: error.message,
         }));
+        setSubmitError(
+          "No pudimos crear la cuenta: ese email ya está registrado. Revisá el campo marcado o iniciá sesión.",
+        );
+        changeStep(1);
       } else if (
         accountType === "restaurante" &&
         error instanceof Error &&
@@ -294,6 +411,11 @@ export function RegistrationForm() {
 
   return (
     <div className="flex flex-col gap-5">
+      {step === 2 && (
+        <HeroTitle className="!text-2xl !leading-tight">
+          Completa tu perfil
+        </HeroTitle>
+      )}
       {submitError && <GlobalAlert message={submitError} />}
       {pendingRestaurantSession && (
         <GlobalAlert
@@ -301,7 +423,7 @@ export function RegistrationForm() {
           message="La cuenta ya está creada. Corregí los datos del perfil y continuá; no volveremos a registrar el email."
         />
       )}
-      <fieldset className="border-0 p-0">
+      {step === 1 && <fieldset className="border-0 p-0">
         <legend className="mb-2 block text-xs font-bold text-gray-700">
           Quiero registrarme como
         </legend>
@@ -314,7 +436,8 @@ export function RegistrationForm() {
               type="button"
               disabled={
                 isSubmitting ||
-                (pendingRestaurantSession !== null && type.value !== "restaurante")
+                ((pendingRestaurantSession !== null || pendingClientSession !== null) &&
+                  type.value !== accountType)
               }
               aria-pressed={accountType === type.value}
               onClick={() => {
@@ -331,14 +454,14 @@ export function RegistrationForm() {
             </button>
           ))}
         </div>
-      </fieldset>
+      </fieldset>}
 
       <form
         className="flex flex-col gap-5"
         onSubmit={onSubmit}
         noValidate
       >
-        {accountType === "restaurante" && (
+        {step === 2 && accountType === "restaurante" && (
           <>
             <Input
               label="Nombre del local"
@@ -378,7 +501,7 @@ export function RegistrationForm() {
           </>
         )}
 
-        {accountType === "cliente" && (
+        {step === 2 && accountType === "cliente" && (
           <>
             <Input
               label="Nombre"
@@ -402,9 +525,110 @@ export function RegistrationForm() {
               error={Boolean(errors.apellido)}
               errorMessage={errors.apellido}
             />
+            <Input
+              label="Teléfono"
+              name="telefono"
+              type="tel"
+              autoComplete="tel"
+              placeholder="Tu teléfono"
+              value={form.telefono}
+              onChange={handleChange}
+              disabled={isSubmitting}
+              error={Boolean(errors.telefono)}
+              errorMessage={errors.telefono}
+            />
+            <Input
+              label="Dirección"
+              name="direccion"
+              type="text"
+              autoComplete="street-address"
+              placeholder="Calle y número"
+              value={form.direccion}
+              onChange={handleChange}
+              disabled={isSubmitting}
+              error={Boolean(errors.direccion)}
+              errorMessage={errors.direccion}
+            />
+            <div className="grid grid-cols-2 gap-3">
+              <Input
+                label="Piso (opcional)"
+                name="piso"
+                type="text"
+                placeholder="Ej.: 2"
+                value={form.piso}
+                onChange={handleChange}
+                disabled={isSubmitting}
+                error={Boolean(errors.piso)}
+                errorMessage={errors.piso}
+              />
+              <Input
+                label="Depto. (opcional)"
+                name="departamento"
+                type="text"
+                placeholder="Ej.: 3"
+                value={form.departamento}
+                onChange={handleChange}
+                disabled={isSubmitting}
+                error={Boolean(errors.departamento)}
+                errorMessage={errors.departamento}
+              />
+            </div>
+            <Input
+              label="Ciudad"
+              name="ciudad"
+              type="text"
+              autoComplete="address-level2"
+              placeholder="Tu ciudad"
+              value={form.ciudad}
+              onChange={handleChange}
+              disabled={isSubmitting}
+              error={Boolean(errors.ciudad)}
+              errorMessage={errors.ciudad}
+            />
+            <div className="flex w-full flex-col font-sans text-sm">
+              <label
+                htmlFor="client-zone"
+                className="mb-1 text-xs font-bold text-gray-700"
+              >
+                Zona de domicilio
+              </label>
+              <div
+                className={`rounded-lg border px-3 py-2 transition-all focus-within:border-2 focus-within:border-eco-dark ${
+                  errors.id_zona ? "border-red-500" : "border-gray-300"
+                }`}
+              >
+                <select
+                  id="client-zone"
+                  name="id_zona"
+                  value={form.id_zona}
+                  onChange={handleChange}
+                  disabled={isSubmitting}
+                  aria-invalid={Boolean(errors.id_zona) || undefined}
+                  aria-describedby={errors.id_zona ? "client-zone-error" : undefined}
+                  className="w-full bg-transparent text-gray-800 outline-none"
+                >
+                  <option value="">Elegí tu zona</option>
+                  {residentialZones.map((zone) => (
+                    <option key={zone.id} value={zone.id}>
+                      {zone.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {errors.id_zona && (
+                <span
+                  id="client-zone-error"
+                  className="mt-1 flex items-center gap-1 text-xs text-red-600"
+                >
+                  <span aria-hidden="true">✕</span>
+                  {errors.id_zona}
+                </span>
+              )}
+            </div>
           </>
         )}
 
+        {step === 1 && <>
         <Input
           label="Email"
           name="email"
@@ -413,7 +637,7 @@ export function RegistrationForm() {
           placeholder="nombre@ejemplo.com"
           value={form.email}
           onChange={handleChange}
-          disabled={isSubmitting || pendingRestaurantSession !== null}
+          disabled={isSubmitting || pendingRestaurantSession !== null || pendingClientSession !== null}
           error={Boolean(errors.email)}
           errorMessage={errors.email}
         />
@@ -422,10 +646,10 @@ export function RegistrationForm() {
           name="contrasena"
           type="password"
           autoComplete="new-password"
-          placeholder="Al menos 8 caracteres"
+          placeholder="mínimo 8 caracteres"
           value={form.contrasena}
           onChange={handleChange}
-          disabled={isSubmitting || pendingRestaurantSession !== null}
+          disabled={isSubmitting || pendingRestaurantSession !== null || pendingClientSession !== null}
           error={Boolean(errors.contrasena)}
           errorMessage={errors.contrasena}
         />
@@ -437,7 +661,7 @@ export function RegistrationForm() {
           placeholder="Repetí tu contraseña"
           value={form.confirmPassword}
           onChange={handleChange}
-          disabled={isSubmitting || pendingRestaurantSession !== null}
+          disabled={isSubmitting || pendingRestaurantSession !== null || pendingClientSession !== null}
           error={Boolean(errors.confirmPassword)}
           errorMessage={errors.confirmPassword}
         />
@@ -447,14 +671,14 @@ export function RegistrationForm() {
             htmlFor="registration-channel"
             className="mb-1 text-xs font-bold text-gray-700"
           >
-            ¿Cómo nos conociste?
+            ¿Dónde nos conociste?
           </label>
           <select
             id="registration-channel"
             name="canal_adquisicion"
             value={form.canal_adquisicion}
             onChange={handleChange}
-            disabled={isSubmitting || pendingRestaurantSession !== null}
+            disabled={isSubmitting || pendingRestaurantSession !== null || pendingClientSession !== null}
             aria-invalid={Boolean(errors.canal_adquisicion) || undefined}
             aria-describedby={
               errors.canal_adquisicion
@@ -481,8 +705,9 @@ export function RegistrationForm() {
             </span>
           )}
         </div>
+        </>}
 
-        {accountType === "restaurante" && (
+        {step === 2 && accountType === "restaurante" && (
           <RestaurantImagePicker
             onChange={(image) => {
               setRestaurantImage(image);
@@ -492,13 +717,13 @@ export function RegistrationForm() {
           />
         )}
 
-        <div>
+        {step === 1 && <div>
           <label className="flex cursor-pointer items-center gap-2 text-sm text-gray-700">
             <input
               type="checkbox"
               name="termsAccepted"
               checked={form.termsAccepted}
-              disabled={isSubmitting || pendingRestaurantSession !== null}
+              disabled={isSubmitting || pendingRestaurantSession !== null || pendingClientSession !== null}
               aria-invalid={Boolean(errors.termsAccepted) || undefined}
               aria-describedby={errors.termsAccepted ? "terms-error" : undefined}
               onChange={(event) => {
@@ -517,15 +742,35 @@ export function RegistrationForm() {
               {errors.termsAccepted}
             </span>
           )}
-        </div>
+        </div>}
 
-        <Button
-          type="submit"
-          disabled={isSubmitting}
-          className="w-full text-center shadow-sm transition-colors hover:brightness-110 disabled:cursor-wait disabled:opacity-60"
-        >
-          {isSubmitting ? "Creando cuenta..." : "Crear cuenta"}
-        </Button>
+        <div className="flex gap-3">
+          {step === 2 && (
+            <Button
+              type="button"
+              variant="light"
+              onClick={() => changeStep(1)}
+              disabled={isSubmitting}
+              className="inline-flex w-1/3 items-center justify-center gap-2 text-center"
+            >
+              <Arrow direction="left" />
+              Volver
+            </Button>
+          )}
+          <Button
+            type="submit"
+            disabled={isSubmitting}
+            className="w-full text-center shadow-sm transition-colors hover:brightness-110 disabled:cursor-wait disabled:opacity-60"
+          >
+            {isSubmitting
+              ? "Creando cuenta..."
+              : step === 1
+                ? "Continuar"
+                : accountType === "cliente"
+                  ? "Guardar y continuar"
+                  : "Crear cuenta"}
+          </Button>
+        </div>
       </form>
       <p className="m-0 text-center text-sm text-gray-600">
         ¿Ya tenés cuenta?{" "}
