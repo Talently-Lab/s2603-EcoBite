@@ -25,6 +25,7 @@ const pedidoModel = require('./models/pedido.model');
 const productoModel = require('./models/producto.model');
 const carritoModel = require('./models/carrito.model');
 const detalleCarritoModel = require('./models/detalleCarrito.model');
+const dashboardModel = require('./models/dashboard.model');
 
 const app = express();
 const PORT = 3000;
@@ -2899,6 +2900,33 @@ app.delete('/api/carritos/:idCarrito',verificarToken,verificarRol('cliente'),asy
         }
     }
 );
+
+
+//===== DASHBOARD =====
+app.get('/api/dashboard/stats', verificarToken, verificarRol('restaurante'), async (req, res) => {
+    try {
+        // Recibimos el mes por query params
+        const mes = req.query.mes;
+
+        // Consultamos las estadísticas del restaurante autenticado
+        const resultado = await dashboardModel.obtenerEstadisticas(
+            req.usuario.id,
+            mes
+        );
+
+        return res.status(200).json({
+            mensaje: 'Estadísticas del dashboard obtenidas correctamente',
+            estadisticas: resultado
+        });
+
+    } catch (error) {
+        console.error('Error al consultar estadísticas:', error);
+
+        return res.status(500).json({
+            mensaje: 'Error al consultar las estadísticas'
+        });
+    }
+});
 
 // Iniciar el servidor
 app.listen(PORT, () => {
