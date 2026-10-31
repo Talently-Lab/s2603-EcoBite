@@ -35,6 +35,10 @@ export interface RestaurantProfileData {
   nombre: string;
   cuit: string;
   categoria: string;
+  telefono?: string | null;
+  direccion?: string | null;
+  descripcion?: string | null;
+  ciudad?: string | null;
 }
 
 // Datos del perfil de cliente.
