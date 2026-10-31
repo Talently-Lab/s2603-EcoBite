@@ -7,6 +7,11 @@ import { Input } from "../ui/Input";
 import { HeroTitle } from "../ui/HeroTitle";
 import { Arrow } from "../ui/ArrowButton";
 import { RestaurantImagePicker } from "./RestaurantImagePicker";
+import {
+  createInitialOpeningDays,
+  RestaurantOpeningHours,
+} from "./schedules/RestaurantOpeningHours";
+import type { OpeningDay } from "./schedules/types";
 import { useAuth } from "../../contexts/AuthContext";
 import {
   createClientProfile,
@@ -16,6 +21,7 @@ import {
   type RegistrationAccountType,
   type LoginResponse,
 } from "../../services/auth";
+import { saveRestaurantSchedules } from "../../services/restaurants";
 
 const registrationFields = z.object({
     email: z
@@ -91,6 +97,15 @@ const restaurantRegistrationSchema = registrationFields
       }
     }),
     categoria: z.string().trim().min(1, "Elegí una categoría."),
+    telefono: z
+      .string()
+      .trim()
+      .refine((value) => !value || /^(?=.*\d)[\d+()\s-]+$/.test(value), {
+        message: "El teléfono no puede contener letras.",
+      }),
+    direccion: z.string().trim(),
+    descripcion: z.string().trim(),
+    ciudad: z.string().trim(),
   })
   .refine((data) => data.contrasena === data.confirmPassword, {
     message: "Las contraseñas no coinciden.",
@@ -106,6 +121,7 @@ type RegistrationFormValues = z.infer<typeof registrationFields> & {
   apellido: string;
   cuit: string;
   categoria: string;
+  descripcion: string;
   telefono: string;
   direccion: string;
   piso: string;
@@ -129,12 +145,15 @@ const residentialZones = [
 
 const existingClientAccountMessage =
   "No pudimos guardar tu perfil. Tu cuenta ya está creada: revisá el campo marcado y probá de nuevo.";
+const invalidRestaurantScheduleMessage =
+  "Revisá los horarios marcados para poder guardarlos.";
 
 interface RegistrationFormProps {
   onStepChange: (step: 1 | 2) => void;
+  onAccountTypeChange: (accountType: RegistrationAccountType) => void;
 }
 
-export function RegistrationForm({ onStepChange }: RegistrationFormProps) {
+export function RegistrationForm({ onStepChange, onAccountTypeChange }: RegistrationFormProps) {
   const { login } = useAuth();
   const [step, setStep] = useState<1 | 2>(1);
   const [accountType, setAccountType] =
@@ -149,6 +168,7 @@ export function RegistrationForm({ onStepChange }: RegistrationFormProps) {
     apellido: "",
     cuit: "",
     categoria: "",
+    descripcion: "",
     telefono: "",
     direccion: "",
     piso: "",
@@ -165,6 +185,9 @@ export function RegistrationForm({ onStepChange }: RegistrationFormProps) {
   const [pendingClientSession, setPendingClientSession] =
     useState<LoginResponse | null>(null);
   const [restaurantImage, setRestaurantImage] = useState<File | null>(null);
+  const [restaurantOpeningDays, setRestaurantOpeningDays] = useState<OpeningDay[]>(
+    createInitialOpeningDays,
+  );
   const [imageUploadError, setImageUploadError] = useState<string | null>(null);
   const [createdRestaurantId, setCreatedRestaurantId] = useState<number | null>(
     null,
@@ -201,7 +224,7 @@ export function RegistrationForm({ onStepChange }: RegistrationFormProps) {
     }
   }
 
-  function handleChange(event: ChangeEvent<HTMLInputElement | HTMLSelectElement>) {
+  function handleChange(event: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) {
     const { name, value } = event.currentTarget;
     if (!(name in form)) return;
 
@@ -215,7 +238,10 @@ export function RegistrationForm({ onStepChange }: RegistrationFormProps) {
     setSubmitError(null);
 
     if (step === 1) {
-      const accountResult = accountStepSchema.safeParse(form);
+      const accountResult =
+        accountType === "restaurante"
+          ? restaurantRegistrationSchema.safeParse(form)
+          : accountStepSchema.safeParse(form);
       if (!accountResult.success) {
         const nextErrors: Partial<Record<keyof RegistrationFormValues, string>> = {};
         for (const issue of accountResult.error.issues) {
@@ -256,6 +282,26 @@ export function RegistrationForm({ onStepChange }: RegistrationFormProps) {
       return;
     }
 
+    if (
+      accountType === "restaurante" &&
+      !restaurantOpeningDays.some((day) => day.isOpen && day.shifts.length > 0)
+    ) {
+      setSubmitError(invalidRestaurantScheduleMessage);
+      return;
+    }
+
+    if (
+      accountType === "restaurante" &&
+      restaurantOpeningDays.some(
+        (day) =>
+          day.isOpen &&
+          day.shifts.some((shift) => shift.end <= shift.start),
+      )
+    ) {
+      setSubmitError(invalidRestaurantScheduleMessage);
+      return;
+    }
+
     setErrors({});
     setIsSubmitting(true);
 
@@ -287,16 +333,23 @@ export function RegistrationForm({ onStepChange }: RegistrationFormProps) {
 
       let clientName: string | null = null;
       if (accountType === "restaurante") {
-        const restaurantId = await createRestaurantProfile(session.token, {
+        const isRestaurantProfileCreated = createdRestaurantId !== null;
+        const restaurantId = createdRestaurantId ?? await createRestaurantProfile(session.token, {
           nombre: registrationData.nombre,
           cuit: registrationData.cuit,
           categoria: registrationData.categoria,
+          telefono: registrationData.telefono.trim() || null,
+          direccion: registrationData.direccion.trim() || null,
+          descripcion: registrationData.descripcion.trim() || null,
+          ciudad: registrationData.ciudad.trim() || null,
         });
-        setPendingRestaurantSession(null);
-        setCreatedRestaurantId(restaurantId);
-        setCreatedRestaurantToken(session.token);
 
-        if (restaurantImage) {
+        if (!isRestaurantProfileCreated) {
+          setCreatedRestaurantId(restaurantId);
+          setCreatedRestaurantToken(session.token);
+        }
+
+        if (!isRestaurantProfileCreated && restaurantImage) {
           try {
             await uploadRestaurantImage(
               session.token,
@@ -309,6 +362,28 @@ export function RegistrationForm({ onStepChange }: RegistrationFormProps) {
             );
           }
         }
+
+        const dayNumbers: Record<string, number> = {
+          monday: 1,
+          tuesday: 2,
+          wednesday: 3,
+          thursday: 4,
+          friday: 5,
+          saturday: 6,
+          sunday: 7,
+        };
+        const horarios = restaurantOpeningDays.flatMap((day) =>
+          day.isOpen
+            ? day.shifts.map((shift) => ({
+                dia_semana: dayNumbers[day.id],
+                hora_apertura: shift.start,
+                hora_cierre: shift.end,
+              }))
+            : [],
+        );
+
+        await saveRestaurantSchedules(restaurantId, session.token, horarios);
+        setPendingRestaurantSession(null);
       } else {
         const clientProfile = await createClientProfile(session.token, {
           nombre: registrationData.nombre,
@@ -338,6 +413,12 @@ export function RegistrationForm({ onStepChange }: RegistrationFormProps) {
       if (accountType === "cliente" && clientAccountCreated) {
         setSubmitError(existingClientAccountMessage);
       } else if (
+        accountType === "restaurante" &&
+        error instanceof Error &&
+        /horario|turno|hora/i.test(error.message)
+      ) {
+        setSubmitError(invalidRestaurantScheduleMessage);
+      } else if (
         error instanceof Error &&
         "status" in error &&
         error.status === 409
@@ -359,6 +440,7 @@ export function RegistrationForm({ onStepChange }: RegistrationFormProps) {
           ...current,
           cuit: "Ese CUIT ya está registrado. Revisá el número o iniciá sesión.",
         }));
+        changeStep(1);
       } else {
         setSubmitError(
           error instanceof TypeError
@@ -411,7 +493,7 @@ export function RegistrationForm({ onStepChange }: RegistrationFormProps) {
 
   return (
     <div className="flex flex-col gap-5">
-      {step === 2 && (
+      {step === 2 && accountType === "cliente" && (
         <HeroTitle className="!text-2xl !leading-tight">
           Completa tu perfil
         </HeroTitle>
@@ -442,6 +524,7 @@ export function RegistrationForm({ onStepChange }: RegistrationFormProps) {
               aria-pressed={accountType === type.value}
               onClick={() => {
                 setAccountType(type.value);
+                onAccountTypeChange(type.value);
                 setSubmitError(null);
               }}
               className={`cursor-pointer rounded-full px-3 py-2 text-xs font-semibold transition-colors disabled:cursor-not-allowed ${
@@ -461,7 +544,7 @@ export function RegistrationForm({ onStepChange }: RegistrationFormProps) {
         onSubmit={onSubmit}
         noValidate
       >
-        {step === 2 && accountType === "restaurante" && (
+        {step === 1 && accountType === "restaurante" && (
           <>
             <Input
               label="Nombre del local"
@@ -498,7 +581,64 @@ export function RegistrationForm({ onStepChange }: RegistrationFormProps) {
               error={Boolean(errors.categoria)}
               errorMessage={errors.categoria}
             />
+            <Input
+              label="Teléfono (opcional)"
+              name="telefono"
+              type="tel"
+              inputMode="tel"
+              autoComplete="tel"
+              placeholder="Tu teléfono"
+              value={form.telefono}
+              onChange={handleChange}
+              disabled={isSubmitting}
+              error={Boolean(errors.telefono)}
+              errorMessage={errors.telefono}
+            />
+            <Input
+              label="Dirección (opcional)"
+              name="direccion"
+              type="text"
+              autoComplete="street-address"
+              placeholder="Calle y número"
+              value={form.direccion}
+              onChange={handleChange}
+              disabled={isSubmitting}
+            />
+            <div className="flex w-full flex-col font-sans text-sm">
+              <label htmlFor="restaurant-description" className="mb-1 text-xs font-bold text-gray-700">
+                Descripción (opcional)
+              </label>
+              <div className="rounded-lg border border-gray-300 px-3 py-2 transition-all focus-within:border-2 focus-within:border-eco-dark">
+                <textarea
+                  id="restaurant-description"
+                  name="descripcion"
+                  rows={3}
+                  placeholder="Contá brevemente qué ofrece tu local"
+                  value={form.descripcion}
+                  onChange={handleChange}
+                  disabled={isSubmitting}
+                  className="w-full resize-y bg-transparent text-gray-800 outline-none placeholder:text-gray-400 disabled:text-gray-400"
+                />
+              </div>
+            </div>
+            <Input
+              label="Ciudad (opcional)"
+              name="ciudad"
+              type="text"
+              autoComplete="address-level2"
+              placeholder="Tu ciudad"
+              value={form.ciudad}
+              onChange={handleChange}
+              disabled={isSubmitting}
+            />
           </>
+        )}
+
+        {step === 2 && accountType === "restaurante" && (
+          <RestaurantOpeningHours
+            days={restaurantOpeningDays}
+            onChange={setRestaurantOpeningDays}
+          />
         )}
 
         {step === 2 && accountType === "cliente" && (
@@ -707,7 +847,7 @@ export function RegistrationForm({ onStepChange }: RegistrationFormProps) {
         </div>
         </>}
 
-        {step === 2 && accountType === "restaurante" && (
+        {step === 1 && accountType === "restaurante" && (
           <RestaurantImagePicker
             onChange={(image) => {
               setRestaurantImage(image);
