@@ -162,6 +162,50 @@ Por ejemplo, si Vite muestra `http://localhost:5173`, el listado estará en
 están definidos en `src/services/restaurants.ts`; no hace falta iniciar el
 backend.
 
-#esta semana 
-M-15-16-16
-Al final eran 3 llamadas a la API porque se loguea entre el registro y la creacion de perfil
+## Registro de cliente
+
+El registro está en `/registro` y se completa en dos pasos:
+
+1. **Crear cuenta:** elegir “Soy cliente”, ingresar email, contraseña,
+   confirmación y canal de adquisición, y aceptar los términos.
+2. **Completar perfil:** ingresar nombre, apellido, teléfono, dirección, ciudad
+   y zona de domicilio. Piso y departamento son opcionales.
+
+El frontend valida que el email tenga formato válido, que la contraseña tenga
+al menos 8 caracteres, que ambas contraseñas coincidan y que se acepten los
+términos. En el perfil, nombre y apellido no pueden contener números; el
+teléfono no admite letras; piso y departamento aceptan solo números. Dirección,
+ciudad y zona son obligatorias. Los errores de campo aparecen junto al campo y
+los errores generales aparecen en un `GlobalAlert`.
+
+Al guardar se realizan estas operaciones:
+
+1. `POST /api/usuario/registro-cliente` crea la cuenta y devuelve el token.
+2. `login()` guarda el token y el usuario en el contexto y `sessionStorage`; es
+   una operación local, no una solicitud HTTP.
+3. `POST /api/clientes` crea el perfil usando el token en `Authorization`.
+
+Por eso el flujo genera **dos solicitudes al backend**. Si falla la creación
+del perfil después de crear la cuenta, el formulario conserva la sesión para
+permitir corregir los datos y reintentar sin volver a registrar el email.
+
+### Errores del registro de cliente
+
+- **Email duplicado (HTTP 409):** marca el email, muestra un `GlobalAlert` y
+  vuelve al paso 1. Si ya tenés esa cuenta, podés iniciar sesión.
+- **Datos inválidos:** muestra el mensaje específico junto al campo, por
+  ejemplo, “El nombre no puede tener números” o “El piso solo puede contener
+  números”.
+- **Falla al guardar el perfil luego de crear la cuenta:** muestra “No pudimos
+  guardar tu perfil. Tu cuenta ya está creada: revisá el campo marcado y probá
+  de nuevo.” La sesión queda disponible para reintentar el perfil.
+- **Error de conexión o del servidor:** muestra un `GlobalAlert` con el error
+  recibido o un mensaje de conexión.
+
+Las opciones de zona se envían como `id_zona` numérico: Centro (1), Norte (2),
+Sur (3), Este (4) y Oeste (5). Estos IDs deben coincidir con los registros de
+la tabla `zona` del backend.
+
+
+
+

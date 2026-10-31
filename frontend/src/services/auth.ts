@@ -41,6 +41,12 @@ export interface RestaurantProfileData {
 export interface ClientProfileData {
   nombre: string;
   apellido: string;
+  telefono?: string | null;
+  direccion?: string | null;
+  piso?: string | null;
+  departamento?: string | null;
+  ciudad?: string | null;
+  id_zona?: number | null;
 }
 
 const API_BASE_URL = (
