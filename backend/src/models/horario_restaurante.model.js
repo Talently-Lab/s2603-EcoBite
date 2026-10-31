@@ -166,8 +166,6 @@ async function agregarTurno(idRestaurante, diaSemana, horaApertura, horaCierre) 
     return resultado.rows[0];
 }
 
-
-
 //Funcion para abierto y cerrado
 async function obtenerEstadoRestaurante(idRestaurante) {
     // Obtener el día y la hora actual de San Luis, Argentina

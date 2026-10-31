@@ -1,13 +1,15 @@
 const pool = require('../db');
 
-// Obtener todos los productos de un restaurante
-async function obtenerPorRestaurante(idRestaurante) {
+// Obtener todos los productos disponible de un restaurante y opcional por categoria
+async function obtenerPorRestaurante(idRestaurante, categoria=null) {
     const resultado = await pool.query(
         `SELECT *
          FROM producto
          WHERE id_restaurante = $1
+         AND disponible = TRUE
+         AND ($2::text IS NULL OR LOWER(categoria) = LOWER($2))
          ORDER BY id`,
-        [idRestaurante]
+        [idRestaurante,categoria]
     );
 
     return resultado.rows;
@@ -110,11 +112,29 @@ async function actualizarImagen(id, imagen) {
     return resultado.rows[0] || null;
 }
 
+//======FILTROS======
+
+// Productos filtrados para la gestión del restaurante, disponibles o no y categoria opcional
+async function obtenerFiltradosPorRestaurante(idRestaurante,categoria = null,disponible = null) {
+    const resultado = await pool.query(
+        `SELECT *
+         FROM producto
+         WHERE id_restaurante = $1
+           AND ($2::text IS NULL OR LOWER(categoria) = LOWER($2))
+           AND ($3::boolean IS NULL OR disponible = $3)
+         ORDER BY id`,
+        [idRestaurante, categoria, disponible]
+    );
+
+    return resultado.rows;
+}
+
 module.exports = {
     obtenerPorRestaurante,
     obtenerPorId,
     actualizarImagen,
     crear,
     actualizar,
-    eliminar
+    eliminar,
+    obtenerFiltradosPorRestaurante
 };
