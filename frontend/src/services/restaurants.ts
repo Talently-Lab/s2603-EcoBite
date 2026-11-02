@@ -32,6 +32,12 @@ export interface RestaurantScheduleApiResponse {
   hora_cierre: string;
 }
 
+export interface RestaurantScheduleData {
+  dia_semana: number;
+  hora_apertura: string;
+  hora_cierre: string;
+}
+
 export interface RestaurantProductApiResponse {
   id: number;
   id_restaurante: number;
@@ -280,6 +286,34 @@ export async function getRestaurantSchedules(
     return body.horarios as RestaurantScheduleApiResponse[];
   } catch {
     return [];
+  }
+}
+
+export async function saveRestaurantSchedules(
+  restaurantId: number,
+  token: string,
+  horarios: RestaurantScheduleData[],
+): Promise<void> {
+  const response = await fetch(
+    `${API_BASE_URL}/restaurantes/${encodeURIComponent(restaurantId)}/horarios`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ horarios }),
+    },
+  );
+
+  if (!response.ok) {
+    const body: unknown = await response.json().catch(() => null);
+    const message =
+      typeof body === "object" && body !== null &&
+      "error" in body && typeof body.error === "string"
+        ? body.error
+        : `No se pudieron guardar los horarios (estado ${response.status}).`;
+    throw new Error(message);
   }
 }
 
