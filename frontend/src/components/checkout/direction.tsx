@@ -80,6 +80,23 @@ export function DeliveryAddressSection({
           value={form.instructions}
           onChange={handleChange}
         />
+        <label className="flex flex-col gap-2 text-sm font-semibold text-eco-dark">
+          Zona de entrega
+          <select
+            name="zone"
+            defaultValue=""
+            required
+            aria-label="Zona de entrega"
+            className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 font-normal text-gray-800 focus:border-eco-dark focus:outline-none focus:ring-2 focus:ring-eco-dark/20"
+          >
+            <option value="" disabled>Elegí tu zona</option>
+            <option value="1">Centro</option>
+            <option value="2">Norte</option>
+            <option value="3">Sur</option>
+            <option value="4">Este</option>
+            <option value="5">Oeste</option>
+          </select>
+        </label>
       </div>
       <button
         type="button"

@@ -1,8 +1,8 @@
-import { CircleAlert, Info } from "lucide-react";
+import { CircleAlert, CircleCheck, Info } from "lucide-react";
 
 interface GlobalAlertProps {
   message: string;
-  variant?: "error" | "info";
+  variant?: "error" | "info" | "success";
   className?: string;
 }
 
@@ -15,6 +15,11 @@ const variantStyles = {
   info: {
     container: "border-amber-300 bg-amber-100 text-amber-700",
     icon: Info,
+    role: "status",
+  },
+  success: {
+    container: "border-green-300 bg-green-50 text-green-800",
+    icon: CircleCheck,
     role: "status",
   },
 } as const;

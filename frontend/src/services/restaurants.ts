@@ -89,24 +89,6 @@ const API_BASE_URL = (
 
 const USE_MOCK_DATA = import.meta.env.VITE_DATA_SOURCE !== "api";
 
-function getSanLuisDayAndTime(now: Date) {
-  const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone: "America/Argentina/San_Luis",
-    weekday: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-    hourCycle: "h23",
-  }).formatToParts(now);
-  const part = (type: string) => parts.find((item) => item.type === type)?.value;
-  const dayNames: Record<string, number> = {
-    Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6, Sun: 7,
-  };
-  return {
-    day: dayNames[part("weekday") ?? ""],
-    minutes: Number(part("hour")) * 60 + Number(part("minute")),
-  };
-}
-
 class ApiRequestError extends Error {
   readonly status: number;
 
@@ -342,8 +324,6 @@ export async function getRestaurantBySlug(
   return restaurant;
 }
 
-// Intenta GET http://localhost:3000/api/restaurants/:slug/menu.
-// Esta ruta no existe en el backend actual; el menú solo funciona en modo mock.
 export async function getRestaurantMenu(
   slug: string,
 ): Promise<RestaurantMenu> {
@@ -380,9 +360,25 @@ export async function getRestaurantMenu(
   }
 
   try {
-    return await fetchApi<RestaurantMenu>(
-      `/restaurants/${encodeURIComponent(slug)}/menu`,
+    const restaurant = await getRestaurantBySlug(slug);
+    const response = await fetchApi<{ productos: RestaurantProductApiResponse[] }>(
+      `/restaurantes/${encodeURIComponent(restaurant.id)}/productos`,
     );
+    const products = response.productos
+      .filter((product) => product.disponible)
+      .map((product) => ({
+        id: String(product.id),
+        name: product.nombre,
+        description: product.descripcion ?? "",
+        price: Number(product.precio),
+        classification: product.categoria ?? "",
+        imageUrl: product.imagen ?? undefined,
+      }));
+
+    return {
+      dishes: products.filter((product) => product.classification !== "Bebidas"),
+      drinks: products.filter((product) => product.classification === "Bebidas"),
+    };
   } catch (error) {
     if (error instanceof ApiRequestError && error.status === 404) {
       return { dishes: [], drinks: [] };

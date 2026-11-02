@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import type { CartItem } from "../components/detailRestaurant/OrderSummary";
 import { DeliveryAddressSection } from "../components/checkout/direction";
@@ -7,6 +7,7 @@ import { CheckoutOrderSummary } from "../components/checkout/CheckoutOrderSummar
 import { GlobalAlert } from "../components/ui/GlobalAlert";
 import { HeroTitle } from "../components/ui/HeroTitle";
 import { CheckoutConfirmationModal } from "../components/checkout/CheckoutConfirmationModal";
+import { useCart } from "../contexts/CartContext";
 
 interface CheckoutPageProps {
   items: CartItem[];
@@ -15,17 +16,12 @@ interface CheckoutPageProps {
 
 export function CheckoutPage({ items, savedCo2Kg }: CheckoutPageProps) {
   const navigate = useNavigate();
+  const { createOrders } = useCart();
+  const [purchasedItems, setPurchasedItems] = useState<CartItem[]>([]);
   const [showValidationErrors, setShowValidationErrors] = useState(false);
   const [validationMessage, setValidationMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isConfirmationOpen, setIsConfirmationOpen] = useState(false);
-  const processingTimeout = useRef<number | null>(null);
-
-  useEffect(() => () => {
-    if (processingTimeout.current !== null) {
-      window.clearTimeout(processingTimeout.current);
-    }
-  }, []);
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -40,26 +36,37 @@ export function CheckoutPage({ items, savedCo2Kg }: CheckoutPageProps) {
     const formData = new FormData(event.currentTarget);
     const street = formData.get("street")?.toString().trim();
     const city = formData.get("city")?.toString().trim();
+    const zone = Number(formData.get("zone"));
+    const paymentMethod = formData.get("paymentMethod")?.toString();
 
-    if (!street || !city) {
+    if (!street || !city || !zone) {
       setValidationMessage(
-        "Revisá los campos obligatorios antes de confirmar el pedido.",
+        "Completá la dirección, la ciudad y la zona para confirmar el pedido.",
       );
       return;
     }
 
     setValidationMessage(null);
     setIsLoading(true);
-    processingTimeout.current = window.setTimeout(() => {
+    setPurchasedItems(items);
+    void createOrders({
+      id_zona: zone,
+      tipo_pago: paymentMethod === "cash" ? "efectivo" : "tarjeta",
+      direccion_entrega: `${street}, ${city}`,
+      piso_entrega: formData.get("apartment")?.toString().trim() || undefined,
+      indicacion_entrega: formData.get("instructions")?.toString().trim() || undefined,
+    }).then(() => {
       setIsLoading(false);
       setIsConfirmationOpen(true);
-      processingTimeout.current = null;
-    }, 1000);
+    }).catch((error: unknown) => {
+      setIsLoading(false);
+      setValidationMessage(error instanceof Error ? error.message : "No se pudo confirmar el pedido.");
+    });
   }
 
   function goToConfirmation() {
     setIsConfirmationOpen(false);
-    navigate("/confirmacion");
+    navigate("/confirmacion", { state: { items: purchasedItems } });
   }
 
   return (

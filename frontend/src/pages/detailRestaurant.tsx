@@ -23,7 +23,7 @@ const WEEKDAYS = [
 
 type DetalleRestaurantePageProps = {
   items: CartItem[];
-  onAdd: (item: MenuItemData, restaurantName: string) => void;
+  onAdd: (item: MenuItemData, restaurantId: string, restaurantName: string) => void;
 };
 
 export function DetalleRestaurantePage({
@@ -171,7 +171,7 @@ export function DetalleRestaurantePage({
                       <MenuItem
                         key={dish.id}
                         item={dish}
-                        onAdd={(item) => onAdd(item, restaurant.name)}
+                        onAdd={(item) => onAdd(item, restaurant.id, restaurant.name)}
                       />
                     ))
                   ) : (
@@ -195,7 +195,7 @@ export function DetalleRestaurantePage({
                       <MenuItem
                         key={drink.id}
                         item={drink}
-                        onAdd={(item) => onAdd(item, restaurant.name)}
+                        onAdd={(item) => onAdd(item, restaurant.id, restaurant.name)}
                       />
                     ))
                   ) : (

@@ -5,9 +5,10 @@ import NavLinks from "./NavLinks";
 import MobileMenu from "./MobileMenu";
 import Modal from "../modal/Modal";
 import Button from "../ui/Button";
-import { ShoppingCart } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 import { getRestaurants } from "../../services/restaurants";
+import CartLink from "./CartLink";
+import UserMenu from "./UserMenu";
 
 interface NavbarProps {
   cartCount: number;
@@ -20,6 +21,7 @@ export default function Navbar({ cartCount }: NavbarProps) {
   const [isImpactOpen, setIsImpactOpen] = useState(false);
   const [isHowItWorksOpen, setIsHowItWorksOpen] = useState(false);
   const [restaurantName, setRestaurantName] = useState<string | null>(null);
+  const [restaurantCity, setRestaurantCity] = useState<string | null>(null);
 
   function handleLogout() {
     logout();
@@ -30,6 +32,7 @@ export default function Navbar({ cartCount }: NavbarProps) {
   useEffect(() => {
     if (!isAuthenticated || user?.rol !== "restaurante" || !user.id) {
       setRestaurantName(null);
+      setRestaurantCity(null);
       return;
     }
 
@@ -39,9 +42,13 @@ export default function Navbar({ cartCount }: NavbarProps) {
         if (!isCurrent) return;
         const restaurant = restaurants.find((item) => item.userId === user.id);
         setRestaurantName(restaurant?.name ?? null);
+        setRestaurantCity(restaurant?.city ?? null);
       })
       .catch(() => {
-        if (isCurrent) setRestaurantName(null);
+        if (isCurrent) {
+          setRestaurantName(null);
+          setRestaurantCity(null);
+        }
       });
 
     return () => {
@@ -53,22 +60,10 @@ export default function Navbar({ cartCount }: NavbarProps) {
   const userName =
     user?.rol === "restaurante"
       ? restaurantName ?? emailName ?? "tu restaurante"
-      : user?.nombre ?? user?.name ?? emailName ?? "usuario";
-  const cartLink = (
-    <Link
-      to="/carrito"
-      aria-label={`Ver carrito, ${cartCount} ${cartCount === 1 ? "ítem" : "ítems"}`}
-      className="relative inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-eco-dark transition-colors hover:bg-eco-light/30"
-    >
-      <ShoppingCart aria-hidden="true" className="h-5 w-5" />
-      {cartCount > 0 && (
-        <span className="absolute -right-1 -top-1 inline-flex min-h-5 min-w-5 items-center justify-center rounded-full bg-eco-dark px-1 text-xs font-bold text-white">
-          {cartCount}
-        </span>
-      )}
-    </Link>
-  );
-
+      : user?.nombre ?? emailName ?? "usuario";
+  const userRole = user?.rol === "restaurante" ? "Restaurante" : "Cliente";
+  const userCity =
+    user?.rol === "restaurante" ? restaurantCity : user?.ciudad;
   return (
     <>
       <header className="relative border-b border-eco-sage bg-white">
@@ -85,20 +80,9 @@ export default function Navbar({ cartCount }: NavbarProps) {
           </div>
 
           <div className="hidden shrink-0 items-center gap-1 whitespace-nowrap text-sm md:flex md:gap-2 lg:gap-4 xl:gap-5">
+            <CartLink count={cartCount} />
             {!loading && (isAuthenticated ? (
-              <>
-                <span className="px-2 py-1.5 text-sm font-semibold text-eco-dark">
-                  Hola, {userName}
-                </span>
-                <Button
-                  type="button"
-                  variant="dark"
-                  onClick={handleLogout}
-                  className="px-2 py-1.5 text-xs hover:bg-eco-dark/90 lg:px-3.5 lg:py-2 lg:text-sm"
-                >
-                  Cerrar sesión
-                </Button>
-              </>
+              <UserMenu name={userName} role={userRole} city={userCity} onLogout={handleLogout} />
             ) : (
               <>
                 <Button
@@ -117,17 +101,13 @@ export default function Navbar({ cartCount }: NavbarProps) {
                 </Button>
               </>
             ))}
-            {cartLink}
           </div>
 
           {/* orden mobile */}
           <div className="flex items-center gap-3 md:hidden">
+            <CartLink count={cartCount} />
             {!loading && (isAuthenticated ? (
-              <>
-                <span className="text-sm font-semibold text-eco-dark">
-                  Hola, {userName}
-                </span>
-              </>
+              <UserMenu name={userName} role={userRole} city={userCity} onLogout={handleLogout} compact />
             ) : (
               <Button
                 to="/registro"
@@ -137,7 +117,6 @@ export default function Navbar({ cartCount }: NavbarProps) {
                 Registrarme
               </Button>
             ))}
-            {cartLink}
             <button
               type="button"
               className="text-2xl md:hidden"
@@ -151,7 +130,6 @@ export default function Navbar({ cartCount }: NavbarProps) {
           <MobileMenu
             isOpen={isMobileMenuOpen}
             onClose={() => setIsMobileMenuOpen(false)}
-            onLogout={handleLogout}
             onOpenImpactModal={() => {
               setIsMobileMenuOpen(false);
               setIsImpactOpen(true);

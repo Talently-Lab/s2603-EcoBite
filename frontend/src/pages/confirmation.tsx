@@ -1,3 +1,4 @@
+import { useLocation } from "react-router-dom";
 import Button from "../components/ui/Button";
 import { ImpactBadge } from "../components/ui/ImpactBadge";
 import type { CartItem } from "../components/detailRestaurant/OrderSummary";
@@ -14,12 +15,14 @@ export function ConfirmacionPage({
   items,
   savedCo2Kg,
 }: ConfirmacionPageProps) {
+  const location = useLocation();
+  const orderItems = (location.state as { items?: CartItem[] } | null)?.items ?? items;
   return (
     <main className="mx-auto max-w-7xl px-5 py-12 sm:px-8">
       <SuccessIndicator />
 
       <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-2">
-        <OrderDetails items={items} />
+        <OrderDetails items={orderItems} />
         <div className="flex flex-col gap-6">
           <ImpactBadge
             titulo="Ahorraste con este pedido"

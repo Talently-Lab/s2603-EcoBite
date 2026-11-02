@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { HomePage } from "./pages/Home";
 import { LoginPage } from "./pages/login";
@@ -9,81 +8,18 @@ import { DetalleRestaurantePage } from "./pages/detailRestaurant";
 import { CheckoutPage } from "./pages/checkout";
 import { ConfirmacionPage } from "./pages/confirmation";
 import { DashboardImpactoPage } from "./pages/dashboardImpacto";
-import type { CartItem } from "./components/detailRestaurant/OrderSummary";
-import type { MenuItemData } from "./services/restaurants";
 import MainLayout from "./layouts/MainLayout";
 import { AuthLayout } from "./layouts/AuthLayout";
+import { useCart } from "./contexts/CartContext";
 
 function App() {
-  const [items, setItems] = useState<CartItem[]>([]);
+  const { items, addToCart, changeQuantity, removeFromCart, abandonCart, error, notice } = useCart();
   const count = items.reduce((total, item) => total + item.quantity, 0);
-  const handleAdd = (menuItem: MenuItemData, restaurantName: string) => {
-    setItems((currentItems) => {
-      const existingItem = currentItems.find(
-        (item) =>
-          item.id === menuItem.id && item.restaurantName === restaurantName,
-      );
-
-      if (!existingItem) {
-        return [
-          ...currentItems,
-          {
-            ...menuItem,
-            restaurantName,
-            quantity: 1,
-            unitPrice: menuItem.price,
-            price: menuItem.price,
-          },
-        ];
-      }
-
-      return currentItems.map((item) =>
-        item.id === menuItem.id && item.restaurantName === restaurantName
-          ? {
-              ...item,
-              quantity: item.quantity + 1,
-              price: (item.quantity + 1) * item.unitPrice,
-            }
-          : item,
-      );
-    });
-  };
-  const handleQuantityChange = (
-    itemId: CartItem["id"],
-    restaurantName: string,
-    change: -1 | 1,
-  ) => {
-    setItems((currentItems) =>
-      currentItems.map((item) => {
-        if (item.id !== itemId || item.restaurantName !== restaurantName) {
-          return item;
-        }
-
-        const quantity = Math.max(1, item.quantity + change);
-        return {
-          ...item,
-          quantity,
-          price: quantity * item.unitPrice,
-        };
-      }),
-    );
-  };
-  const handleRemove = (
-    itemId: CartItem["id"],
-    restaurantName: string,
-  ) => {
-    setItems((currentItems) =>
-      currentItems.filter(
-        (item) =>
-          item.id !== itemId || item.restaurantName !== restaurantName,
-      ),
-    );
-  };
 
   return (
     <BrowserRouter>
       <Routes>
-        <Route element={<MainLayout cartCount={count} />}>
+        <Route element={<MainLayout cartCount={count} cartError={error} cartNotice={notice} />}>
           <Route path="/" element={<HomePage />} />
           <Route element={<AuthLayout />}>
             <Route path="/login" element={<LoginPage />} />
@@ -93,7 +29,7 @@ function App() {
           <Route
             path="/restaurantes/:slug"
             element={
-              <DetalleRestaurantePage items={items} onAdd={handleAdd} />
+              <DetalleRestaurantePage items={items} onAdd={addToCart} />
             }
           />
           <Route
@@ -102,8 +38,9 @@ function App() {
               <CarritoPage
                 items={items}
                 savedCo2Kg={null}
-                onQuantityChange={handleQuantityChange}
-                onRemove={handleRemove}
+                onQuantityChange={changeQuantity}
+                onRemove={removeFromCart}
+                onAbandonCart={abandonCart}
               />
             }
           />

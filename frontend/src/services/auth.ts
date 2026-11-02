@@ -14,7 +14,7 @@ export interface AuthUser {
   email: string;
   rol: string;
   nombre?: string;
-  name?: string;
+  ciudad?: string | null;
 }
 
 // Respuesta de registro o inicio de sesión.
