@@ -49,6 +49,14 @@ export interface RestaurantProductApiResponse {
   imagen: string | null;
 }
 
+export interface CreateRestaurantProductData {
+  id_restaurante: number;
+  nombre: string;
+  descripcion: string;
+  precio: number;
+  categoria: string;
+}
+
 export interface MenuItemData {
   id: string;
   name: string;
@@ -396,4 +404,84 @@ export async function getRestaurantMenu(
     console.error("No se pudo cargar el menú desde la API.", error);
     throw error;
   }
+}
+
+export async function createRestaurantProduct(
+  token: string,
+  product: CreateRestaurantProductData,
+): Promise<RestaurantProductApiResponse> {
+  const response = await fetch(`${API_BASE_URL}/productos`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(product),
+  });
+  const body: unknown = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    const message =
+      typeof body === "object" &&
+      body !== null &&
+      "mensaje" in body &&
+      typeof body.mensaje === "string"
+        ? body.mensaje
+        : typeof body === "object" &&
+            body !== null &&
+            "error" in body &&
+            typeof body.error === "string"
+          ? body.error
+          : `No se pudo crear el producto (estado ${response.status}).`;
+    throw new Error(message);
+  }
+
+  if (
+    typeof body !== "object" ||
+    body === null ||
+    !("producto" in body) ||
+    typeof body.producto !== "object" ||
+    body.producto === null
+  ) {
+    throw new Error("La respuesta del servidor no contiene el producto creado.");
+  }
+
+  return body.producto as RestaurantProductApiResponse;
+}
+
+export async function getManagedRestaurantProducts(
+  restaurantId: number,
+  token: string,
+  signal?: AbortSignal,
+): Promise<RestaurantProductApiResponse[]> {
+  const response = await fetch(
+    `${API_BASE_URL}/restaurantes/${encodeURIComponent(restaurantId)}/productos/gestion`,
+    {
+      headers: { Authorization: `Bearer ${token}` },
+      signal,
+    },
+  );
+  const body: unknown = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    const message =
+      typeof body === "object" &&
+      body !== null &&
+      "error" in body &&
+      typeof body.error === "string"
+        ? body.error
+        : `No se pudieron cargar los productos (estado ${response.status}).`;
+    throw new Error(message);
+  }
+
+  if (
+    typeof body !== "object" ||
+    body === null ||
+    !("productos" in body) ||
+    !Array.isArray(body.productos)
+  ) {
+    throw new Error("La respuesta del servidor no contiene una lista de productos.");
+  }
+
+  return body.productos as RestaurantProductApiResponse[];
 }

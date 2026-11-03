@@ -11,6 +11,8 @@ import { DashboardImpactoPage } from "./pages/dashboardImpacto";
 import MainLayout from "./layouts/MainLayout";
 import { AuthLayout } from "./layouts/AuthLayout";
 import { useCart } from "./contexts/CartContext";
+import { RequireAuth } from "./components/auth/RequireAuth";
+import { DashboardPage } from "./pages/dashboard";
 
 function App() {
   const { items, addToCart, changeQuantity, removeFromCart, abandonCart, error, notice } = useCart();
@@ -53,6 +55,9 @@ function App() {
             element={<ConfirmacionPage items={items} savedCo2Kg={null} />}
           />
           <Route path="/dashboard" element={<DashboardImpactoPage />} />
+          <Route element={<RequireAuth />}>
+            <Route path="/admin/dashboard" element={<DashboardPage />} />
+          </Route>
         </Route>
       </Routes>
     </BrowserRouter>

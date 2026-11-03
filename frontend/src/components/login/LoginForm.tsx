@@ -1,5 +1,5 @@
 import { useState, type ChangeEvent, type FormEvent } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import Button from "../ui/Button";
 import { GlobalAlert } from "../ui/GlobalAlert";
 import { Input } from "../ui/Input";
@@ -15,6 +15,7 @@ type LoginErrors = Partial<Record<keyof LoginFields, string>>;
 
 export function LoginForm() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { login } = useAuth();
   const [form, setForm] = useState<LoginFields>({ email: "", password: "" });
   const [errors, setErrors] = useState<LoginErrors>({});
@@ -63,7 +64,14 @@ export function LoginForm() {
         contrasena: form.password,
       });
       login(session.token, session.usuario);
-      navigate("/");
+      const redirectPath = (
+        location.state as { from?: { pathname?: string } } | null
+      )?.from?.pathname;
+      navigate(
+        redirectPath?.startsWith("/") && !redirectPath.startsWith("//")
+          ? redirectPath
+          : "/",
+      );
     } catch (error) {
       setFeedback({
         message:

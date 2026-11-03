@@ -9,9 +9,10 @@ export type { MenuItemData } from "../../services/restaurants";
 interface MenuItemProps {
   item: MenuItemData;
   onAdd: (item: MenuItemData) => void;
+  canAddToCart: boolean;
 }
 
-export function MenuItem({ item, onAdd }: MenuItemProps) {
+export function MenuItem({ item, onAdd, canAddToCart }: MenuItemProps) {
   return (
     <article className="flex flex-col items-stretch gap-4 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:gap-5 sm:p-5">
       <div
@@ -34,13 +35,24 @@ export function MenuItem({ item, onAdd }: MenuItemProps) {
           />
         </div>
       </div>
-      <div className="flex shrink-0 items-center justify-center sm:justify-start">
+      <div className="flex shrink-0 flex-col items-center justify-center gap-2 sm:items-start">
         <Button
           onClick={() => onAdd(item)}
-          className="cursor-pointer shadow-sm transition-colors hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-eco-dark"
+          disabled={!canAddToCart}
+          title={
+            canAddToCart
+              ? undefined
+              : "Iniciá sesión con una cuenta de cliente para agregar productos."
+          }
+          className="cursor-pointer shadow-sm transition-colors hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-eco-dark disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:brightness-100"
         >
           Agregar
         </Button>
+        {!canAddToCart && (
+          <span className="max-w-40 text-center text-xs text-gray-600 sm:text-left">
+            Solo clientes pueden agregar productos.
+          </span>
+        )}
       </div>
     </article>
   );

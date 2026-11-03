@@ -67,7 +67,7 @@ async function createOrder(body: Record<string, unknown>, token: string): Promis
 }
 
 export function CartProvider({ children }: { children: ReactNode }) {
-  const { token, isAuthenticated } = useAuth();
+  const { token, user, isAuthenticated, loading: authLoading } = useAuth();
   const [items, setItems] = useState<CartItem[]>(() => {
     try {
       const savedItems = sessionStorage.getItem("cartItems");
@@ -82,7 +82,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [notice, setNotice] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!USE_API_CART || !token || !isAuthenticated) return;
+    if (
+      !USE_API_CART ||
+      authLoading ||
+      !token ||
+      !isAuthenticated ||
+      user?.rol !== "cliente"
+    ) return;
+
     let isCurrent = true;
     getActiveCartItems(token)
       .then((serverItems) => {
@@ -99,7 +106,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     return () => {
       isCurrent = false;
     };
-  }, [token, isAuthenticated]);
+  }, [authLoading, token, user?.rol, isAuthenticated]);
 
   useEffect(() => {
     try {
@@ -112,7 +119,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const addToCart = useCallback(async (item: MenuItemData, restaurantId: string, restaurantName: string) => {
     setNotice(null);
     if (USE_API_CART) {
-      if (!token || !isAuthenticated) {
+      if (!token || !isAuthenticated || user?.rol !== "cliente") {
         setError("Iniciá sesión como cliente para guardar productos en tu carrito.");
         return;
       }
@@ -151,7 +158,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     });
     setError(null);
     setNotice(`Se agregó ${item.name} al carrito de ${restaurantName}.`);
-  }, [isAuthenticated, token]);
+  }, [isAuthenticated, token, user?.rol]);
 
   const changeQuantity = useCallback(async (itemId: CartItem["id"], restaurantName: string, change: -1 | 1) => {
     const targetItem = items.find((item) => item.id === itemId && item.restaurantName === restaurantName);
@@ -255,11 +262,25 @@ export function CartProvider({ children }: { children: ReactNode }) {
       orders.push(result.pedido);
       setItems((current) => current.filter((item) => item.cartId !== cartId));
     }
+    setNotice(null);
     setError(null);
     return orders;
   }, [items, token]);
 
-  const value = useMemo(() => ({ items, error, notice, addToCart, changeQuantity, removeFromCart, abandonCart, clearCart, createOrders }), [items, error, notice, addToCart, changeQuantity, removeFromCart, abandonCart, clearCart, createOrders]);
+  const canViewCart =
+    !USE_API_CART ||
+    (!authLoading && isAuthenticated && user?.rol === "cliente");
+  const value = useMemo(() => ({
+    items: canViewCart ? items : [],
+    error: canViewCart ? error : null,
+    notice: canViewCart ? notice : null,
+    addToCart,
+    changeQuantity,
+    removeFromCart,
+    abandonCart,
+    clearCart,
+    createOrders,
+  }), [items, error, notice, canViewCart, addToCart, changeQuantity, removeFromCart, abandonCart, clearCart, createOrders]);
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 }
 

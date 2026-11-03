@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
+import { useAuth } from "../contexts/AuthContext";
 import { HeroTitle } from "../components/ui/HeroTitle";
 import EmptyState from "../components/ui/EmptyState";
 import { MenuItem } from "../components/detailRestaurant/menuItem";
@@ -31,6 +32,8 @@ export function DetalleRestaurantePage({
   onAdd,
 }: DetalleRestaurantePageProps) {
   const { slug } = useParams();
+  const { user, loading: authLoading } = useAuth();
+  const canAddToCart = !authLoading && user?.rol === "cliente";
   const [loadedData, setLoadedData] = useState<{
     slug: string;
     restaurant: Restaurant;
@@ -171,6 +174,7 @@ export function DetalleRestaurantePage({
                       <MenuItem
                         key={dish.id}
                         item={dish}
+                        canAddToCart={canAddToCart}
                         onAdd={(item) => onAdd(item, restaurant.id, restaurant.name)}
                       />
                     ))
@@ -195,6 +199,7 @@ export function DetalleRestaurantePage({
                       <MenuItem
                         key={drink.id}
                         item={drink}
+                        canAddToCart={canAddToCart}
                         onAdd={(item) => onAdd(item, restaurant.id, restaurant.name)}
                       />
                     ))

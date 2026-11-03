@@ -1,21 +1,94 @@
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import Button from "../ui/Button";
 import { useAuth } from "../../contexts/AuthContext";
 
 interface NavLinksProps {
   mobile?: boolean;
+  dashboard?: boolean;
   onLinkClick?: () => void;
-  onOpenImpactModal: () => void;
-  onOpenHowItWorksModal: () => void;
+  onOpenImpactModal?: () => void;
+  onOpenHowItWorksModal?: () => void;
 }
 
 export default function NavLinks({
   mobile = false,
+  dashboard = false,
   onLinkClick,
   onOpenImpactModal,
   onOpenHowItWorksModal,
 }: NavLinksProps) {
   const { isAuthenticated, loading } = useAuth();
+  const { search } = useLocation();
+
+  if (dashboard) {
+    const activeTab = new URLSearchParams(search).get("tab");
+    const dashboardItemStyle =
+      mobile
+        ? "w-full rounded-md px-3 py-2 text-left text-sm font-semibold"
+        : "relative flex h-full shrink-0 items-center justify-center px-0.5 pt-0.5 text-xs font-semibold sm:text-sm";
+
+    return (
+      <nav
+        aria-label="Navegación del panel"
+        className={
+          mobile
+            ? "flex w-full flex-col gap-1"
+            : "hidden h-full min-w-0 items-center gap-4 overflow-x-auto whitespace-nowrap md:flex sm:gap-5"
+        }
+      >
+        <Link
+          to="/admin/dashboard"
+          onClick={onLinkClick}
+          aria-current={!activeTab ? "page" : undefined}
+          className={
+            !activeTab
+              ? mobile
+                ? `${dashboardItemStyle} bg-eco-light/30 text-eco-dark`
+                : `${dashboardItemStyle} text-eco-dark after:absolute after:bottom-0 after:left-1/2 after:h-0.5 after:w-full after:-translate-x-1/2 after:rounded-full after:bg-eco-dark`
+              : `${dashboardItemStyle} text-gray-600`
+          }
+        >
+          Resumen
+        </Link>
+        <Link
+          to="/admin/dashboard?tab=orders"
+          onClick={onLinkClick}
+          aria-current={activeTab === "orders" ? "page" : undefined}
+          className={
+            activeTab === "orders"
+              ? mobile
+                ? `${dashboardItemStyle} bg-eco-light/30 text-eco-dark`
+                : `${dashboardItemStyle} text-eco-dark after:absolute after:bottom-0 after:left-1/2 after:h-0.5 after:w-full after:-translate-x-1/2 after:rounded-full after:bg-eco-dark`
+              : `${dashboardItemStyle} text-gray-600`
+          }
+        >
+          Pedidos
+        </Link>
+        <Link
+          to="/admin/dashboard?tab=products"
+          onClick={onLinkClick}
+          aria-current={activeTab === "products" ? "page" : undefined}
+          className={
+            activeTab === "products"
+              ? mobile
+                ? `${dashboardItemStyle} bg-eco-light/30 text-eco-dark`
+                : `${dashboardItemStyle} text-eco-dark after:absolute after:bottom-0 after:left-1/2 after:h-0.5 after:w-full after:-translate-x-1/2 after:rounded-full after:bg-eco-dark`
+              : `${dashboardItemStyle} text-gray-600`
+          }
+        >
+          Productos
+        </Link>
+        <button
+          type="button"
+          disabled
+          title="Próximamente"
+          className={`${dashboardItemStyle} cursor-not-allowed text-gray-600`}
+        >
+          Horarios
+        </button>
+      </nav>
+    );
+  }
   
   // Estilo único para las filas del menú móvil
   const itemStyle = mobile 
@@ -35,12 +108,12 @@ export default function NavLinks({
         {mobile && <span className="text-eco-dark font-normal">&gt;</span>}
       </Link>
 
-      <button type="button" onClick={() => { onOpenHowItWorksModal(); if (mobile) onLinkClick?.(); }} className={itemStyle}>
+      <button type="button" onClick={() => { onOpenHowItWorksModal?.(); if (mobile) onLinkClick?.(); }} className={itemStyle}>
         <span>Cómo funciona</span>
         {mobile && <span className="text-eco-dark font-normal">&gt;</span>}
       </button>
 
-      <button type="button" onClick={() => { onOpenImpactModal(); if (mobile) onLinkClick?.(); }} className={itemStyle}>
+      <button type="button" onClick={() => { onOpenImpactModal?.(); if (mobile) onLinkClick?.(); }} className={itemStyle}>
         <span>Impacto</span>
         {mobile && <span className="text-eco-dark font-normal">&gt;</span>}
       </button>
