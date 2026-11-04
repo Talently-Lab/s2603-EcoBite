@@ -231,7 +231,6 @@ async function crear(pedido) {
     }
 }
 
-
 async function aceptarPedido(idPedido, idUsuario) {
     const resultado = await pool.query(
         `UPDATE pedido AS p
@@ -385,6 +384,146 @@ async function cancelarPedidosDemorados() {
     return resultado.rows;
 }
 
+// LISTAR PEDIDOS DEL CLIENTE
+async function listarPorCliente(idUsuario) {
+    const resultado = await pool.query(
+        `SELECT
+            p.id,
+            r.nombre AS restaurante,
+            p.estado_pedido AS estado,
+            p.tipo_pago AS forma_pago,
+            p.total_pedido AS total,
+            p.co2_ahorrado,
+            p.fecha_creacion
+         FROM pedido p
+         INNER JOIN cliente c ON c.id = p.id_cliente
+         INNER JOIN restaurante r ON r.id = p.id_restaurante
+         WHERE c.id_usuario = $1
+         ORDER BY p.fecha_creacion DESC`,
+        [idUsuario]
+    );
+
+    return resultado.rows;
+}
+
+// OBTENER DETALLE DEL PEDIDO DEL CLIENTE
+async function obtenerDetalleCliente(idPedido, idUsuario) {
+    const resultadoPedido = await pool.query(
+        `SELECT
+            p.id,
+            r.nombre AS restaurante,
+            p.total_pedido AS total,
+            p.tipo_pago AS forma_pago,
+            p.costo_envio,
+            p.direccion_entrega,
+            p.piso_entrega,
+            p.departamento_entrega,
+            p.co2_ahorrado
+        FROM pedido p
+        INNER JOIN cliente c ON c.id = p.id_cliente
+        INNER JOIN restaurante r ON r.id = p.id_restaurante
+        WHERE p.id = $1
+        AND c.id_usuario = $2`,
+        [idPedido, idUsuario]
+    );
+
+    if (resultadoPedido.rows.length === 0) {
+        return null;
+    }
+
+    const resultadoDetalles = await pool.query(
+        `SELECT
+            dp.id,
+            dp.id_producto,
+            pr.nombre AS producto,
+            dp.cantidad,
+            dp.precio_unitario,
+            dp.subtotal
+         FROM detalle_pedido dp
+         INNER JOIN producto pr ON pr.id = dp.id_producto
+         WHERE dp.id_pedido = $1`,
+        [idPedido]
+    );
+
+    return {
+        ...resultadoPedido.rows[0],
+        detalles: resultadoDetalles.rows
+    };
+}
+
+// LISTAR PEDIDOS DEL RESTAURANTE
+async function listarPorRestaurante(idUsuario) {
+    const resultado = await pool.query(
+        `SELECT
+            p.id,
+            CONCAT(c.nombre, ' ', c.apellido) AS cliente,
+            p.estado_pedido AS estado,
+            p.tipo_pago AS forma_pago,
+            p.total_pedido AS total,
+            p.hora_aceptacion,
+            p.hora_despacho,
+            p.hora_entrega
+         FROM pedido p
+         INNER JOIN restaurante r ON r.id = p.id_restaurante
+         INNER JOIN cliente c ON c.id = p.id_cliente
+         WHERE r.id_usuario = $1
+         ORDER BY p.hora_aceptacion DESC`,
+        [idUsuario]
+    );
+
+    return resultado.rows;
+}
+
+// OBTENER DETALLE DEL PEDIDO DEL RESTAURANTE
+async function obtenerDetalleRestaurante(idPedido, idUsuario) {
+    const resultadoPedido = await pool.query(
+        `SELECT
+            p.id,
+            CONCAT(c.nombre, ' ', c.apellido) AS cliente,
+            p.estado_pedido AS estado,
+            p.tipo_pago AS forma_pago,
+            p.total_pedido AS total,
+            p.costo_envio,
+            p.direccion_entrega,
+            p.piso_entrega,
+            p.departamento_entrega,
+            p.indicacion_entrega,
+            p.fecha_creacion,
+            p.hora_aceptacion,
+            p.hora_despacho,
+            p.hora_entrega
+        FROM pedido p
+        INNER JOIN restaurante r ON r.id = p.id_restaurante
+        INNER JOIN cliente c ON c.id = p.id_cliente
+        WHERE p.id = $1
+        AND r.id_usuario = $2`,
+        [idPedido, idUsuario]
+    );
+
+    if (resultadoPedido.rows.length === 0) {
+        return null;
+    }
+
+    const resultadoDetalles = await pool.query(
+        `SELECT
+            dp.id,
+            dp.id_producto,
+            pr.nombre AS producto,
+            dp.cantidad,
+            dp.precio_unitario,
+            dp.subtotal
+         FROM detalle_pedido dp
+         INNER JOIN producto pr ON pr.id = dp.id_producto
+         WHERE dp.id_pedido = $1`,
+        [idPedido]
+    );
+
+    return {
+        ...resultadoPedido.rows[0],
+        detalles: resultadoDetalles.rows
+    };
+}
+
 module.exports = { 
     crear,
     aceptarPedido,
@@ -394,5 +533,10 @@ module.exports = {
     calificarPedido,
     rechazarPedido,
     cancelarPedido,
-    cancelarPedidosDemorados
+    cancelarPedidosDemorados,
+    // Listados y detalles de pedidos
+    listarPorCliente,
+    obtenerDetalleCliente,
+    listarPorRestaurante,
+    obtenerDetalleRestaurante
 };

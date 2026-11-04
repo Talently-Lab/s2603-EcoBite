@@ -2313,6 +2313,7 @@ app.patch('/api/ordenes/:id/recibido',verificarToken,verificarRol('cliente'),asy
     }
 );
 
+//MARCAR PEDIDO COMO NO ENTREGADO
 app.patch('/api/ordenes/:id/no-entregado', verificarToken, verificarRol('cliente'), async (req, res) => {
     try {
         const idPedido = Number(req.params.id);
@@ -2487,6 +2488,106 @@ cron.schedule('* * * * *', async () => {
         );
     }
 });
+
+// LISTAR PEDIDOS DEL CLIENTE
+app.get('/api/ordenes/mis-pedidos', verificarToken, verificarRol('cliente'), async (req, res) => {
+    try {
+        const pedidos = await pedidoModel.listarPorCliente(req.usuario.id);
+
+        return res.status(200).json(pedidos);
+
+    } catch (error) {
+        console.error('Error al listar pedidos del cliente:', error);
+
+        return res.status(500).json({
+            mensaje: 'Error interno al listar los pedidos'
+        });
+    }
+});
+
+// DETALLE DE PEDIDO DEL CLIENTE
+app.get('/api/ordenes/:id/detalle', verificarToken, verificarRol('cliente'), async (req, res) => {
+    try {
+        const idPedido = Number(req.params.id);
+
+        if (!Number.isInteger(idPedido) || idPedido <= 0) {
+            return res.status(400).json({
+                mensaje: 'El ID del pedido debe ser un entero positivo'
+            });
+        }
+
+        const pedido = await pedidoModel.obtenerDetalleCliente(
+            idPedido,
+            req.usuario.id
+        );
+
+        if (!pedido) {
+            return res.status(404).json({
+                mensaje: 'El pedido no existe o no te pertenece'
+            });
+        }
+
+        return res.status(200).json(pedido);
+
+    } catch (error) {
+        console.error('Error al obtener el detalle del pedido:', error);
+
+        return res.status(500).json({
+            mensaje: 'Error interno al obtener el detalle del pedido'
+        });
+    }
+});
+
+// LISTAR PEDIDOS DEL RESTAURANTE
+app.get('/api/ordenes/restaurante/mis-pedidos', verificarToken, verificarRol('restaurante'), async (req, res) => {
+    try {
+        const pedidos = await pedidoModel.listarPorRestaurante(req.usuario.id);
+
+        return res.status(200).json(pedidos);
+
+    } catch (error) {
+        console.error('Error al listar pedidos del restaurante:', error);
+
+        return res.status(500).json({
+            mensaje: 'Error interno al listar los pedidos'
+        });
+    }
+});
+
+// DETALLE DE PEDIDO DEL RESTAURANTE
+app.get('/api/ordenes/restaurante/:id/detalle', verificarToken, verificarRol('restaurante'), async (req, res) => {
+    try {
+        const idPedido = Number(req.params.id);
+
+        if (!Number.isInteger(idPedido) || idPedido <= 0) {
+            return res.status(400).json({
+                mensaje: 'El ID del pedido debe ser un entero positivo'
+            });
+        }
+
+        const pedido = await pedidoModel.obtenerDetalleRestaurante(
+            idPedido,
+            req.usuario.id
+        );
+
+        if (!pedido) {
+            return res.status(404).json({
+                mensaje: 'El pedido no existe o no pertenece a tu restaurante'
+            });
+        }
+
+        return res.status(200).json(pedido);
+
+    } catch (error) {
+        console.error('Error al obtener el detalle del pedido:', error);
+
+        return res.status(500).json({
+            mensaje: 'Error interno al obtener el detalle del pedido'
+        });
+    }
+});
+
+
 
 //========CARRITO============
 // Listar los carritos del cliente autenticado
