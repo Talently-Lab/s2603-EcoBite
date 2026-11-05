@@ -29,7 +29,7 @@ const detalleCarritoModel = require('./models/detalleCarrito.model');
 const dashboardModel = require('./models/dashboard.model');
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
 // Configuración CORS para permitir conexiones desde el frontend
 app.use(cors({

@@ -12,14 +12,20 @@ require('dotenv').config();
 const { Pool } = require('pg');
 
 //Creamos una instancia de la clase Pool que contiene las opciones de configuración de la conexion que esta en .env
-//usamos el nombre pool = administrador de conexiones con PostgreSQL.
-const pool = new Pool({
-    host: process.env.DB_HOST,
-    port: Number(process.env.DB_PORT),
-    database: process.env.DB_NAME,
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-});
+
+// Si existe DATABASE_URL, usamos la conexión de Render.
+// Si no existe, usamos las variables de tu PostgreSQL local.
+const pool = process.env.DATABASE_URL
+    ? new Pool({
+        connectionString: process.env.DATABASE_URL
+    })
+    : new Pool({
+        host: process.env.DB_HOST,
+        port: Number(process.env.DB_PORT),
+        database: process.env.DB_NAME,
+        user: process.env.DB_USER,
+        password: process.env.DB_PASSWORD
+    });
 
 //exportamos el modulo pool para importarlo en los models
 module.exports = pool;
