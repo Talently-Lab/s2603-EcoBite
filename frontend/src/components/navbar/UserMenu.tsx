@@ -7,6 +7,7 @@ interface UserMenuProps {
   name: string;
   role: string;
   city?: string | null;
+  isClient?: boolean;
   onLogout: () => void;
   compact?: boolean;
   dashboard?: boolean;
@@ -16,6 +17,7 @@ export default function UserMenu({
   name,
   role,
   city,
+  isClient = false,
   onLogout,
   compact = false,
   dashboard = false,
@@ -42,6 +44,17 @@ export default function UserMenu({
         <p className="truncate px-3 py-2 text-sm font-semibold text-eco-dark">
           Hola, {name}
         </p>
+        {isClient && (
+          <Link
+            to="/mis-pedidos"
+            onClick={() => {
+              if (menuRef.current) menuRef.current.open = false;
+            }}
+            className="block rounded-md px-3 py-2 text-sm font-semibold text-eco-dark transition-colors hover:bg-eco-light/30"
+          >
+            Mis pedidos
+          </Link>
+        )}
         {dashboard && compact && (
           <>
             <hr className="my-1 border-eco-sage" />

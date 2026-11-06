@@ -7,6 +7,7 @@ interface DashboardHeaderProps {
   loading: boolean;
   error: string | null;
   onMonthChange: (month: string) => void;
+  description?: string;
 }
 
 export function DashboardHeader({
@@ -15,6 +16,7 @@ export function DashboardHeader({
   loading,
   error,
   onMonthChange,
+  description = "Así viene tu impacto y tus ventas. Los números se calculan con los pedidos del mes elegido.",
 }: DashboardHeaderProps) {
   return (
     <header className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
@@ -26,8 +28,7 @@ export function DashboardHeader({
           {restaurantName ? `Hola, ${restaurantName}` : "Hola"}
         </HeroTitle>
         <HeroDescription className="mt-2 text-xs! max-w-none! tracking-wider!">
-          Así viene tu impacto y tus ventas. Los números se calculan con los
-          pedidos del mes elegido.
+          {description}
         </HeroDescription>
       </div>
       <div className="flex flex-col gap-1">

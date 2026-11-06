@@ -4,6 +4,11 @@ import {
   MOCK_RESTAURANT_HOURS,
 } from "./restaurants.mock";
 
+export type {
+  RestaurantScheduleApiResponse,
+  RestaurantScheduleData,
+} from "./horarios";
+
 export interface RestaurantApiResponse {
   id: number;
   id_usuario: number;
@@ -19,20 +24,6 @@ export interface RestaurantApiResponse {
 }
 
 export interface RestaurantHours {
-  dia_semana: number;
-  hora_apertura: string;
-  hora_cierre: string;
-}
-
-export interface RestaurantScheduleApiResponse {
-  id: number;
-  id_restaurante: number;
-  dia_semana: number;
-  hora_apertura: string;
-  hora_cierre: string;
-}
-
-export interface RestaurantScheduleData {
   dia_semana: number;
   hora_apertura: string;
   hora_cierre: string;
@@ -63,6 +54,7 @@ export interface MenuItemData {
   description: string;
   price: number;
   classification: string;
+  available: boolean;
   imageUrl?: string;
 }
 
@@ -248,65 +240,6 @@ export async function getRestaurantIsOpen(
   return status.abierto;
 }
 
-export async function getRestaurantSchedules(
-  restaurantId: string,
-  token: string | null,
-): Promise<RestaurantScheduleApiResponse[]> {
-  if (USE_MOCK_DATA) {
-    return MOCK_RESTAURANT_HOURS.filter(
-      (schedule) => schedule.id_restaurante === Number(restaurantId),
-    );
-  }
-
-  if (!token) return [];
-
-  try {
-    const response = await fetch(
-      `${API_BASE_URL}/restaurantes/${encodeURIComponent(restaurantId)}/horarios`,
-      { headers: { Authorization: `Bearer ${token}` } },
-    );
-    if (!response.ok) return [];
-
-    const body: unknown = await response.json();
-    if (
-      typeof body !== "object" || body === null ||
-      !("horarios" in body) || !Array.isArray(body.horarios)
-    ) return [];
-
-    return body.horarios as RestaurantScheduleApiResponse[];
-  } catch {
-    return [];
-  }
-}
-
-export async function saveRestaurantSchedules(
-  restaurantId: number,
-  token: string,
-  horarios: RestaurantScheduleData[],
-): Promise<void> {
-  const response = await fetch(
-    `${API_BASE_URL}/restaurantes/${encodeURIComponent(restaurantId)}/horarios`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ horarios }),
-    },
-  );
-
-  if (!response.ok) {
-    const body: unknown = await response.json().catch(() => null);
-    const message =
-      typeof body === "object" && body !== null &&
-      "error" in body && typeof body.error === "string"
-        ? body.error
-        : `No se pudieron guardar los horarios (estado ${response.status}).`;
-    throw new Error(message);
-  }
-}
-
 // En modo API reutiliza GET http://localhost:3000/api/restaurantes
 // y busca el restaurante por slug en el frontend.
 export async function getRestaurantBySlug(
@@ -345,15 +278,14 @@ export async function getRestaurantMenu(
     }
 
     const products = MOCK_PRODUCTS.filter(
-      (product) =>
-        product.id_restaurante === Number(restaurant.id) &&
-        product.disponible,
+      (product) => product.id_restaurante === Number(restaurant.id),
     ).map((product) => ({
       id: String(product.id),
       name: product.nombre,
       description: product.descripcion ?? "",
       price: Number(product.precio),
       classification: product.categoria ?? "",
+      available: product.disponible,
       imageUrl: product.imagen ?? undefined,
     }));
 
@@ -373,13 +305,13 @@ export async function getRestaurantMenu(
       `/restaurantes/${encodeURIComponent(restaurant.id)}/productos`,
     );
     const products = response.productos
-      .filter((product) => product.disponible)
       .map((product) => ({
         id: String(product.id),
         name: product.nombre,
         description: product.descripcion ?? "",
         price: Number(product.precio),
         classification: product.categoria ?? "",
+        available: product.disponible,
         imageUrl: product.imagen ?? undefined,
       }));
 
@@ -447,6 +379,57 @@ export async function createRestaurantProduct(
   }
 
   return body.producto as RestaurantProductApiResponse;
+}
+
+export async function updateRestaurantProductAvailability(
+  token: string,
+  productId: number,
+  available: boolean,
+): Promise<boolean> {
+  const response = await fetch(
+    `${API_BASE_URL}/productos/${encodeURIComponent(productId)}`,
+    {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: ["Bearer", token].join(" "),
+      },
+      body: JSON.stringify({ disponible: available }),
+    },
+  );
+  const body: unknown = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    const message =
+      typeof body === "object" &&
+      body !== null &&
+      "mensaje" in body &&
+      typeof body.mensaje === "string"
+        ? body.mensaje
+        : typeof body === "object" &&
+            body !== null &&
+            "error" in body &&
+            typeof body.error === "string"
+          ? body.error
+          : `No se pudo actualizar la disponibilidad (estado ${response.status}).`;
+    throw new Error(message);
+  }
+
+  if (
+    typeof body !== "object" ||
+    body === null ||
+    !("producto" in body) ||
+    typeof body.producto !== "object" ||
+    body.producto === null ||
+    !("disponible" in body.producto) ||
+    typeof body.producto.disponible !== "boolean"
+  ) {
+    throw new Error(
+      "La respuesta del servidor no contiene la disponibilidad actualizada.",
+    );
+  }
+
+  return body.producto.disponible;
 }
 
 export async function getManagedRestaurantProducts(

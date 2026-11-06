@@ -30,7 +30,7 @@ interface CartContextValue {
   removeFromCart: (itemId: CartItem["id"], restaurantName: string) => void | Promise<void>;
   abandonCart: (cartId: number | undefined, restaurantName: string) => void | Promise<void>;
   clearCart: () => void | Promise<void>;
-  createOrders: (data: OrderRequest) => Promise<unknown[]>;
+  createOrders: (data: OrderRequest) => Promise<number>;
 }
 
 interface OrderRequest {
@@ -46,6 +46,34 @@ interface ApiOrderResponse {
   pedido: unknown;
   mensaje?: string;
   error?: string;
+}
+
+function getOrderCo2Saved(order: unknown): number {
+  if (
+    typeof order !== "object" ||
+    order === null ||
+    !("co2_ahorrado" in order)
+  ) {
+    throw new Error(
+      "El pedido se creó, pero la respuesta no incluye el ahorro de CO₂.",
+    );
+  }
+
+  const value = order.co2_ahorrado;
+  const co2Saved =
+    typeof value === "number"
+      ? value
+      : typeof value === "string" && value.trim()
+        ? Number(value)
+        : Number.NaN;
+
+  if (!Number.isFinite(co2Saved) || co2Saved < 0) {
+    throw new Error(
+      "El pedido se creó, pero el ahorro de CO₂ devuelto no es válido.",
+    );
+  }
+
+  return co2Saved;
 }
 
 const CartContext = createContext<CartContextValue | undefined>(undefined);
@@ -246,7 +274,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       throw new Error("No se pudo identificar uno de los carritos del pedido.");
     }
 
-    const orders: unknown[] = [];
+    let totalCo2Saved = 0;
     for (const cartId of cartIds) {
       const restaurantItems = items.filter((item) => item.cartId === cartId);
       const restaurantId = restaurantItems[0]?.restaurantId;
@@ -259,12 +287,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
           cantidad: item.quantity,
         })),
       }, token);
-      orders.push(result.pedido);
+      totalCo2Saved += getOrderCo2Saved(result.pedido);
       setItems((current) => current.filter((item) => item.cartId !== cartId));
     }
     setNotice(null);
     setError(null);
-    return orders;
+    return totalCo2Saved;
   }, [items, token]);
 
   const canViewCart =

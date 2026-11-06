@@ -66,12 +66,12 @@ export default function Navbar({ cartCount }: NavbarProps) {
   const userCity =
     user?.rol === "restaurante" ? restaurantCity : user?.ciudad;
   const isRestaurantDashboard =
-    pathname === "/admin/dashboard" &&
+    (pathname === "/admin/dashboard" || pathname === "/admin/horarios") &&
     (loading || user?.rol === "restaurante");
 
   return (
     <>
-      <header className="relative border-b border-eco-sage bg-white">
+      <header className="fixed inset-x-0 top-0 z-50 border-b border-eco-sage bg-white">
         {isRestaurantDashboard ? (
           <div className="flex h-19 w-full flex-nowrap items-center justify-between gap-x-1 px-3 font-bold sm:px-4 lg:px-8">
             <div className="flex min-w-0 flex-1 items-center gap-3 pl-6 md:gap-3 lg:gap-3 xl:ml-4 xl:gap-4 2xl:ml-6 2xl:gap-6">
@@ -91,6 +91,7 @@ export default function Navbar({ cartCount }: NavbarProps) {
                   <UserMenu
                     name={userName}
                     role={userRole}
+                    isClient={user?.rol === "cliente"}
                     city={userCity}
                     onLogout={handleLogout}
                     dashboard
@@ -102,6 +103,7 @@ export default function Navbar({ cartCount }: NavbarProps) {
                   <UserMenu
                     name={userName}
                     role={userRole}
+                    isClient={user?.rol === "cliente"}
                     city={userCity}
                     onLogout={handleLogout}
                     compact
@@ -127,7 +129,7 @@ export default function Navbar({ cartCount }: NavbarProps) {
             <div className="hidden shrink-0 items-center gap-1 whitespace-nowrap text-sm md:flex md:gap-2 lg:gap-4 xl:gap-5">
               <CartLink count={cartCount} />
               {!loading && (isAuthenticated ? (
-                <UserMenu name={userName} role={userRole} city={userCity} onLogout={handleLogout} />
+                <UserMenu name={userName} role={userRole} isClient={user?.rol === "cliente"} city={userCity} onLogout={handleLogout} />
               ) : (
                 <>
                   <Button
@@ -152,7 +154,7 @@ export default function Navbar({ cartCount }: NavbarProps) {
             <div className="flex items-center gap-3 md:hidden">
               <CartLink count={cartCount} />
               {!loading && (isAuthenticated ? (
-                <UserMenu name={userName} role={userRole} city={userCity} onLogout={handleLogout} compact />
+                <UserMenu name={userName} role={userRole} isClient={user?.rol === "cliente"} city={userCity} onLogout={handleLogout} compact />
               ) : (
                 <Button
                   to="/registro"
@@ -187,6 +189,7 @@ export default function Navbar({ cartCount }: NavbarProps) {
           </div>
         )}
       </header>
+      <div aria-hidden="true" className="h-19" />
 
       <Modal
         isOpen={isImpactOpen}

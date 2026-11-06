@@ -22,6 +22,9 @@ export function CheckoutPage({ items, savedCo2Kg }: CheckoutPageProps) {
   const [validationMessage, setValidationMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isConfirmationOpen, setIsConfirmationOpen] = useState(false);
+  const [confirmedCo2Saved, setConfirmedCo2Saved] = useState<number | null>(
+    null,
+  );
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -55,7 +58,8 @@ export function CheckoutPage({ items, savedCo2Kg }: CheckoutPageProps) {
       direccion_entrega: `${street}, ${city}`,
       piso_entrega: formData.get("apartment")?.toString().trim() || undefined,
       indicacion_entrega: formData.get("instructions")?.toString().trim() || undefined,
-    }).then(() => {
+    }).then((co2Saved) => {
+      setConfirmedCo2Saved(co2Saved);
       setIsLoading(false);
       setIsConfirmationOpen(true);
     }).catch((error: unknown) => {
@@ -66,7 +70,9 @@ export function CheckoutPage({ items, savedCo2Kg }: CheckoutPageProps) {
 
   function goToConfirmation() {
     setIsConfirmationOpen(false);
-    navigate("/confirmacion", { state: { items: purchasedItems } });
+    navigate("/confirmacion", {
+      state: { items: purchasedItems, savedCo2Kg: confirmedCo2Saved },
+    });
   }
 
   return (

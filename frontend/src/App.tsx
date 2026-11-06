@@ -13,6 +13,8 @@ import { AuthLayout } from "./layouts/AuthLayout";
 import { useCart } from "./contexts/CartContext";
 import { RequireAuth } from "./components/auth/RequireAuth";
 import { DashboardPage } from "./pages/dashboard";
+import { CustomerOrdersPage } from "./pages/customerOrders";
+import { RestaurantSchedulesPage } from "./pages/restaurantSchedules";
 
 function App() {
   const { items, addToCart, changeQuantity, removeFromCart, abandonCart, error, notice } = useCart();
@@ -56,7 +58,12 @@ function App() {
           />
           <Route path="/dashboard" element={<DashboardImpactoPage />} />
           <Route element={<RequireAuth />}>
+            <Route path="/mis-pedidos" element={<CustomerOrdersPage />} />
             <Route path="/admin/dashboard" element={<DashboardPage />} />
+            <Route
+              path="/admin/horarios"
+              element={<RestaurantSchedulesPage />}
+            />
           </Route>
         </Route>
       </Routes>

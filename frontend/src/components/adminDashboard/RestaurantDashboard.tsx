@@ -925,6 +925,7 @@ export function RestaurantDashboard({
             className="mx-auto mt-8 max-w-2xl"
           />
         ))}
+
     </main>
   );
 }

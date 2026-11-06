@@ -18,14 +18,19 @@ export default function NavLinks({
   onOpenHowItWorksModal,
 }: NavLinksProps) {
   const { isAuthenticated, loading } = useAuth();
-  const { search } = useLocation();
+  const { pathname, search } = useLocation();
 
   if (dashboard) {
     const activeTab = new URLSearchParams(search).get("tab");
+    const isSchedulesPage = pathname === "/admin/horarios";
     const dashboardItemStyle =
       mobile
         ? "w-full rounded-md px-3 py-2 text-left text-sm font-semibold"
         : "relative flex h-full shrink-0 items-center justify-center px-0.5 pt-0.5 text-xs font-semibold sm:text-sm";
+    const activeDashboardItemClass = mobile
+      ? `${dashboardItemStyle} bg-eco-light/30 text-eco-dark`
+      : `${dashboardItemStyle} text-eco-dark after:absolute after:bottom-0 after:left-1/2 after:h-0.5 after:w-full after:-translate-x-1/2 after:rounded-full after:bg-eco-dark`;
+    const inactiveDashboardItemClass = `${dashboardItemStyle} text-gray-600`;
 
     return (
       <nav
@@ -39,13 +44,11 @@ export default function NavLinks({
         <Link
           to="/admin/dashboard"
           onClick={onLinkClick}
-          aria-current={!activeTab ? "page" : undefined}
+          aria-current={!isSchedulesPage && !activeTab ? "page" : undefined}
           className={
-            !activeTab
-              ? mobile
-                ? `${dashboardItemStyle} bg-eco-light/30 text-eco-dark`
-                : `${dashboardItemStyle} text-eco-dark after:absolute after:bottom-0 after:left-1/2 after:h-0.5 after:w-full after:-translate-x-1/2 after:rounded-full after:bg-eco-dark`
-              : `${dashboardItemStyle} text-gray-600`
+            !isSchedulesPage && !activeTab
+              ? activeDashboardItemClass
+              : inactiveDashboardItemClass
           }
         >
           Resumen
@@ -53,13 +56,11 @@ export default function NavLinks({
         <Link
           to="/admin/dashboard?tab=orders"
           onClick={onLinkClick}
-          aria-current={activeTab === "orders" ? "page" : undefined}
+          aria-current={!isSchedulesPage && activeTab === "orders" ? "page" : undefined}
           className={
-            activeTab === "orders"
-              ? mobile
-                ? `${dashboardItemStyle} bg-eco-light/30 text-eco-dark`
-                : `${dashboardItemStyle} text-eco-dark after:absolute after:bottom-0 after:left-1/2 after:h-0.5 after:w-full after:-translate-x-1/2 after:rounded-full after:bg-eco-dark`
-              : `${dashboardItemStyle} text-gray-600`
+            !isSchedulesPage && activeTab === "orders"
+              ? activeDashboardItemClass
+              : inactiveDashboardItemClass
           }
         >
           Pedidos
@@ -67,25 +68,27 @@ export default function NavLinks({
         <Link
           to="/admin/dashboard?tab=products"
           onClick={onLinkClick}
-          aria-current={activeTab === "products" ? "page" : undefined}
+          aria-current={!isSchedulesPage && activeTab === "products" ? "page" : undefined}
           className={
-            activeTab === "products"
-              ? mobile
-                ? `${dashboardItemStyle} bg-eco-light/30 text-eco-dark`
-                : `${dashboardItemStyle} text-eco-dark after:absolute after:bottom-0 after:left-1/2 after:h-0.5 after:w-full after:-translate-x-1/2 after:rounded-full after:bg-eco-dark`
-              : `${dashboardItemStyle} text-gray-600`
+            !isSchedulesPage && activeTab === "products"
+              ? activeDashboardItemClass
+              : inactiveDashboardItemClass
           }
         >
           Productos
         </Link>
-        <button
-          type="button"
-          disabled
-          title="Próximamente"
-          className={`${dashboardItemStyle} cursor-not-allowed text-gray-600`}
+        <Link
+          to="/admin/horarios"
+          onClick={onLinkClick}
+          aria-current={isSchedulesPage ? "page" : undefined}
+          className={
+            isSchedulesPage
+              ? activeDashboardItemClass
+              : inactiveDashboardItemClass
+          }
         >
           Horarios
-        </button>
+        </Link>
       </nav>
     );
   }

@@ -2,7 +2,7 @@ import { useState } from "react";
 import {
   updateRestaurantOrderStatus,
   type RestaurantOrderAction,
-} from "../../services/orders";
+} from "../../services/restaurantOrders";
 import { GlobalAlert } from "../ui/GlobalAlert";
 
 export interface RestaurantOrder {

@@ -16,7 +16,16 @@ export function ConfirmacionPage({
   savedCo2Kg,
 }: ConfirmacionPageProps) {
   const location = useLocation();
-  const orderItems = (location.state as { items?: CartItem[] } | null)?.items ?? items;
+  const confirmationState = location.state as {
+    items?: CartItem[];
+    savedCo2Kg?: number | null;
+  } | null;
+  const orderItems = confirmationState?.items ?? items;
+  const confirmedCo2Saved =
+    typeof confirmationState?.savedCo2Kg === "number" &&
+    Number.isFinite(confirmationState.savedCo2Kg)
+      ? confirmationState.savedCo2Kg
+      : savedCo2Kg;
   return (
     <main className="mx-auto max-w-7xl px-5 py-12 sm:px-8">
       <SuccessIndicator />
@@ -26,18 +35,25 @@ export function ConfirmacionPage({
         <div className="flex flex-col gap-6">
           <ImpactBadge
             titulo="Ahorraste con este pedido"
-            savedCo2Kg={savedCo2Kg}
+            savedCo2Kg={confirmedCo2Saved}
             descripcion="Impacto ambiental de tu pedido"
           />
           <ComparisonChart />
         </div>
       </div>
-      <div className="mx-auto mt-8 grid w-full max-w-2xl grid-cols-1 gap-3 sm:grid-cols-2">
+      <div className="mx-auto mt-8 grid w-full max-w-4xl grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <Button
           to="/dashboard"
           className="block w-full text-center shadow-sm transition-colors hover:brightness-110"
         >
           Ver mi dashboard de impacto
+        </Button>
+        <Button
+          to="/mis-pedidos"
+          variant="light"
+          className="block w-full bg-white text-center transition-colors hover:bg-eco-light/20"
+        >
+          Ver mis pedidos
         </Button>
         <Button
           to="/"

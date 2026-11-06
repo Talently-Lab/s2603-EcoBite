@@ -3,6 +3,7 @@ import { GlobalAlert } from "../ui/GlobalAlert";
 import {
   createRestaurantProduct,
   getManagedRestaurantProducts,
+  updateRestaurantProductAvailability,
   type RestaurantProductApiResponse,
 } from "../../services/restaurants";
 
@@ -35,6 +36,10 @@ export function RestaurantProductForm({
   const [products, setProducts] = useState<RestaurantProductApiResponse[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(true);
   const [productsError, setProductsError] = useState<string | null>(null);
+  const [availabilityError, setAvailabilityError] = useState<string | null>(null);
+  const [updatingProductIds, setUpdatingProductIds] = useState<Set<number>>(
+    () => new Set(),
+  );
 
   useEffect(() => {
     const controller = new AbortController();
@@ -96,6 +101,36 @@ export function RestaurantProductForm({
       );
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function handleAvailabilityChange(product: RestaurantProductApiResponse) {
+    setAvailabilityError(null);
+    setUpdatingProductIds((current) => new Set(current).add(product.id));
+
+    try {
+      const available = await updateRestaurantProductAvailability(
+        token,
+        product.id,
+        !product.disponible,
+      );
+      setProducts((current) =>
+        current.map((item) =>
+          item.id === product.id ? { ...item, disponible: available } : item,
+        ),
+      );
+    } catch (updateError: unknown) {
+      setAvailabilityError(
+        updateError instanceof Error
+          ? updateError.message
+          : "No se pudo actualizar la disponibilidad del plato.",
+      );
+    } finally {
+      setUpdatingProductIds((current) => {
+        const next = new Set(current);
+        next.delete(product.id);
+        return next;
+      });
     }
   }
 
@@ -173,6 +208,9 @@ export function RestaurantProductForm({
         <h2 className="text-lg font-bold text-eco-dark">
           Mis platos ({products.length})
         </h2>
+        {availabilityError && (
+          <GlobalAlert message={availabilityError} className="mt-4" />
+        )}
         <div className="mt-4">
           {productsError ? (
             <GlobalAlert message={productsError} />
@@ -195,7 +233,8 @@ export function RestaurantProductForm({
                     </p>
                     <p className="mt-0.5 text-xs text-gray-500">
                       {product.categoria || "Sin categoría"}
-                      {!product.disponible && " · No disponible"}
+                      {" · "}
+                      {product.disponible ? "Disponible" : "No disponible"}
                     </p>
                     {product.descripcion && (
                       <p className="mt-1 line-clamp-2 text-xs text-gray-600">
@@ -203,9 +242,23 @@ export function RestaurantProductForm({
                       </p>
                     )}
                   </div>
-                  <span className="shrink-0 text-sm font-bold text-eco-dark">
-                    {formatPrice(product.precio)}
-                  </span>
+                  <div className="flex shrink-0 flex-col items-end gap-2">
+                    <span className="text-sm font-bold text-eco-dark">
+                      {formatPrice(product.precio)}
+                    </span>
+                    <button
+                      type="button"
+                      disabled={updatingProductIds.has(product.id)}
+                      onClick={() => void handleAvailabilityChange(product)}
+                      className="text-xs font-semibold text-eco-dark underline underline-offset-2 hover:text-eco-dark/70 disabled:cursor-wait disabled:opacity-60"
+                    >
+                      {updatingProductIds.has(product.id)
+                        ? "Actualizando..."
+                        : product.disponible
+                          ? "Deshabilitar"
+                          : "Habilitar"}
+                    </button>
+                  </div>
                 </li>
               ))}
             </ul>

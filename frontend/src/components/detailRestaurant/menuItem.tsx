@@ -13,6 +13,8 @@ interface MenuItemProps {
 }
 
 export function MenuItem({ item, onAdd, canAddToCart }: MenuItemProps) {
+  const canOrder = canAddToCart && item.available;
+
   return (
     <article className="flex flex-col items-stretch gap-4 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:gap-5 sm:p-5">
       <div
@@ -33,26 +35,37 @@ export function MenuItem({ item, onAdd, canAddToCart }: MenuItemProps) {
             className="bg-eco-light text-eco-dark"
             icon={<Leaf className="h-3.5 w-3.5" />}
           />
+          {!item.available && (
+            <span className="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-semibold text-gray-600">
+              No disponible
+            </span>
+          )}
         </div>
       </div>
       <div className="flex shrink-0 flex-col items-center justify-center gap-2 sm:items-start">
         <Button
           onClick={() => onAdd(item)}
-          disabled={!canAddToCart}
+          disabled={!canOrder}
           title={
-            canAddToCart
-              ? undefined
-              : "Iniciá sesión con una cuenta de cliente para agregar productos."
+            !item.available
+              ? "Este producto no está disponible en este momento."
+              : canAddToCart
+                ? undefined
+                : "Iniciá sesión con una cuenta de cliente para agregar productos."
           }
           className="cursor-pointer shadow-sm transition-colors hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-eco-dark disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:brightness-100"
         >
           Agregar
         </Button>
-        {!canAddToCart && (
+        {!item.available ? (
+          <span className="max-w-40 text-center text-xs text-gray-600 sm:text-left">
+            No disponible por el momento.
+          </span>
+        ) : !canAddToCart ? (
           <span className="max-w-40 text-center text-xs text-gray-600 sm:text-left">
             Solo clientes pueden agregar productos.
           </span>
-        )}
+        ) : null}
       </div>
     </article>
   );
