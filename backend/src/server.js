@@ -32,7 +32,12 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Configuración CORS para permitir conexiones desde el frontend
-app.use(cors({ origin: 'http://localhost:5173'}));
+app.use(cors({
+    origin: [
+        'http://localhost:5173',
+        'https://s2603-eco-bite.vercel.app'
+    ]
+}));
 // Permite recibir datos en formato JSON
 app.use(express.json());
 
