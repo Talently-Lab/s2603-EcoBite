@@ -3002,10 +3002,18 @@ app.get('/api/dashboard/stats', verificarToken, verificarRol('restaurante'), asy
 
 // Middleware global para manejo de errores
 app.use((error, req, res, next) => {
-    console.error('Error no controlado:', error);
+    if (!(error instanceof SyntaxError && error.status === 400 && 'body' in error)) {
+        console.error('Error no controlado:', error);
+    }
 
     if (res.headersSent) {
         return next(error);
+    }
+
+    if (error instanceof SyntaxError && error.status === 400 && 'body' in error) {
+        return res.status(400).json({
+            mensaje: 'El formato del JSON enviado no es válido.'
+        });
     }
 
     return res.status(500).json({
