@@ -14,7 +14,8 @@ const pool = require('../db');//require() trae algo de un archivo; ..→ subir u
 } */
 async function obtenerTodos() {
     const resultado = await pool.query(
-        `SELECT r.*,
+        `SELECT
+            r.*,
             COALESCE(
                 (
                     SELECT json_agg(
@@ -47,16 +48,18 @@ async function obtenerTodos() {
 } */
 async function obtenerPorId(id) {
     const resultado = await pool.query(
-        `SELECT r.*,
+        `SELECT
+            r.*,
             COALESCE(
-                (SELECT json_agg(
-                    json_build_object(
-                        'dia_semana', h.dia_semana,
-                        'hora_apertura', h.hora_apertura,
-                        'hora_cierre', h.hora_cierre
+                (
+                    SELECT json_agg(
+                        json_build_object(
+                            'dia_semana', h.dia_semana,
+                            'hora_apertura', h.hora_apertura,
+                            'hora_cierre', h.hora_cierre
+                        )
+                        ORDER BY h.dia_semana
                     )
-                    ORDER BY h.dia_semana
-                )
                     FROM horario_restaurante h
                     WHERE h.id_restaurante = r.id
                 ),
@@ -66,9 +69,9 @@ async function obtenerPorId(id) {
         WHERE r.id = $1`,
         [id]
     );
+
     return resultado.rows[0] || null;
 }
-
 //CREAR RESTAURANTE
 async function crear(restaurante) {//recibe un objeto restaurante
     //desestructuración: extraemos las propiedades del objeto para utilizarlas individualmente.
@@ -199,34 +202,6 @@ async function actualizarImagen(id, imagen) {
     return resultado.rows[0] || null;
 }
 
-//FILTROS
-async function obtenerPorCategoria(categoria) {
-    const resultado = await pool.query(
-        `SELECT r.*,
-            COALESCE(
-                (
-                    SELECT json_agg(
-                        json_build_object(
-                            'dia_semana', h.dia_semana,
-                            'hora_apertura', h.hora_apertura,
-                            'hora_cierre', h.hora_cierre
-                        )
-                        ORDER BY h.dia_semana
-                    )
-                    FROM horario_restaurante h
-                    WHERE h.id_restaurante = r.id
-                ),
-                '[]'::json
-            ) AS horarios
-        FROM restaurante r
-        WHERE LOWER(r.categoria) = LOWER($1)
-        ORDER BY r.id`,
-        [categoria]
-    );
-
-    return resultado.rows;
-}
-
 
 //Exportamos los modulos: permite que otros archivos del backend,como server.js utilicen estas funciones.
 module.exports = {
@@ -234,7 +209,6 @@ module.exports = {
     obtenerPorId,
     crear,
     actualizar,
-    actualizarImagen,
-    eliminar,
-    obtenerPorCategoria
+    actualizarImagen,//prueba
+    eliminar
 };
