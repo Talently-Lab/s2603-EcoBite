@@ -4,7 +4,7 @@ export function DashboardImpactoPage() {
   return (
     <main className="mx-auto max-w-4xl px-5 py-12 sm:px-8">
       <h1 className="text-2xl font-semibold text-gray-800 sm:text-3xl">
-        Mi dashboard de impacto
+        Mi dashboard cliente
       </h1>
       <section className="mt-6 rounded-xl border border-green-200 bg-white p-6">
         <p className="text-sm font-bold text-green-800">Próximamente</p>

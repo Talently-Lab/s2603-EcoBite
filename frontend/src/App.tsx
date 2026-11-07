@@ -41,7 +41,6 @@ function App() {
             element={
               <CarritoPage
                 items={items}
-                savedCo2Kg={null}
                 onQuantityChange={changeQuantity}
                 onRemove={removeFromCart}
                 onAbandonCart={abandonCart}
@@ -50,7 +49,7 @@ function App() {
           />
           <Route
             path="/checkout"
-            element={<CheckoutPage items={items} savedCo2Kg={null} />}
+            element={<CheckoutPage items={items} />}
           />
           <Route
             path="/confirmacion"

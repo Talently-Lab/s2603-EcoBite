@@ -132,7 +132,18 @@ export function DetalleRestaurantePage({
       <section
         aria-label={`Banner de ${restaurant.name}`}
         className="relative min-h-48 overflow-hidden rounded-2xl bg-eco-light sm:min-h-64"
-      />
+      >
+        {restaurant.image && (
+          <img
+            src={restaurant.image}
+            alt={`Foto de ${restaurant.name}`}
+            className="absolute inset-0 h-full w-full object-cover"
+            onError={(event) => {
+              event.currentTarget.remove();
+            }}
+          />
+        )}
+      </section>
 
       <section className="mt-8 flex flex-col items-start gap-5">
         <div className="flex flex-col gap-3">

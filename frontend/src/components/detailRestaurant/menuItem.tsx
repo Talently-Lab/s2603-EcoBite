@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Leaf, UtensilsCrossed } from "lucide-react";
 import Button from "../ui/Button";
 import Badge from "../ui/Badge";
@@ -14,6 +15,7 @@ interface MenuItemProps {
 
 export function MenuItem({ item, onAdd, canAddToCart }: MenuItemProps) {
   const canOrder = canAddToCart && item.available;
+  const [imageFailed, setImageFailed] = useState(false);
 
   return (
     <article className="flex flex-col items-stretch gap-4 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:gap-5 sm:p-5">
@@ -21,7 +23,16 @@ export function MenuItem({ item, onAdd, canAddToCart }: MenuItemProps) {
         aria-label={`Imagen de ${item.name}`}
         className="flex h-36 w-full shrink-0 items-center justify-center rounded-xl bg-eco-light/30 text-eco-dark sm:h-28 sm:w-28"
       >
-        <UtensilsCrossed aria-hidden="true" className="h-8 w-8 opacity-60" />
+        {item.imageUrl && !imageFailed ? (
+          <img
+            src={item.imageUrl}
+            alt={item.name}
+            className="h-full w-full rounded-xl object-cover"
+            onError={() => setImageFailed(true)}
+          />
+        ) : (
+          <UtensilsCrossed aria-hidden="true" className="h-8 w-8 opacity-60" />
+        )}
       </div>
       <div className="min-w-0 flex-1">
         <Title className="text-base opacity-100">{item.name}</Title>

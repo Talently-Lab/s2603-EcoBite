@@ -11,10 +11,9 @@ import { useCart } from "../contexts/CartContext";
 
 interface CheckoutPageProps {
   items: CartItem[];
-  savedCo2Kg: number | null;
 }
 
-export function CheckoutPage({ items, savedCo2Kg }: CheckoutPageProps) {
+export function CheckoutPage({ items }: CheckoutPageProps) {
   const navigate = useNavigate();
   const { createOrders } = useCart();
   const [purchasedItems, setPurchasedItems] = useState<CartItem[]>([]);
@@ -98,7 +97,6 @@ export function CheckoutPage({ items, savedCo2Kg }: CheckoutPageProps) {
           </div>
           <CheckoutOrderSummary
             items={items}
-            savedCo2Kg={savedCo2Kg}
             isLoading={isLoading}
           />
         </div>

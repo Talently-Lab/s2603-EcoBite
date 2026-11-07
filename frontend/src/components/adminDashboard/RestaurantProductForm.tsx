@@ -1,8 +1,9 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { GlobalAlert } from "../ui/GlobalAlert";
 import {
   createRestaurantProduct,
   getManagedRestaurantProducts,
+  uploadRestaurantProductImage,
   updateRestaurantProductAvailability,
   type RestaurantProductApiResponse,
 } from "../../services/restaurants";
@@ -30,14 +31,23 @@ export function RestaurantProductForm({
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
   const [category, setCategory] = useState("Comida");
+  const [image, setImage] = useState<File | null>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [imageError, setImageError] = useState<string | null>(null);
+  const [productImageError, setProductImageError] = useState<string | null>(
+    null,
+  );
   const [success, setSuccess] = useState<string | null>(null);
   const [products, setProducts] = useState<RestaurantProductApiResponse[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(true);
   const [productsError, setProductsError] = useState<string | null>(null);
   const [availabilityError, setAvailabilityError] = useState<string | null>(null);
   const [updatingProductIds, setUpdatingProductIds] = useState<Set<number>>(
+    () => new Set(),
+  );
+  const [uploadingImageIds, setUploadingImageIds] = useState<Set<number>>(
     () => new Set(),
   );
 
@@ -75,6 +85,7 @@ export function RestaurantProductForm({
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
+    setImageError(null);
     setSuccess(null);
     setSubmitting(true);
 
@@ -91,6 +102,22 @@ export function RestaurantProductForm({
       setDescription("");
       setPrice("");
       setSuccess("El plato se creó correctamente.");
+
+      if (image) {
+        try {
+          await handleProductImageUpload(createdProduct, image);
+          setSuccess("El plato y su foto se guardaron correctamente.");
+        } catch (uploadError: unknown) {
+          setImageError(
+            uploadError instanceof Error
+              ? `El plato se creó, pero no se pudo subir la foto: ${uploadError.message}`
+              : "El plato se creó, pero no se pudo subir la foto.",
+          );
+        }
+      }
+
+      setImage(null);
+      if (imageInputRef.current) imageInputRef.current.value = "";
     } catch (submitError: unknown) {
       setError(
         submitError instanceof TypeError
@@ -101,6 +128,81 @@ export function RestaurantProductForm({
       );
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function handleProductImageUpload(
+    product: RestaurantProductApiResponse,
+    file: File,
+  ) {
+    setUploadingImageIds((current) => new Set(current).add(product.id));
+
+    try {
+      const imageUrl = await uploadRestaurantProductImage(
+        token,
+        product.id,
+        file,
+      );
+      setProducts((current) =>
+        current.map((item) =>
+          item.id === product.id ? { ...item, imagen: imageUrl } : item,
+        ),
+      );
+    } finally {
+      setUploadingImageIds((current) => {
+        const next = new Set(current);
+        next.delete(product.id);
+        return next;
+      });
+    }
+  }
+
+  function validateProductImage(file: File): string | null {
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      return "Elegí una imagen JPG, PNG o WEBP.";
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      return "La imagen debe pesar menos de 5 MB.";
+    }
+    return null;
+  }
+
+  function handleImageSelection(file: File | undefined) {
+    setImageError(null);
+    if (!file) {
+      setImage(null);
+      return;
+    }
+
+    const validationError = validateProductImage(file);
+    if (validationError) {
+      setImage(null);
+      setImageError(validationError);
+      return;
+    }
+    setImage(file);
+  }
+
+  async function handleExistingProductImage(
+    product: RestaurantProductApiResponse,
+    file: File | undefined,
+  ) {
+    if (!file) return;
+    const validationError = validateProductImage(file);
+    if (validationError) {
+      setProductImageError(validationError);
+      return;
+    }
+
+    setProductImageError(null);
+    try {
+      await handleProductImageUpload(product, file);
+    } catch (uploadError: unknown) {
+      setProductImageError(
+        uploadError instanceof Error
+          ? uploadError.message
+          : "No se pudo subir la foto del plato.",
+      );
     }
   }
 
@@ -165,6 +267,23 @@ export function RestaurantProductForm({
             />
           </label>
 
+          <label className="block text-sm font-semibold text-eco-dark">
+            Foto del plato <span className="font-normal text-gray-500">(opcional)</span>
+            <input
+              id="product-image"
+              ref={imageInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              className={fieldClassName}
+              onChange={(event) =>
+                handleImageSelection(event.currentTarget.files?.[0])
+              }
+            />
+            <span className="mt-1 block text-xs font-normal text-gray-500">
+              JPG, PNG o WEBP · Máximo 5 MB
+            </span>
+          </label>
+
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="block text-sm font-semibold text-eco-dark">
               Precio
@@ -192,6 +311,7 @@ export function RestaurantProductForm({
           </div>
 
           {error && <GlobalAlert message={error} />}
+          {imageError && <GlobalAlert message={imageError} />}
           {success && <GlobalAlert message={success} variant="success" />}
 
           <button
@@ -211,6 +331,9 @@ export function RestaurantProductForm({
         {availabilityError && (
           <GlobalAlert message={availabilityError} className="mt-4" />
         )}
+        {productImageError && (
+          <GlobalAlert message={productImageError} className="mt-4" />
+        )}
         <div className="mt-4">
           {productsError ? (
             <GlobalAlert message={productsError} />
@@ -227,7 +350,19 @@ export function RestaurantProductForm({
                   key={product.id}
                   className="flex items-start justify-between gap-4 py-3 first:pt-0"
                 >
-                  <div className="min-w-0">
+                  {product.imagen ? (
+                    <img
+                      src={product.imagen}
+                      alt={`Foto de ${product.nombre}`}
+                      className="h-14 w-14 shrink-0 rounded-lg object-cover"
+                    />
+                  ) : (
+                    <div
+                      aria-hidden="true"
+                      className="h-14 w-14 shrink-0 rounded-lg bg-eco-light/50"
+                    />
+                  )}
+                  <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-semibold text-eco-dark">
                       {product.nombre}
                     </p>
@@ -258,6 +393,26 @@ export function RestaurantProductForm({
                           ? "Deshabilitar"
                           : "Habilitar"}
                     </button>
+                    <label className="cursor-pointer text-xs font-semibold text-eco-dark underline underline-offset-2 hover:text-eco-dark/70">
+                      {uploadingImageIds.has(product.id)
+                        ? "Subiendo foto..."
+                        : product.imagen
+                          ? "Cambiar foto"
+                          : "Agregar foto"}
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp"
+                        disabled={uploadingImageIds.has(product.id)}
+                        onChange={(event) => {
+                          void handleExistingProductImage(
+                            product,
+                            event.currentTarget.files?.[0],
+                          );
+                          event.currentTarget.value = "";
+                        }}
+                        className="sr-only"
+                      />
+                    </label>
                   </div>
                 </li>
               ))}

@@ -7,7 +7,6 @@ import type { CartItem } from "@/components/detailRestaurant/OrderSummary";
 
 interface CarritoPageProps {
   items: CartItem[];
-  savedCo2Kg: number | null;
   onQuantityChange: (
     itemId: CartItem["id"],
     restaurantName: string,
@@ -19,7 +18,6 @@ interface CarritoPageProps {
 
 export function CarritoPage({
   items,
-  savedCo2Kg,
   onQuantityChange,
   onRemove,
   onAbandonCart,
@@ -53,7 +51,7 @@ export function CarritoPage({
             onAbandonCart={onAbandonCart}
           />
         </div>
-        <CartSummary items={items} savedCo2Kg={savedCo2Kg} />
+        <CartSummary items={items} />
       </div>
     </main>
   );

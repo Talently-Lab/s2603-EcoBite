@@ -381,6 +381,50 @@ export async function createRestaurantProduct(
   return body.producto as RestaurantProductApiResponse;
 }
 
+export async function uploadRestaurantProductImage(
+  token: string,
+  productId: number,
+  image: File,
+): Promise<string> {
+  const formData = new FormData();
+  formData.append("imagen", image);
+
+  const response = await fetch(
+    `${API_BASE_URL}/productos/${encodeURIComponent(productId)}/imagen`,
+    {
+      method: "PATCH",
+      headers: { Authorization: `Bearer ${token}` },
+      body: formData,
+    },
+  );
+  const body: unknown = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    const message =
+      typeof body === "object" &&
+      body !== null &&
+      "error" in body &&
+      typeof body.error === "string"
+        ? body.error
+        : `No se pudo subir la imagen del plato (estado ${response.status}).`;
+    throw new Error(message);
+  }
+
+  if (
+    typeof body !== "object" ||
+    body === null ||
+    !("producto" in body) ||
+    typeof body.producto !== "object" ||
+    body.producto === null ||
+    !("imagen" in body.producto) ||
+    typeof body.producto.imagen !== "string"
+  ) {
+    throw new Error("El servidor no devolvió la URL de la imagen del plato.");
+  }
+
+  return body.producto.imagen;
+}
+
 export async function updateRestaurantProductAvailability(
   token: string,
   productId: number,
