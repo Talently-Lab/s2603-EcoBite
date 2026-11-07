@@ -319,11 +319,6 @@ async function obtenerEstadisticas(idUsuario, mes) {
         )
     };
 
-    console.log('Pedidos recibidos:', pedidosRecibidos);
-    console.log('Ventas entregadas:', ventasEntregadas);
-    console.log('CO2 ahorrado:', co2Ahorrado);
-    console.log('Calificaciones:', calificaciones);
-
     return {
         pedidos_recibidos: pedidosRecibidos.pedidos_recibidos,
         ventas_entregadas: ventasEntregadas.ventas_entregadas,
@@ -337,7 +332,6 @@ async function obtenerEstadisticas(idUsuario, mes) {
         variaciones: variaciones
     };
 }
-
 
 
 module.exports = {

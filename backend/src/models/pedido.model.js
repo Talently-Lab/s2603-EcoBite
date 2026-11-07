@@ -394,6 +394,7 @@ async function listarPorCliente(idUsuario) {
             p.tipo_pago AS forma_pago,
             p.total_pedido AS total,
             p.co2_ahorrado,
+            p.calificacion,
             p.fecha_creacion
          FROM pedido p
          INNER JOIN cliente c ON c.id = p.id_cliente

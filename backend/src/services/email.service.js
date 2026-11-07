@@ -75,9 +75,10 @@ pedir comida se vuelve la mejor opción.
 
     //genera el enlace para visualizar el mensaje de prueba.
     const urlVistaPrevia = nodemailer.getTestMessageUrl(info);
-
-    console.log('Correo de bienvenida preparado.');
-    console.log('Vista previa:', urlVistaPrevia);
+    //conservar la URL de vista previa únicamente durante el desarrollo, sin mostrarla en producción.
+    if (process.env.NODE_ENV !== 'production') {
+        console.log('Vista previa de Correo Bienvenida:', urlVistaPrevia);
+    }
 
     return info;
 }

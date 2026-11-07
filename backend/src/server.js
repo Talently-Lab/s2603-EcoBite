@@ -32,9 +32,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Configuración CORS para permitir conexiones desde el frontend
-app.use(cors({
-    origin: 'http://localhost:5173'
-}));
+app.use(cors({ origin: 'http://localhost:5173'}));
 // Permite recibir datos en formato JSON
 app.use(express.json());
 
@@ -767,24 +765,11 @@ app.patch('/api/restaurantes/:id/imagen',verificarToken,subirImagen.single('imag
                                 invalidate: true
                             }
                         );
-                        console.log('Resultado de eliminación:', resultadoEliminacion);
                     } catch (error) {
                         console.error('Error al eliminar imagen:', error);
                     }
                 }
 
-                /* if (publicIdAnterior) {
-                    try {
-                        await cloudinary.uploader.destroy(publicIdAnterior, {
-                            resource_type: 'image'
-                        });
-                    } catch (error) {
-                        console.error(
-                            'No se pudo eliminar la imagen anterior del restaurante:',
-                            error.message
-                        );
-                    }
-                } */
             }
             //--
             return res.status(200).json({
@@ -1042,19 +1027,6 @@ app.patch('/api/productos/:id/imagen',verificarToken,subirImagen.single('imagen'
                 const publicIdAnterior = obtenerPublicIdDesdeUrl(
                     productoExistente.imagen
                 );
-                
-                /* if (publicIdAnterior) {
-                    try {
-                        await cloudinary.uploader.destroy(publicIdAnterior, {
-                            resource_type: 'image'
-                        });
-                    } catch (error) {
-                        console.error(
-                            'No se pudo eliminar la imagen anterior del producto:',
-                            error.message
-                        );
-                    }
-                } */
 
                 if (publicIdAnterior) {
                     try {
@@ -1066,7 +1038,6 @@ app.patch('/api/productos/:id/imagen',verificarToken,subirImagen.single('imagen'
                                 invalidate: true
                             }
                         );
-                        console.log('Resultado de eliminación:', resultadoEliminacion);
                     } catch (error) {
                         console.error('Error al eliminar imagen:', error);
                     }
@@ -2472,15 +2443,7 @@ app.patch('/api/ordenes/:id/cancelar',verificarToken,verificarRol('cliente'),asy
 // REVISAR PEDIDOS DEMORADOS MINUTO A MINUTO
 cron.schedule('* * * * *', async () => {
     try {
-        const pedidosCancelados =
-            await pedidoModel.cancelarPedidosDemorados();
-
-        if (pedidosCancelados.length > 0) {
-            console.log(
-                'Pedidos cancelados automáticamente:',
-                pedidosCancelados.map(pedido => pedido.id)
-            );
-        }
+        await pedidoModel.cancelarPedidosDemorados();
     } catch (error) {
         console.error(
             'Error al cancelar pedidos demorados:',
@@ -3033,6 +2996,23 @@ app.get('/api/dashboard/stats', verificarToken, verificarRol('restaurante'), asy
         });
     }
 });
+
+
+
+
+// Middleware global para manejo de errores
+app.use((error, req, res, next) => {
+    console.error('Error no controlado:', error);
+
+    if (res.headersSent) {
+        return next(error);
+    }
+
+    return res.status(500).json({
+        mensaje: 'Algo salió mal en nuestros servidores ecológicos.'
+    });
+});
+
 
 // Iniciar el servidor
 app.listen(PORT, () => {

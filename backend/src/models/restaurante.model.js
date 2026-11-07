@@ -6,12 +6,6 @@
 const pool = require('../db');//require() trae algo de un archivo; ..→ subir una carpeta, de models a src/db → entrar al archivo db.js
 
 //OBTENER TODOS LOS RESTAURANTES CON SUS HORARIOS
-/* async function obtenerTodos() {
-    const resultado = await pool.query(
-        'SELECT * FROM restaurante'
-    );
-    return resultado.rows;
-} */
 async function obtenerTodos() {
     const resultado = await pool.query(
         `SELECT r.*,
@@ -38,13 +32,6 @@ async function obtenerTodos() {
 }
 
 //OBTENER UN RESTAURANTE ESPECIFICO
-/* async function obtenerPorId(id) {
-    const resultado = await pool.query(
-        'SELECT * FROM restaurante WHERE id = $1',
-        [id]
-    );
-    return resultado.rows[0] || null;
-} */
 async function obtenerPorId(id) {
     const resultado = await pool.query(
         `SELECT r.*,
@@ -186,7 +173,6 @@ async function eliminar(id) {
     return resultado.rows[0] || null;
 }
 
-//prueba
 async function actualizarImagen(id, imagen) {
     const resultado = await pool.query(
         `UPDATE restaurante
