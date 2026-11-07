@@ -21,7 +21,7 @@ import {
   type RegistrationAccountType,
   type LoginResponse,
 } from "../../services/auth";
-import { saveRestaurantSchedules } from "../../services/restaurants";
+import { saveRestaurantSchedules } from "../../services/horarios";
 
 const registrationFields = z.object({
     email: z

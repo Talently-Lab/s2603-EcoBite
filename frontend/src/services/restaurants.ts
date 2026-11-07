@@ -4,6 +4,11 @@ import {
   MOCK_RESTAURANT_HOURS,
 } from "./restaurants.mock";
 
+export type {
+  RestaurantScheduleApiResponse,
+  RestaurantScheduleData,
+} from "./horarios";
+
 export interface RestaurantApiResponse {
   id: number;
   id_usuario: number;
@@ -24,20 +29,6 @@ export interface RestaurantHours {
   hora_cierre: string;
 }
 
-export interface RestaurantScheduleApiResponse {
-  id: number;
-  id_restaurante: number;
-  dia_semana: number;
-  hora_apertura: string;
-  hora_cierre: string;
-}
-
-export interface RestaurantScheduleData {
-  dia_semana: number;
-  hora_apertura: string;
-  hora_cierre: string;
-}
-
 export interface RestaurantProductApiResponse {
   id: number;
   id_restaurante: number;
@@ -49,12 +40,21 @@ export interface RestaurantProductApiResponse {
   imagen: string | null;
 }
 
+export interface CreateRestaurantProductData {
+  id_restaurante: number;
+  nombre: string;
+  descripcion: string;
+  precio: number;
+  categoria: string;
+}
+
 export interface MenuItemData {
   id: string;
   name: string;
   description: string;
   price: number;
   classification: string;
+  available: boolean;
   imageUrl?: string;
 }
 
@@ -88,24 +88,6 @@ const API_BASE_URL = (
 ).replace(/\/$/, "");
 
 const USE_MOCK_DATA = import.meta.env.VITE_DATA_SOURCE !== "api";
-
-function getSanLuisDayAndTime(now: Date) {
-  const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone: "America/Argentina/San_Luis",
-    weekday: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-    hourCycle: "h23",
-  }).formatToParts(now);
-  const part = (type: string) => parts.find((item) => item.type === type)?.value;
-  const dayNames: Record<string, number> = {
-    Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6, Sun: 7,
-  };
-  return {
-    day: dayNames[part("weekday") ?? ""],
-    minutes: Number(part("hour")) * 60 + Number(part("minute")),
-  };
-}
 
 class ApiRequestError extends Error {
   readonly status: number;
@@ -258,65 +240,6 @@ export async function getRestaurantIsOpen(
   return status.abierto;
 }
 
-export async function getRestaurantSchedules(
-  restaurantId: string,
-  token: string | null,
-): Promise<RestaurantScheduleApiResponse[]> {
-  if (USE_MOCK_DATA) {
-    return MOCK_RESTAURANT_HOURS.filter(
-      (schedule) => schedule.id_restaurante === Number(restaurantId),
-    );
-  }
-
-  if (!token) return [];
-
-  try {
-    const response = await fetch(
-      `${API_BASE_URL}/restaurantes/${encodeURIComponent(restaurantId)}/horarios`,
-      { headers: { Authorization: `Bearer ${token}` } },
-    );
-    if (!response.ok) return [];
-
-    const body: unknown = await response.json();
-    if (
-      typeof body !== "object" || body === null ||
-      !("horarios" in body) || !Array.isArray(body.horarios)
-    ) return [];
-
-    return body.horarios as RestaurantScheduleApiResponse[];
-  } catch {
-    return [];
-  }
-}
-
-export async function saveRestaurantSchedules(
-  restaurantId: number,
-  token: string,
-  horarios: RestaurantScheduleData[],
-): Promise<void> {
-  const response = await fetch(
-    `${API_BASE_URL}/restaurantes/${encodeURIComponent(restaurantId)}/horarios`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ horarios }),
-    },
-  );
-
-  if (!response.ok) {
-    const body: unknown = await response.json().catch(() => null);
-    const message =
-      typeof body === "object" && body !== null &&
-      "error" in body && typeof body.error === "string"
-        ? body.error
-        : `No se pudieron guardar los horarios (estado ${response.status}).`;
-    throw new Error(message);
-  }
-}
-
 // En modo API reutiliza GET http://localhost:3000/api/restaurantes
 // y busca el restaurante por slug en el frontend.
 export async function getRestaurantBySlug(
@@ -342,8 +265,6 @@ export async function getRestaurantBySlug(
   return restaurant;
 }
 
-// Intenta GET http://localhost:3000/api/restaurants/:slug/menu.
-// Esta ruta no existe en el backend actual; el menú solo funciona en modo mock.
 export async function getRestaurantMenu(
   slug: string,
 ): Promise<RestaurantMenu> {
@@ -357,15 +278,14 @@ export async function getRestaurantMenu(
     }
 
     const products = MOCK_PRODUCTS.filter(
-      (product) =>
-        product.id_restaurante === Number(restaurant.id) &&
-        product.disponible,
+      (product) => product.id_restaurante === Number(restaurant.id),
     ).map((product) => ({
       id: String(product.id),
       name: product.nombre,
       description: product.descripcion ?? "",
       price: Number(product.precio),
       classification: product.categoria ?? "",
+      available: product.disponible,
       imageUrl: product.imagen ?? undefined,
     }));
 
@@ -380,9 +300,25 @@ export async function getRestaurantMenu(
   }
 
   try {
-    return await fetchApi<RestaurantMenu>(
-      `/restaurants/${encodeURIComponent(slug)}/menu`,
+    const restaurant = await getRestaurantBySlug(slug);
+    const response = await fetchApi<{ productos: RestaurantProductApiResponse[] }>(
+      `/restaurantes/${encodeURIComponent(restaurant.id)}/productos`,
     );
+    const products = response.productos
+      .map((product) => ({
+        id: String(product.id),
+        name: product.nombre,
+        description: product.descripcion ?? "",
+        price: Number(product.precio),
+        classification: product.categoria ?? "",
+        available: product.disponible,
+        imageUrl: product.imagen ?? undefined,
+      }));
+
+    return {
+      dishes: products.filter((product) => product.classification !== "Bebidas"),
+      drinks: products.filter((product) => product.classification === "Bebidas"),
+    };
   } catch (error) {
     if (error instanceof ApiRequestError && error.status === 404) {
       return { dishes: [], drinks: [] };
@@ -400,4 +336,179 @@ export async function getRestaurantMenu(
     console.error("No se pudo cargar el menú desde la API.", error);
     throw error;
   }
+}
+
+export async function createRestaurantProduct(
+  token: string,
+  product: CreateRestaurantProductData,
+): Promise<RestaurantProductApiResponse> {
+  const response = await fetch(`${API_BASE_URL}/productos`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(product),
+  });
+  const body: unknown = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    const message =
+      typeof body === "object" &&
+      body !== null &&
+      "mensaje" in body &&
+      typeof body.mensaje === "string"
+        ? body.mensaje
+        : typeof body === "object" &&
+            body !== null &&
+            "error" in body &&
+            typeof body.error === "string"
+          ? body.error
+          : `No se pudo crear el producto (estado ${response.status}).`;
+    throw new Error(message);
+  }
+
+  if (
+    typeof body !== "object" ||
+    body === null ||
+    !("producto" in body) ||
+    typeof body.producto !== "object" ||
+    body.producto === null
+  ) {
+    throw new Error("La respuesta del servidor no contiene el producto creado.");
+  }
+
+  return body.producto as RestaurantProductApiResponse;
+}
+
+export async function uploadRestaurantProductImage(
+  token: string,
+  productId: number,
+  image: File,
+): Promise<string> {
+  const formData = new FormData();
+  formData.append("imagen", image);
+
+  const response = await fetch(
+    `${API_BASE_URL}/productos/${encodeURIComponent(productId)}/imagen`,
+    {
+      method: "PATCH",
+      headers: { Authorization: `Bearer ${token}` },
+      body: formData,
+    },
+  );
+  const body: unknown = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    const message =
+      typeof body === "object" &&
+      body !== null &&
+      "error" in body &&
+      typeof body.error === "string"
+        ? body.error
+        : `No se pudo subir la imagen del plato (estado ${response.status}).`;
+    throw new Error(message);
+  }
+
+  if (
+    typeof body !== "object" ||
+    body === null ||
+    !("producto" in body) ||
+    typeof body.producto !== "object" ||
+    body.producto === null ||
+    !("imagen" in body.producto) ||
+    typeof body.producto.imagen !== "string"
+  ) {
+    throw new Error("El servidor no devolvió la URL de la imagen del plato.");
+  }
+
+  return body.producto.imagen;
+}
+
+export async function updateRestaurantProductAvailability(
+  token: string,
+  productId: number,
+  available: boolean,
+): Promise<boolean> {
+  const response = await fetch(
+    `${API_BASE_URL}/productos/${encodeURIComponent(productId)}`,
+    {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: ["Bearer", token].join(" "),
+      },
+      body: JSON.stringify({ disponible: available }),
+    },
+  );
+  const body: unknown = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    const message =
+      typeof body === "object" &&
+      body !== null &&
+      "mensaje" in body &&
+      typeof body.mensaje === "string"
+        ? body.mensaje
+        : typeof body === "object" &&
+            body !== null &&
+            "error" in body &&
+            typeof body.error === "string"
+          ? body.error
+          : `No se pudo actualizar la disponibilidad (estado ${response.status}).`;
+    throw new Error(message);
+  }
+
+  if (
+    typeof body !== "object" ||
+    body === null ||
+    !("producto" in body) ||
+    typeof body.producto !== "object" ||
+    body.producto === null ||
+    !("disponible" in body.producto) ||
+    typeof body.producto.disponible !== "boolean"
+  ) {
+    throw new Error(
+      "La respuesta del servidor no contiene la disponibilidad actualizada.",
+    );
+  }
+
+  return body.producto.disponible;
+}
+
+export async function getManagedRestaurantProducts(
+  restaurantId: number,
+  token: string,
+  signal?: AbortSignal,
+): Promise<RestaurantProductApiResponse[]> {
+  const response = await fetch(
+    `${API_BASE_URL}/restaurantes/${encodeURIComponent(restaurantId)}/productos/gestion`,
+    {
+      headers: { Authorization: `Bearer ${token}` },
+      signal,
+    },
+  );
+  const body: unknown = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    const message =
+      typeof body === "object" &&
+      body !== null &&
+      "error" in body &&
+      typeof body.error === "string"
+        ? body.error
+        : `No se pudieron cargar los productos (estado ${response.status}).`;
+    throw new Error(message);
+  }
+
+  if (
+    typeof body !== "object" ||
+    body === null ||
+    !("productos" in body) ||
+    !Array.isArray(body.productos)
+  ) {
+    throw new Error("La respuesta del servidor no contiene una lista de productos.");
+  }
+
+  return body.productos as RestaurantProductApiResponse[];
 }

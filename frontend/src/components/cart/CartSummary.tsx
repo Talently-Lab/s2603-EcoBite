@@ -1,15 +1,13 @@
 import Button from "../ui/Button";
-import { ImpactBadge } from "../ui/ImpactBadge";
 import { Title } from "../ui/Title";
 import { Link } from "react-router-dom";
 import type { CartItem } from "../detailRestaurant/OrderSummary";
 
 interface CartSummaryProps {
   items: CartItem[];
-  savedCo2Kg: number | null;
 }
 
-export default function CartSummary({ items, savedCo2Kg }: CartSummaryProps) {
+export default function CartSummary({ items }: CartSummaryProps) {
   const totalItems = items.reduce((total, item) => total + item.quantity, 0);
   const subtotal = items.reduce((total, item) => total + item.price, 0);
 
@@ -46,12 +44,6 @@ export default function CartSummary({ items, savedCo2Kg }: CartSummaryProps) {
         <span>Total</span>
         <span>{formatCurrency(subtotal)}</span>
       </div>
-      <ImpactBadge
-        titulo="Ahorraste con este pedido"
-        savedCo2Kg={savedCo2Kg}
-        descripcion="Impacto ambiental de tu pedido"
-      />
-
       <Button
         to="/checkout"
         className="w-full text-center shadow-sm transition-colors hover:brightness-110"

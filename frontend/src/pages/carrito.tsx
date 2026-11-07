@@ -7,20 +7,20 @@ import type { CartItem } from "@/components/detailRestaurant/OrderSummary";
 
 interface CarritoPageProps {
   items: CartItem[];
-  savedCo2Kg: number | null;
   onQuantityChange: (
     itemId: CartItem["id"],
     restaurantName: string,
     change: -1 | 1,
   ) => void;
   onRemove: (itemId: CartItem["id"], restaurantName: string) => void;
+  onAbandonCart: (cartId: number | undefined, restaurantName: string) => void;
 }
 
 export function CarritoPage({
   items,
-  savedCo2Kg,
   onQuantityChange,
   onRemove,
+  onAbandonCart,
 }: CarritoPageProps) {
   if (items.length === 0) {
     return (
@@ -48,9 +48,10 @@ export function CarritoPage({
             items={items}
             onQuantityChange={onQuantityChange}
             onRemove={onRemove}
+            onAbandonCart={onAbandonCart}
           />
         </div>
-        <CartSummary items={items} savedCo2Kg={savedCo2Kg} />
+        <CartSummary items={items} />
       </div>
     </main>
   );

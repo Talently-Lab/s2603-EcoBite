@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
+import { useAuth } from "../contexts/AuthContext";
 import { HeroTitle } from "../components/ui/HeroTitle";
 import EmptyState from "../components/ui/EmptyState";
 import { MenuItem } from "../components/detailRestaurant/menuItem";
@@ -23,7 +24,7 @@ const WEEKDAYS = [
 
 type DetalleRestaurantePageProps = {
   items: CartItem[];
-  onAdd: (item: MenuItemData, restaurantName: string) => void;
+  onAdd: (item: MenuItemData, restaurantId: string, restaurantName: string) => void;
 };
 
 export function DetalleRestaurantePage({
@@ -31,6 +32,8 @@ export function DetalleRestaurantePage({
   onAdd,
 }: DetalleRestaurantePageProps) {
   const { slug } = useParams();
+  const { user, loading: authLoading } = useAuth();
+  const canAddToCart = !authLoading && user?.rol === "cliente";
   const [loadedData, setLoadedData] = useState<{
     slug: string;
     restaurant: Restaurant;
@@ -129,7 +132,18 @@ export function DetalleRestaurantePage({
       <section
         aria-label={`Banner de ${restaurant.name}`}
         className="relative min-h-48 overflow-hidden rounded-2xl bg-eco-light sm:min-h-64"
-      />
+      >
+        {restaurant.image && (
+          <img
+            src={restaurant.image}
+            alt={`Foto de ${restaurant.name}`}
+            className="absolute inset-0 h-full w-full object-cover"
+            onError={(event) => {
+              event.currentTarget.remove();
+            }}
+          />
+        )}
+      </section>
 
       <section className="mt-8 flex flex-col items-start gap-5">
         <div className="flex flex-col gap-3">
@@ -171,7 +185,8 @@ export function DetalleRestaurantePage({
                       <MenuItem
                         key={dish.id}
                         item={dish}
-                        onAdd={(item) => onAdd(item, restaurant.name)}
+                        canAddToCart={canAddToCart}
+                        onAdd={(item) => onAdd(item, restaurant.id, restaurant.name)}
                       />
                     ))
                   ) : (
@@ -195,7 +210,8 @@ export function DetalleRestaurantePage({
                       <MenuItem
                         key={drink.id}
                         item={drink}
-                        onAdd={(item) => onAdd(item, restaurant.name)}
+                        canAddToCart={canAddToCart}
+                        onAdd={(item) => onAdd(item, restaurant.id, restaurant.name)}
                       />
                     ))
                   ) : (

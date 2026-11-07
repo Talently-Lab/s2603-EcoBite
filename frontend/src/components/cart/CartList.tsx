@@ -1,5 +1,6 @@
 import type { CartItem } from "../detailRestaurant/OrderSummary";
 import CartItemCard from "./CartItemCard";
+import { Trash2 } from "lucide-react";
 
 interface CartListProps {
   items: CartItem[];
@@ -9,12 +10,14 @@ interface CartListProps {
     change: -1 | 1,
   ) => void;
   onRemove: (itemId: CartItem["id"], restaurantName: string) => void;
+  onAbandonCart: (cartId: number | undefined, restaurantName: string) => void;
 }
 
 export default function CartList({
   items,
   onQuantityChange,
   onRemove,
+  onAbandonCart,
 }: CartListProps) {
   const itemsByRestaurant = new Map<string, CartItem[]>();
   items.forEach((item) => {
@@ -38,6 +41,14 @@ export default function CartList({
             >
               {restaurantName}
             </h2>
+            <button
+              type="button"
+              onClick={() => onAbandonCart(restaurantItems[0]?.cartId, restaurantName)}
+              className="inline-flex w-fit items-center gap-2 text-sm font-semibold text-eco-dark underline underline-offset-2 hover:text-eco-dark/70"
+            >
+              <Trash2 aria-hidden="true" className="h-4 w-4" />
+              Abandonar este carrito
+            </button>
             <div className="grid gap-4">
               {restaurantItems.map((item) => (
                 <CartItemCard

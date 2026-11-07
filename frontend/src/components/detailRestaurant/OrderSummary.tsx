@@ -9,6 +9,8 @@ export interface CartItem {
   quantity: number;
   unitPrice: number;
   price: number; // Total for this line (unit price × quantity).
+  restaurantId?: number;
+  cartId?: number;
 }
 
 interface OrderSummaryProps {
