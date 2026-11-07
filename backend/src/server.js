@@ -2628,7 +2628,7 @@ app.get('/api/carritos/:idCarrito', verificarToken, verificarRol('cliente'), asy
 app.post('/api/carritos/:idRestaurante/productos',verificarToken,verificarRol('cliente'),async (req, res) => {
         try {
             const idRestaurante = Number(req.params.idRestaurante);
-            const { productoId, cantidad } = req.body;
+            const { id_producto, cantidad } = req.body;
 
             // Validar restaurante
             if (!Number.isInteger(idRestaurante) || idRestaurante <= 0) {
@@ -2638,7 +2638,7 @@ app.post('/api/carritos/:idRestaurante/productos',verificarToken,verificarRol('c
             }
 
             // Validar producto y cantidad
-            const idProducto = Number(productoId);
+            const idProducto = Number(id_producto);
             const cantidadProducto = Number(cantidad);
 
             if (!Number.isInteger(idProducto) || idProducto <= 0) {
