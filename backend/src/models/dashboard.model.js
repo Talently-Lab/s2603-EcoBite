@@ -333,6 +333,37 @@ async function obtenerEstadisticas(idUsuario, mes) {
     };
 }
 
+// Obtener el impacto ambiental general de EcoBite
+async function obtenerImpactoGeneral() {
+    const resultado = await pool.query(
+        `SELECT
+            COALESCE(SUM(p.co2_ahorrado), 0) AS co2_total_ahorrado,
+            COALESCE(SUM(z.distancia_promedio), 0) AS km_totales,
+            COUNT(p.id) AS pedidos_entregados
+         FROM pedido p
+         INNER JOIN zona z ON p.id_zona = z.id
+         WHERE p.estado_pedido = 'entregado'`
+    );
+
+    return resultado.rows[0];
+}
+
+// Obtener el impacto ambiental de un cliente
+async function obtenerImpactoCliente(idUsuario) {
+    const resultado = await pool.query(
+        `SELECT
+            COUNT(p.id) AS pedidos_entregados,
+            COALESCE(SUM(p.co2_ahorrado), 0) AS co2_total_ahorrado
+         FROM cliente c
+         LEFT JOIN pedido p
+            ON c.id = p.id_cliente
+            AND p.estado_pedido = 'entregado'
+         WHERE c.id_usuario = $1`,
+        [idUsuario]
+    );
+
+    return resultado.rows[0];
+}
 
 module.exports = {
     obtenerIdRestaurantePorUsuario,
@@ -346,5 +377,7 @@ module.exports = {
     obtenerDistribucionCalificaciones,
     obtenerUltimosPedidos,
     obtenerIndicadoresPorPeriodo,
-    obtenerEstadisticas
+    obtenerEstadisticas,
+    obtenerImpactoGeneral,
+    obtenerImpactoCliente
 };

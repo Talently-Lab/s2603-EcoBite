@@ -3002,6 +3002,47 @@ app.get('/api/dashboard/stats', verificarToken, verificarRol('restaurante'), asy
     }
 });
 
+//===== DASHBOARD DE IMPACTO AMBIENTAL GENERAL =====
+app.get('/api/dashboard/impacto', async (req, res) => {
+    try {
+        // Consultamos el impacto ambiental general de EcoBite
+        const resultado = await dashboardModel.obtenerImpactoGeneral();
+
+        return res.status(200).json({
+            mensaje: 'Impacto ambiental general obtenido correctamente',
+            impacto: resultado
+        });
+
+    } catch (error) {
+        console.error('Error al consultar el impacto ambiental:', error);
+
+        return res.status(500).json({
+            mensaje: 'Error al consultar el impacto ambiental'
+        });
+    }
+});
+
+//===== DASHBOARD DE IMPACTO AMBIENTAL DEL CLIENTE =====
+app.get('/api/dashboard/impacto/cliente', verificarToken, verificarRol('cliente'), async (req, res) => {
+    try {
+        const resultado = await dashboardModel.obtenerImpactoCliente(
+            req.usuario.id
+        );
+
+        return res.status(200).json({
+            mensaje: 'Impacto ambiental del cliente obtenido correctamente',
+            impacto: resultado
+        });
+
+    } catch (error) {
+        console.error('Error al consultar el impacto ambiental del cliente:', error);
+
+        return res.status(500).json({
+            mensaje: 'Error al consultar el impacto ambiental del cliente'
+        });
+    }
+});
+
 
 
 
