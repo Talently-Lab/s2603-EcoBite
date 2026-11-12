@@ -4,6 +4,7 @@
 // ==========================================
 const pool = require('../db');
 const bcrypt = require('bcrypt');//para hash contraseña
+const {validarCanalAdquisicion, validarContrasena, validarEmail, validarUrlImagen} = require('../utils/validaciones');
 
 //CREAR USUARIO-CLIENTE
 async function crearCliente(usuario) {
@@ -15,11 +16,16 @@ async function crearCliente(usuario) {
     } = usuario;
 
     // Validamos los datos obligatorios
-    if (!email || !contrasena || !canal_adquisicion) {
+    /* if (!email || !contrasena || !canal_adquisicion) {
         throw new Error('Faltan datos obligatorios');
-    }
+    } */
 
-    const contrasenaHash = await bcrypt.hash(contrasena, 10);
+    //Validacion de string , longitud y canal permitidos
+    const contrasenaValidada = validarContrasena(contrasena);
+    const canalValidado = validarCanalAdquisicion(canal_adquisicion);
+    const emailValidado = validarEmail(email);
+
+    const contrasenaHash = await bcrypt.hash(contrasenaValidada, 10);
 
     const resultado = await pool.query(
         `INSERT INTO usuario
@@ -27,11 +33,11 @@ async function crearCliente(usuario) {
          VALUES ($1, $2, $3, $4, $5)
          RETURNING id, email, avatar, rol, fecha_registro, canal_adquisicion`,
         [
-            email,
+            emailValidado,
             contrasenaHash,
             avatar || null,
             'cliente',
-            canal_adquisicion
+            canalValidado
         ]
     );
 
@@ -48,12 +54,17 @@ async function crearRestaurante(usuario) {
     } = usuario;
 
     // Validamos los datos obligatorios
-    if (!email || !contrasena || !canal_adquisicion) {
+    /* if (!email || !contrasena || !canal_adquisicion) {
         throw new Error('Faltan datos obligatorios');
-    }
+    } */
+
+    //Validacion de string , longitud y canal permitidos
+    const contrasenaValidada = validarContrasena(contrasena);
+    const canalValidado = validarCanalAdquisicion(canal_adquisicion);
+    const emailValidado = validarEmail(email);
 
     // Protegemos la contraseña
-    const contrasenaHash = await bcrypt.hash(contrasena, 10);
+    const contrasenaHash = await bcrypt.hash(contrasenaValidada, 10);
 
     const resultado = await pool.query(
         `INSERT INTO usuario
@@ -61,11 +72,11 @@ async function crearRestaurante(usuario) {
          VALUES ($1, $2, $3, $4, $5)
          RETURNING id, email, avatar, rol, fecha_registro, canal_adquisicion`,
         [
-            email,
+            emailValidado,
             contrasenaHash,
             avatar || null,
             'restaurante',
-            canal_adquisicion
+            canalValidado
         ]
     );
 
@@ -113,30 +124,27 @@ async function actualizar(id, datos) {
     const valores = [];
 
     // Actualizar email si fue enviado
-    if (datos.email !== undefined) {
-        if (typeof datos.email !== 'string' || !datos.email.trim()) {
-            throw new Error('El email no puede estar vacío');
-        }
+     if (datos.email !== undefined) {
+        const emailValidado = validarEmail(datos.email);
+        valores.push(emailValidado);
 
-        valores.push(datos.email.trim());
         campos.push(`email = $${valores.length}`);
     }
 
     // Actualizar contraseña si fue enviada
     if (datos.contrasena !== undefined) {
-        if (typeof datos.contrasena !== 'string' || !datos.contrasena.trim()) {
-            throw new Error('La contraseña no puede estar vacía');
-        }
-
-        const contrasenaHash = await bcrypt.hash(datos.contrasena, 10);
+        const contrasenaValidada = validarContrasena(datos.contrasena);
+        const contrasenaHash = await bcrypt.hash(contrasenaValidada, 10);
 
         valores.push(contrasenaHash);
         campos.push(`contrasena = $${valores.length}`);
     }
 
     // Actualizar avatar si fue enviado
-    if (datos.avatar !== undefined) {
-        valores.push(datos.avatar);
+     if (datos.avatar !== undefined) {
+        const avatarValidado = datos.avatar === null ? null : validarUrlImagen(datos.avatar);
+
+        valores.push(avatarValidado);
         campos.push(`avatar = $${valores.length}`);
     }
 

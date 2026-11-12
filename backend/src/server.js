@@ -16,6 +16,7 @@ const { enviarBienvenida } = require('./services/email.service');
 const subirImagen = require('./middlewares/subirImagen');
 const { verificarToken, verificarRol } = require('./middlewares/auth.middleware');
 const { obtenerPublicIdDesdeUrl } = require('./cloudinary.utils');
+const { ErrorValidacion } = require('./utils/validaciones');
 
 //MODELOS
 const restauranteModel = require('./models/restaurante.model');//importa restaurante.model
@@ -27,6 +28,7 @@ const productoModel = require('./models/producto.model');
 const carritoModel = require('./models/carrito.model');
 const detalleCarritoModel = require('./models/detalleCarrito.model');
 const dashboardModel = require('./models/dashboard.model');
+
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -103,7 +105,8 @@ app.post('/api/usuario/registro-cliente', async (req, res) => {
     } catch (error) {
         console.error('Error al registrar usuario:', error.message);
 
-        if (error.message === 'Faltan datos obligatorios') {
+        // Errores de validación: datos ingresados incorrectamente
+        if (error instanceof ErrorValidacion) {
             return res.status(400).json({
                 error: error.message
             });
@@ -116,6 +119,7 @@ app.post('/api/usuario/registro-cliente', async (req, res) => {
             });
         }
         //-----------------
+        // Error inesperado del servidor
         res.status(500).json({
             error: 'Error interno al registrar el usuario'
         });
@@ -156,7 +160,8 @@ app.post('/api/usuario/registro-restaurante', async (req, res) => {
             usuario
         });
     } catch (error) {
-        if (error.message === 'Faltan datos obligatorios') {
+        // Errores de validación: datos ingresados incorrectamente
+        if (error instanceof ErrorValidacion) {
             return res.status(400).json({
                 error: error.message
             });
@@ -171,6 +176,7 @@ app.post('/api/usuario/registro-restaurante', async (req, res) => {
 
         console.error('Error al registrar restaurante:', error.message);
 
+        // Error inesperado del servidor
         res.status(500).json({
             error: 'Error interno al registrar la cuenta'
         });
@@ -503,12 +509,6 @@ app.post('/api/restaurantes', verificarToken, async (req, res) => {
 
         const restaurante = req.body;
 
-        if(!restaurante.nombre || !restaurante.cuit || !restaurante.categoria){
-            return res.status(400).json({
-                error:'Faltan datos obligatorios para el restaurante'
-            });
-        }
-
         // El ID se obtiene del token, no del cuerpo enviado
         restaurante.id_usuario = req.usuario.id;
         //------------
@@ -519,7 +519,9 @@ app.post('/api/restaurantes', verificarToken, async (req, res) => {
             restaurante: nuevoRestaurante
         });
     } catch (error) {
-        if (error.message === 'Faltan datos obligatorios para el restaurante') {
+
+         // Errores de validación de los datos recibidos
+        if (error instanceof ErrorValidacion) {
             return res.status(400).json({
                 error: error.message
             });
@@ -551,9 +553,7 @@ app.post('/api/restaurantes', verificarToken, async (req, res) => {
         }
 
         // La cuenta no tiene el rol de restaurante
-        if (
-            error.message ===
-            'Solo los usuarios con rol restaurante pueden crear un perfil de restaurante'
+        if ( error.message === 'Solo los usuarios con rol restaurante pueden crear un perfil de restaurante'
         ) {
             return res.status(403).json({
                 error: error.message
@@ -848,69 +848,17 @@ app.post('/api/productos', verificarToken, async (req, res) => {
         }
 
         // Obtener los datos enviados
-        const {
-            id_restaurante,
-            nombre,
-            descripcion,
-            precio,
-            categoria
-        } = req.body;
-
-        // Validar los campos obligatorios
-        if (
-            !id_restaurante ||
-            !nombre ||
-            precio === undefined ||
-            precio === null ||
-            !categoria
-        ) {
-            return res.status(400).json({
-                mensaje: 'Faltan campos obligatorios: id_restaurante, nombre, precio y categoria'
-            });
-        }
+        const { id_restaurante } = datos;
 
         // Validar el ID del restaurante
-        if (!Number.isInteger(id_restaurante) || id_restaurante <= 0) {
+        if (!Number.isInteger(Number(id_restaurante)) || Number(id_restaurante) <= 0) {
             return res.status(400).json({
-                error: 'Dato inválido',
-                detalle: 'id_restaurante debe ser un número entero positivo'
-            });
-        }
-
-        // Validar el nombre
-        if (typeof nombre !== 'string' || nombre.trim() === '') {
-            return res.status(400).json({
-                error: 'Dato inválido',
-                detalle: 'nombre debe ser un texto no vacío'
-            });
-        }
-
-        // Validar la descripción
-        if (descripcion !== undefined && descripcion !== null && typeof descripcion !== 'string') {
-            return res.status(400).json({
-                error: 'Dato inválido',
-                detalle: 'descripcion debe ser un texto o null'
-            });
-        }
-
-        // Validar el precio
-        if (typeof precio !== 'number' || !Number.isFinite(precio) || precio <= 0) {
-            return res.status(400).json({
-                error: 'Dato inválido',
-                detalle: 'precio debe ser un número mayor que cero, sin comillas'
-            });
-        }
-
-        // Validar la categoría
-        if (typeof categoria !== 'string' || categoria.trim() === '') {
-            return res.status(400).json({
-                error: 'Dato inválido',
-                detalle: 'categoria debe ser un texto no vacío'
+                error: 'El restaurante seleccionado no es válido'
             });
         }
 
         // Verificar que el restaurante exista
-        const restaurante = await restauranteModel.obtenerPorId(id_restaurante);
+        const restaurante = await restauranteModel.obtenerPorId(Number(id_restaurante));
 
         if (!restaurante) {
             return res.status(404).json({
@@ -928,13 +876,14 @@ app.post('/api/productos', verificarToken, async (req, res) => {
             });
         }
 
-        // Crear el producto
+        // Crear el producto. El modelo valida sus campos.
         const nuevoProducto = await productoModel.crear({
-            id_restaurante,
-            nombre,
-            descripcion,
-            precio,
-            categoria
+            id_restaurante: Number(id_restaurante),
+            nombre: datos.nombre,
+            descripcion: datos.descripcion,
+            precio: datos.precio,
+            categoria: datos.categoria,
+            imagen: datos.imagen
         });
 
         return res.status(201).json({
@@ -943,7 +892,12 @@ app.post('/api/productos', verificarToken, async (req, res) => {
         });
 
     } catch (error) {
-        console.error('Error al crear producto:', error);
+        if (error instanceof ErrorValidacion) {
+            return res.status(400).json({
+                error: error.message
+            });
+        }
+        console.error('Error al crear producto:', error.message);
 
         return res.status(500).json({
             mensaje: 'Error interno al crear el producto'
@@ -1088,65 +1042,14 @@ app.patch('/api/productos/:id', verificarToken, async (req, res) => {
             });
         }
 
-        // Obtener los campos enviados
-        const {
-            nombre,
-            descripcion,
-            precio,
-            categoria,
-            disponible
-        } = req.body;
-
-        // Verificar que se haya enviado al menos un campo
-        if (Object.keys(datos).length === 0) {
-            return res.status(400).json({
-                error: 'No se enviaron datos para modificar'
-            });
-        }
-
-         // Validar los campos enviados
-        if (nombre !== undefined && (typeof nombre !== 'string' || nombre.trim() === '')) {
-            return res.status(400).json({
-                error: 'Dato inválido',
-                detalle: 'nombre debe ser un texto no vacío'
-            });
-        }
-
-        if (descripcion !== undefined && descripcion !== null && typeof descripcion !== 'string') {
-            return res.status(400).json({
-                error: 'Dato inválido',
-                detalle: 'descripcion debe ser un texto o null'
-            });
-        }
-
-        if (precio !== undefined && (typeof precio !== 'number' ||!Number.isFinite(precio) || precio <= 0)) {
-            return res.status(400).json({
-                error: 'Dato inválido',
-                detalle: 'precio debe ser un número mayor que cero, sin comillas'
-            });
-        }
-
-        if (categoria !== undefined && (typeof categoria !== 'string' || categoria.trim() === '')) {
-            return res.status(400).json({
-                error: 'Dato inválido',
-                detalle: 'categoria debe ser un texto no vacío'
-            });
-        }
-
-        if (disponible !== undefined && typeof disponible !== 'boolean') {
-            return res.status(400).json({
-                error: 'Dato inválido',
-                detalle: 'disponible debe ser un booleano: true o false, sin comillas'
-            });
-        }
-
         // Evitar aceptar campos que no se pueden modificar
         const camposPermitidos = [
             'nombre',
             'descripcion',
             'precio',
             'categoria',
-            'disponible'
+            'disponible',
+            'imagen'
         ];
 
         const camposNoPermitidos = Object.keys(datos).filter(
@@ -1192,14 +1095,7 @@ app.patch('/api/productos/:id', verificarToken, async (req, res) => {
 
         // Actualizar los datos
         const productoActualizado = await productoModel.actualizar(
-            idProducto,
-            {
-                nombre,
-                descripcion,
-                precio,
-                categoria,
-                disponible
-            }
+            idProducto,datos
         );
 
         return res.status(200).json({
@@ -1208,7 +1104,13 @@ app.patch('/api/productos/:id', verificarToken, async (req, res) => {
         });
 
     } catch (error) {
-        console.error('Error al modificar producto:', error);
+        
+        if (error instanceof ErrorValidacion) {
+            return res.status(400).json({
+                error: error.message
+            });
+        }
+        console.error('Error al modificar producto:', error.message);
 
         return res.status(500).json({
             mensaje: 'Error interno al modificar el producto'
@@ -1351,11 +1253,6 @@ app.post('/api/clientes', verificarToken, async (req, res) => {
 
         const cliente = req.body;
 
-        if (!cliente.nombre || !cliente.apellido) {
-            return res.status(400).json({
-                error: 'Faltan datos obligatorios para el cliente'
-            });
-        }
         // El ID se obtiene del token, no del cuerpo enviado
         cliente.id_usuario = req.usuario.id;
 
@@ -1366,7 +1263,9 @@ app.post('/api/clientes', verificarToken, async (req, res) => {
             cliente: nuevoCliente
         });
     } catch (error) {
-        if (error.message === 'Faltan datos obligatorios para el cliente') {
+
+        // Errores de validación de los datos recibidos
+        if (error instanceof ErrorValidacion) {
             return res.status(400).json({
                 error: error.message
             });
@@ -2089,38 +1988,6 @@ app.post('/api/ordenes', verificarToken, verificarRol('cliente'), async (req, re
             indicacion_entrega
         } = req.body;
 
-        // Validar identificadores
-        if (!Number.isInteger(id_carrito) || id_carrito <= 0) {
-            return res.status(400).json({
-                mensaje: 'El id_carrito debe ser un entero positivo'
-            });
-        }
-
-        if (!Number.isInteger(id_zona) || id_zona <= 0) {
-            return res.status(400).json({
-                mensaje: 'El id_zona debe ser un entero positivo'
-            });
-        }
-
-        // Validar forma de pago
-        if (!['efectivo', 'tarjeta'].includes(tipo_pago)) {
-            return res.status(400).json({
-                mensaje: 'El tipo de pago debe ser efectivo o tarjeta'
-            });
-        }
-
-        // Validar costo de envío si se envía
-        if (
-            costo_envio !== undefined &&
-            (typeof costo_envio !== 'number' ||
-                !Number.isFinite(costo_envio) ||
-                costo_envio < 0)
-        ) {
-            return res.status(400).json({
-                mensaje: 'El costo de envío debe ser un número mayor o igual a cero'
-            });
-        }
-
         const nuevoPedido = await pedidoModel.crear({
             id_usuario: req.usuario.id,
             id_carrito,
@@ -2139,17 +2006,19 @@ app.post('/api/ordenes', verificarToken, verificarRol('cliente'), async (req, re
         });
 
     } catch (error) {
+
+        // Errores de validación de los datos recibidos
+        if (error instanceof ErrorValidacion) {
+            return res.status(400).json({
+                mensaje: error.message
+            });
+        }
+
+        // Recursos que no existen
         const erroresNoEncontrados = [
             'El usuario no tiene un perfil de cliente',
             'El carrito no existe',
-            'El carrito no pertenece al cliente',
             'La zona no existe'
-        ];
-
-        const erroresSolicitud = [
-            'El carrito no está pendiente',
-            'El carrito está vacío',
-            'Hay productos que no están disponibles o no pertenecen al restaurante'
         ];
 
         if (erroresNoEncontrados.includes(error.message)) {
@@ -2158,7 +2027,15 @@ app.post('/api/ordenes', verificarToken, verificarRol('cliente'), async (req, re
             });
         }
 
-        if (erroresSolicitud.includes(error.message)) {
+        // Solicitudes que no se pueden procesar
+        const erroresSolicitud = [
+            'El carrito no pertenece al cliente',
+            'El carrito no está pendiente',
+            'El carrito está vacío',
+            'Hay productos que no están disponibles o no pertenecen al restaurante'
+        ];
+
+          if (erroresSolicitud.includes(error.message)) {
             return res.status(400).json({
                 mensaje: error.message
             });
@@ -2633,7 +2510,8 @@ app.get('/api/carritos/:idCarrito', verificarToken, verificarRol('cliente'), asy
 app.post('/api/carritos/:idRestaurante/productos',verificarToken,verificarRol('cliente'),async (req, res) => {
         try {
             const idRestaurante = Number(req.params.idRestaurante);
-            const { id_producto, cantidad } = req.body;
+            //const { id_producto, cantidad } = req.body;
+            const { productoId, cantidad } = req.body;
 
             // Validar restaurante
             if (!Number.isInteger(idRestaurante) || idRestaurante <= 0) {
@@ -2643,7 +2521,8 @@ app.post('/api/carritos/:idRestaurante/productos',verificarToken,verificarRol('c
             }
 
             // Validar producto y cantidad
-            const idProducto = Number(id_producto);
+            //const idProducto = Number(id_producto);
+            const idProducto = Number(productoId);
             const cantidadProducto = Number(cantidad);
 
             if (!Number.isInteger(idProducto) || idProducto <= 0) {

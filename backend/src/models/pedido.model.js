@@ -4,6 +4,7 @@
 // ==========================================
 
 const pool = require('../db');
+const {validarEnteroPositivo, validarCostoEnvio, validarTipoPago, validarTexto} = require('../utils/validaciones');
 
 async function crear(pedido) {
     const {
@@ -18,12 +19,38 @@ async function crear(pedido) {
         indicacion_entrega
     } = pedido;
 
+      // 1. Validar los datos recibidos
+    validarEnteroPositivo(id_carrito, 'El id_carrito');
+    validarEnteroPositivo(id_zona, 'El id_zona');
+
+    validarTipoPago(tipo_pago);
+    validarCostoEnvio(costo_envio);
+
+    const direccionValidada = validarTexto(direccion_entrega,'La dirección de entrega',{
+         minimo: 3, 
+         maximo: 255, 
+         obligatorio: true }
+    );
+
+    const pisoValidado = validarTexto(piso_entrega,'El piso',{ 
+        maximo: 20 }
+    );
+
+    const departamentoValidado = validarTexto(departamento_entrega,'El departamento',{
+        maximo: 20 }
+    );
+
+    const indicacionValidada = validarTexto(indicacion_entrega,'La indicación de entrega',{
+        minimo:5}
+    );
+
+    // 2. Iniciar la transacción
     const client = await pool.connect();
 
     try {
         await client.query('BEGIN');
 
-        // 1. Buscar el perfil del cliente
+        // 3. Buscar el perfil del cliente
         const resultadoCliente = await client.query(
             `SELECT id
              FROM cliente
@@ -37,7 +64,7 @@ async function crear(pedido) {
 
         const id_cliente = resultadoCliente.rows[0].id;
 
-        // 2. Buscar y bloquear el carrito durante la operación
+        // 4. Buscar y bloquear el carrito durante la operación
         const resultadoCarrito = await client.query(
             `SELECT id, id_cliente, id_restaurante, estado
              FROM carrito
@@ -62,7 +89,7 @@ async function crear(pedido) {
 
         const id_restaurante = carrito.id_restaurante;
 
-        // 3. Consultar la zona y su distancia promedio
+        // 5. Consultar la zona y su distancia promedio
         const resultadoZona = await client.query(
             `SELECT id, distancia_promedio
              FROM zona
@@ -74,7 +101,7 @@ async function crear(pedido) {
             throw new Error('La zona no existe');
         }
 
-        // 4. Obtener los productos guardados en el carrito
+        // 6. Obtener los productos guardados en el carrito
         const resultadoProductos = await client.query(
             `SELECT
                 dc.id_producto,
@@ -94,7 +121,7 @@ async function crear(pedido) {
             throw new Error('El carrito está vacío');
         }
 
-        // 5. Verificar que todos los productos sigan disponibles
+        // 7. Verificar que todos los productos sigan disponibles
         for (const producto of productos) {
             if (
                 Number(producto.id_restaurante) !== Number(id_restaurante) ||
@@ -106,7 +133,7 @@ async function crear(pedido) {
             }
         }
 
-        // 6. Calcular los importes con los precios de la base de datos
+        // 8. Calcular los importes con los precios de la base de datos
         let subtotalCentavos = 0;
         const detalles = [];
 
@@ -115,8 +142,7 @@ async function crear(pedido) {
                 Number(producto.precio) * 100
             );
 
-            const importeCentavos =
-                precioCentavos * Number(producto.cantidad);
+            const importeCentavos = precioCentavos * Number(producto.cantidad);
 
             subtotalCentavos += importeCentavos;
 
@@ -128,23 +154,16 @@ async function crear(pedido) {
             });
         }
 
-        const costoEnvioCentavos = Math.round(
-            Number(costo_envio) * 100
-        );
+        const costoEnvioCentavos = Math.round(Number(costo_envio) * 100);
 
-        const total_pedido =
-            (subtotalCentavos + costoEnvioCentavos) / 100;
+        const total_pedido = (subtotalCentavos + costoEnvioCentavos) / 100;
 
-        // 7. Calcular el CO2 ahorrado según la fórmula del proyecto
-        const distanciaKm = Number(
-            resultadoZona.rows[0].distancia_promedio
-        );
+        // 9. Calcular el CO2 ahorrado según la fórmula del proyecto
+        const distanciaKm = Number( resultadoZona.rows[0].distancia_promedio);
 
-        const co2_ahorrado = Number(
-            ((distanciaKm * 105) / 1000).toFixed(3)
-        );
+        const co2_ahorrado = Number(((distanciaKm * 105) / 1000).toFixed(3));
 
-        // 8. Crear el pedido vinculado al carrito
+        // 10. Crear el pedido vinculado al carrito
         const resultadoPedido = await client.query(
             `INSERT INTO pedido (
                 id_cliente,
@@ -173,18 +192,18 @@ async function crear(pedido) {
                 id_carrito,
                 total_pedido,
                 tipo_pago,
-                Number(costo_envio),
-                direccion_entrega || null,
-                piso_entrega || null,
-                departamento_entrega || null,
-                indicacion_entrega || null,
+                costo_envio,
+                direccionValidada,
+                pisoValidado,
+                departamentoValidado,
+                indicacionValidada,
                 co2_ahorrado
             ]
         );
 
         const nuevoPedido = resultadoPedido.rows[0];
 
-        // 9. Copiar los productos a detalle_pedido
+        // 11. Copiar los productos a detalle_pedido
         for (const detalle of detalles) {
             await client.query(
                 `INSERT INTO detalle_pedido (
@@ -205,7 +224,7 @@ async function crear(pedido) {
             );
         }
 
-        // 10. Marcar el carrito como convertido
+        // 12. Marcar el carrito como convertido
         await client.query(
             `UPDATE carrito
              SET estado = 'convertido',

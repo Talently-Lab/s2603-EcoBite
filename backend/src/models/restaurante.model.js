@@ -4,6 +4,7 @@
 // ==========================================
 
 const pool = require('../db');//require() trae algo de un archivo; ..→ subir una carpeta, de models a src/db → entrar al archivo db.js
+const { validarTexto,validarTelefono,validarUrlImagen } = require('../utils/validaciones');
 
 //OBTENER TODOS LOS RESTAURANTES CON SUS HORARIOS
 async function obtenerTodos() {
@@ -72,13 +73,28 @@ async function crear(restaurante) {//recibe un objeto restaurante
     } = restaurante;
 
     // Validar los datos obligatorios
-    if (
-        !id_usuario ||
-        !nombre ||
-        !cuit ||
-        !categoria
-    ) {
+    /* if (!id_usuario || !nombre || !cuit || !categoria) {
         throw new Error('Faltan datos obligatorios para el restaurante');
+    } */
+
+    // Validar campos obligatorios
+    const nombreValidado = validarTexto(nombre, 'El nombre', {minimo: 3,maximo: 150,obligatorio: true});
+    const telefonoValidado = validarTelefono(telefono);
+    const direccionValidada = validarTexto(direccion, 'La dirección', {minimo: 5,maximo: 255,obligatorio: true});
+    const categoriaValidada = validarTexto(categoria, 'La categoría', {maximo: 100, obligatorio: true});
+    const imagenValidada = validarTexto(imagen, 'La imagen', { maximo: 255, obligatorio: true});
+
+    // Validar campos opcionales
+    const descripcionValidada = validarTexto(descripcion, 'La descripción');
+    const ciudadValidada = validarTexto(ciudad, 'La ciudad', { maximo: 100 });
+
+    // Validar CUIT
+    if (typeof cuit !== 'string' || !/^\d{11}$/.test(cuit)) {
+        throw new Error('El CUIT debe tener exactamente 11 números, sin guiones');
+    }
+
+    if (!id_usuario) {
+        throw new Error('Falta el usuario del restaurante');
     }
 
     // Verificar que la cuenta exista
@@ -106,14 +122,14 @@ async function crear(restaurante) {//recibe un objeto restaurante
         RETURNING *`,
         [
             id_usuario,
-            nombre,
-            telefono || null,
+            nombreValidado,
+            telefonoValidado,
             cuit,
-            direccion || null,
-            descripcion || null,
-            categoria,
-            ciudad || null,
-            imagen || null
+            direccionValidada,
+            descripcionValidada,
+            categoriaValidada,
+            ciudadValidada,
+            imagenValidada
         ]
     );
     // Devolver el restaurante creado
@@ -133,27 +149,69 @@ async function actualizar(id, restaurante) {
         imagen
     } = restaurante;
 
+     // Validar campos si se envían para modificar
+    const nombreValidado = nombre === undefined ? null : validarTexto(nombre, 'El nombre', {
+            minimo: 3,
+            maximo: 150,
+            obligatorio: true
+        });
+
+    const telefonoValidado = telefono === undefined ? null : validarTelefono(telefono);
+
+    // Validar CUIT si se envía
+    let cuitValidado = null;
+
+    if (cuit !== undefined) {
+        if (typeof cuit !== 'string' || !/^\d{11}$/.test(cuit)) {
+            throw new Error('El CUIT debe tener exactamente 11 números, sin guiones');
+        }
+        cuitValidado = cuit;
+    }
+
+    const direccionValidada = direccion === undefined ? null : validarTexto(direccion, 'La dirección', {
+            minimo: 5,
+            maximo: 255,
+            obligatorio: true
+        });
+
+    const descripcionValidada = descripcion === undefined ? null : validarTexto(descripcion, 'La descripción');
+
+    const categoriaValidada = categoria === undefined ? null : validarTexto(categoria, 'La categoría', {
+            maximo: 100,
+            obligatorio: true
+        });
+
+    const ciudadValidada = ciudad === undefined ? null : validarTexto(ciudad, 'La ciudad', {
+            maximo: 100
+        });
+
+    const imagenValidada = imagen === undefined ? null : validarTexto(imagen, 'La imagen', {
+            maximo: 255,
+            obligatorio: true
+        });
+
+    //Actualizar restaurante
     const resultado = await pool.query(
         `UPDATE restaurante
-         SET nombre = $1,
-             telefono = $2,
-             cuit = $3,
-             direccion = $4,
-             descripcion = $5,
-             categoria = $6,
-             ciudad = $7,
-             imagen = $8
+         SET nombre = COALESCE($1, nombre),
+             telefono = COALESCE($2, telefono),
+             cuit = COALESCE($3, cuit),
+             direccion = COALESCE($4, direccion),
+             descripcion = COALESCE($5, descripcion),
+             categoria = COALESCE($6, categoria),
+             ciudad = COALESCE($7, ciudad),
+             imagen = COALESCE($8, imagen)
          WHERE id = $9
          RETURNING *`,
         [
-            nombre,
-            telefono,
-            cuit,
-            direccion,
-            descripcion,
-            categoria,
-            ciudad,
-            imagen,
+            nombreValidado,
+            telefonoValidado,
+            cuitValidado,
+            direccionValidada,
+            descripcionValidada,
+            categoriaValidada,
+            ciudadValidada,
+            imagenValidada,
             id
         ]
     );
@@ -174,12 +232,14 @@ async function eliminar(id) {
 }
 
 async function actualizarImagen(id, imagen) {
+    
+    const imagenValidada = validarUrlImagen(imagen);
     const resultado = await pool.query(
         `UPDATE restaurante
          SET imagen = $2
          WHERE id = $1
          RETURNING *`,
-        [id, imagen]
+        [id, imagenValidada]
     );
 
     return resultado.rows[0] || null;

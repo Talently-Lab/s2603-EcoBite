@@ -1,4 +1,5 @@
 const pool = require('../db');
+const { validarTexto,validarPrecio,validarUrlImagen, ErrorValidacion } = require('../utils/validaciones');
 
 // Obtener todos los productos disponible de un restaurante y opcional por categoria
 async function obtenerPorRestaurante(idRestaurante, categoria=null) {
@@ -35,18 +36,55 @@ async function crear(datos) {
         imagen
     } = datos;
 
+     // Validar restaurante
+    if (!Number.isInteger(Number(id_restaurante)) || Number(id_restaurante) <= 0) {
+        throw new ErrorValidacion('El restaurante seleccionado no es válido');
+    }
+
+    const restaurante = await pool.query(
+        'SELECT id FROM restaurante WHERE id = $1',
+        [Number(id_restaurante)]
+    );
+
+    if (restaurante.rows.length === 0) {
+        throw new ErrorValidacion('El restaurante seleccionado no existe');
+    }
+
+    // Validar campos obligatorios
+    const nombreValidado = validarTexto(nombre, 'El nombre', {
+        minimo: 3,
+        maximo: 150,
+        obligatorio: true
+    });
+
+    const precioValidado = validarPrecio(precio);
+
+    const categoriaValidada = validarTexto(categoria, 'La categoría', {
+        minimo: 1,
+        maximo: 100,
+        obligatorio: true
+    });
+
+    // Validar campos opcionales
+    const descripcionValidada = validarTexto(descripcion, 'La descripción');
+
+    const imagenValidada = imagen === undefined || imagen === null || imagen === ''
+        ? null
+        : validarUrlImagen(imagen);
+
+
     const resultado = await pool.query(
         `INSERT INTO producto
             (id_restaurante, nombre, descripcion, precio, categoria, imagen)
          VALUES ($1, $2, $3, $4, $5, $6)
          RETURNING *`,
         [
-            id_restaurante,
-            nombre,
-            descripcion,
-            precio,
-            categoria,
-            imagen || null
+            Number(id_restaurante),
+            nombreValidado,
+            descripcionValidada,
+            precioValidado,
+            categoriaValidada,
+            imagenValidada
         ]
     );
 
@@ -60,8 +98,65 @@ async function actualizar(id, datos) {
         descripcion,
         precio,
         categoria,
-        disponible
+        disponible,
+        imagen
     } = datos;
+
+    // Validar nombre si fue enviado
+    const nombreValidado = nombre === undefined
+        ? null
+        : validarTexto(nombre, 'El nombre', {
+            minimo: 3,
+            maximo: 150,
+            obligatorio: true
+        });
+
+    // Validar descripción si fue enviada
+    const descripcionValidada = descripcion === undefined
+        ? null
+        : validarTexto(descripcion, 'La descripción',{
+            minimo: 3,
+            maximo: 150,
+            obligatorio:false
+        });
+
+    // Validar precio si fue enviado
+    const precioValidado = precio === undefined
+        ? null
+        : validarPrecio(precio);
+
+    // Validar categoría si fue enviada
+    const categoriaValidada = categoria === undefined
+        ? null
+        : validarTexto(categoria, 'La categoría', {
+            minimo: 3,
+            maximo: 100,
+            obligatorio: true
+        });
+
+    // Validar disponibilidad si fue enviada
+    const disponibleValidado = disponible === undefined
+        ? null
+        : validarDisponible(disponible);
+
+    // Validar imagen si fue enviada
+    const imagenValidada = imagen === undefined
+        ? null
+        : imagen === null || imagen === ''
+            ? null
+            : validarUrlImagen(imagen);
+
+    // Comprobar que exista al menos un campo para modificar
+    if (
+        nombre === undefined &&
+        descripcion === undefined &&
+        precio === undefined &&
+        categoria === undefined &&
+        disponible === undefined &&
+        imagen === undefined
+    ) {
+        throw new ErrorValidacion('No se enviaron campos para modificar');
+    }
 
     const resultado = await pool.query(
         `UPDATE producto
@@ -69,16 +164,18 @@ async function actualizar(id, datos) {
              descripcion = COALESCE($3, descripcion),
              precio = COALESCE($4, precio),
              categoria = COALESCE($5, categoria),
-             disponible = COALESCE($6, disponible)
+             disponible = COALESCE($6, disponible),
+             imagen = COALESCE($7, imagen)
          WHERE id = $1
          RETURNING *`,
         [
             id,
-            nombre ?? null,
-            descripcion ?? null,
-            precio ?? null,
-            categoria ?? null,
-            disponible ?? null
+            nombreValidado,
+            descripcionValidada,
+            precioValidado,
+            categoriaValidada,
+            disponibleValidado,
+            imagenValidada
         ]
     );
 
