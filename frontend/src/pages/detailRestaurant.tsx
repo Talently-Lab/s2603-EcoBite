@@ -33,7 +33,8 @@ export function DetalleRestaurantePage({
 }: DetalleRestaurantePageProps) {
   const { slug } = useParams();
   const { user, loading: authLoading } = useAuth();
-  const canAddToCart = !authLoading && user?.rol === "cliente";
+  const canAddToCart =
+    !authLoading && (user === null || user.rol === "cliente");
   const [loadedData, setLoadedData] = useState<{
     slug: string;
     restaurant: Restaurant;

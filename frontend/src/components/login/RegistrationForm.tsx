@@ -27,10 +27,14 @@ const registrationFields = z.object({
     email: z
       .string()
       .trim()
+      .max(150, "El email no puede superar los 150 caracteres.")
       .email("Ingresá un email válido, por ejemplo ana@correo.com."),
     contrasena: z
       .string()
-      .min(8, "La contraseña debe tener al menos 8 caracteres."),
+      .min(8, "La contraseña debe tener al menos 8 caracteres.")
+      .refine((value) => new TextEncoder().encode(value).length <= 72, {
+        message: "La contraseña no puede superar los 72 bytes.",
+      }),
     confirmPassword: z.string().min(1, "Confirmá tu contraseña."),
     canal_adquisicion: z.string().min(1, "Elegí una opción."),
     termsAccepted: z.boolean(),
@@ -51,30 +55,35 @@ const registrationSchema = registrationFields
     nombre: z
       .string()
       .trim()
-      .min(1, "Ingresá tu nombre.")
-      .refine((value) => !/\d/.test(value), {
-        message: "El nombre no puede tener números.",
-      }),
+      .min(3, "El nombre debe tener al menos 3 caracteres.")
+      .max(100, "El nombre no puede superar los 100 caracteres."),
     apellido: z
       .string()
       .trim()
-      .min(1, "Ingresá tu apellido.")
-      .refine((value) => !/\d/.test(value), {
-        message: "El apellido no puede tener números.",
-      }),
+      .min(3, "El apellido debe tener al menos 3 caracteres.")
+      .max(100, "El apellido no puede superar los 100 caracteres."),
     telefono: z
       .string()
       .trim()
-      .min(1, "Ingresá tu teléfono.")
-      .refine((value) => /^(?=.*\d)[\d+()\s-]+$/.test(value), {
-        message: "El teléfono no puede contener letras.",
+      .refine((value) => /^(?:\d{10}|\d{13})$/.test(value), {
+        message: "Ingresá un teléfono de 10 o 13 números, sin espacios ni guiones.",
       }),
-    direccion: z.string().trim().min(1, "Ingresá tu calle y número."),
-    piso: z.string().regex(/^\d*$/, "El piso solo puede contener números."),
+    direccion: z
+      .string()
+      .trim()
+      .min(5, "La dirección debe tener al menos 5 caracteres.")
+      .max(150, "La dirección no puede superar los 150 caracteres."),
+    piso: z
+      .string()
+      .trim()
+      .max(20, "El piso no puede superar los 20 caracteres.")
+      .regex(/^\d*$/, "El piso solo puede contener números."),
     departamento: z
       .string()
+      .trim()
+      .max(20, "El departamento no puede superar los 20 caracteres.")
       .regex(/^\d*$/, "El departamento solo puede contener números."),
-    ciudad: z.string().trim().min(1, "Ingresá tu ciudad."),
+    ciudad: z.string().trim().max(100, "La ciudad no puede superar los 100 caracteres."),
     id_zona: z.string().min(1, "Elegí tu zona de domicilio."),
   })
   .refine((data) => data.contrasena === data.confirmPassword, {
@@ -88,24 +97,36 @@ const registrationSchema = registrationFields
 
 const restaurantRegistrationSchema = registrationFields
   .extend({
-    nombre: z.string().trim().min(1, "Ingresá el nombre del local."),
+    nombre: z
+      .string()
+      .trim()
+      .min(3, "El nombre del local debe tener al menos 3 caracteres.")
+      .max(150, "El nombre del local no puede superar los 150 caracteres."),
     cuit: z.string().trim().superRefine((value, context) => {
       if (!value) {
         context.addIssue({ code: "custom", message: "Ingresá un CUIT válido: 11 números, por ejemplo:\n30-12345678-9." });
-      } else if (!/^\d{2}-?\d{8}-?\d$/.test(value)) {
+      } else if (!/^(?:\d{11}|\d{2}-\d{8}-\d)$/.test(value)) {
         context.addIssue({ code: "custom", message: "Ingresá un CUIT válido: 11 números, por ejemplo:\n30-12345678-9." });
       }
     }),
-    categoria: z.string().trim().min(1, "Elegí una categoría."),
+    categoria: z
+      .string()
+      .trim()
+      .min(1, "Elegí una categoría.")
+      .max(100, "La categoría no puede superar los 100 caracteres."),
     telefono: z
       .string()
       .trim()
-      .refine((value) => !value || /^(?=.*\d)[\d+()\s-]+$/.test(value), {
-        message: "El teléfono no puede contener letras.",
+      .regex(/^(?:\d{10}|\d{13})$/, {
+        message: "Ingresá un teléfono de 10 o 13 números, sin espacios ni guiones.",
       }),
-    direccion: z.string().trim(),
+    direccion: z
+      .string()
+      .trim()
+      .min(5, "La dirección debe tener al menos 5 caracteres.")
+      .max(255, "La dirección no puede superar los 255 caracteres."),
     descripcion: z.string().trim(),
-    ciudad: z.string().trim(),
+    ciudad: z.string().trim().max(100, "La ciudad no puede superar los 100 caracteres."),
   })
   .refine((data) => data.contrasena === data.confirmPassword, {
     message: "Las contraseñas no coinciden.",
@@ -143,8 +164,6 @@ const residentialZones = [
   { id: "5", label: "Oeste" },
 ];
 
-const existingClientAccountMessage =
-  "No pudimos guardar tu perfil. Tu cuenta ya está creada: revisá el campo marcado y probá de nuevo.";
 const invalidRestaurantScheduleMessage =
   "Revisá los horarios marcados para poder guardarlos.";
 
@@ -276,7 +295,7 @@ export function RegistrationForm({ onStepChange, onAccountTypeChange }: Registra
       setErrors(nextErrors);
       setSubmitError(
         pendingClientSession
-          ? existingClientAccountMessage
+          ? "Revisá los campos marcados para guardar el perfil de tu cuenta."
           : "Revisá los campos marcados para poder crear tu cuenta.",
       );
       return;
@@ -322,8 +341,8 @@ export function RegistrationForm({ onStepChange, onAccountTypeChange }: Registra
         }));
 
       if (!isCompletingProfile) {
-        login(session.token, session.usuario);
         if (accountType === "restaurante") {
+          login(session.token, session.usuario);
           setPendingRestaurantSession(session);
         } else {
           clientAccountCreated = true;
@@ -336,7 +355,7 @@ export function RegistrationForm({ onStepChange, onAccountTypeChange }: Registra
         const isRestaurantProfileCreated = createdRestaurantId !== null;
         const restaurantId = createdRestaurantId ?? await createRestaurantProfile(session.token, {
           nombre: registrationData.nombre,
-          cuit: registrationData.cuit,
+          cuit: registrationData.cuit.replace(/-/g, ""),
           categoria: registrationData.categoria,
           telefono: registrationData.telefono.trim() || null,
           direccion: registrationData.direccion.trim() || null,
@@ -411,7 +430,11 @@ export function RegistrationForm({ onStepChange, onAccountTypeChange }: Registra
       setIsRegistered(true);
     } catch (error) {
       if (accountType === "cliente" && clientAccountCreated) {
-        setSubmitError(existingClientAccountMessage);
+        setSubmitError(
+          error instanceof Error
+            ? `La cuenta ya está creada, pero no se pudo guardar el perfil: ${error.message}`
+            : "La cuenta ya está creada, pero no se pudo guardar el perfil.",
+        );
       } else if (
         accountType === "restaurante" &&
         error instanceof Error &&
@@ -582,7 +605,7 @@ export function RegistrationForm({ onStepChange, onAccountTypeChange }: Registra
               errorMessage={errors.categoria}
             />
             <Input
-              label="Teléfono (opcional)"
+              label="Teléfono"
               name="telefono"
               type="tel"
               inputMode="tel"
@@ -595,7 +618,7 @@ export function RegistrationForm({ onStepChange, onAccountTypeChange }: Registra
               errorMessage={errors.telefono}
             />
             <Input
-              label="Dirección (opcional)"
+              label="Dirección"
               name="direccion"
               type="text"
               autoComplete="street-address"
@@ -630,6 +653,8 @@ export function RegistrationForm({ onStepChange, onAccountTypeChange }: Registra
               value={form.ciudad}
               onChange={handleChange}
               disabled={isSubmitting}
+              error={Boolean(errors.ciudad)}
+              errorMessage={errors.ciudad}
             />
           </>
         )}
@@ -714,7 +739,7 @@ export function RegistrationForm({ onStepChange, onAccountTypeChange }: Registra
               />
             </div>
             <Input
-              label="Ciudad"
+              label="Ciudad (opcional)"
               name="ciudad"
               type="text"
               autoComplete="address-level2"
@@ -830,10 +855,10 @@ export function RegistrationForm({ onStepChange, onAccountTypeChange }: Registra
             }`}
           >
             <option value="">Elegí una opción</option>
-            <option value="redes_sociales">Redes sociales</option>
-            <option value="recomendacion">Recomendación</option>
-            <option value="busqueda_web">Búsqueda en internet</option>
-            <option value="otro">Otro</option>
+            <option value="Redes sociales">Redes sociales</option>
+            <option value="Recomendación">Recomendación</option>
+            <option value="Búsqueda en internet">Búsqueda en internet</option>
+            <option value="Otro">Otro</option>
           </select>
           {errors.canal_adquisicion && (
             <span

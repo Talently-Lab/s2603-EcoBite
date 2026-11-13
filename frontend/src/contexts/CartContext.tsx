@@ -4,6 +4,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -30,6 +31,7 @@ interface CartContextValue {
   removeFromCart: (itemId: CartItem["id"], restaurantName: string) => void | Promise<void>;
   abandonCart: (cartId: number | undefined, restaurantName: string) => void | Promise<void>;
   clearCart: () => void | Promise<void>;
+  clearNotice: () => void;
   createOrders: (data: OrderRequest) => Promise<number>;
 }
 
@@ -77,6 +79,18 @@ function getOrderCo2Saved(order: unknown): number {
 }
 
 const CartContext = createContext<CartContextValue | undefined>(undefined);
+const GUEST_CART_STORAGE_KEY = "guestCartItems";
+
+function readStoredCart(key: string): CartItem[] {
+  try {
+    const savedItems = sessionStorage.getItem(key);
+    if (!savedItems) return [];
+    const parsedItems: unknown = JSON.parse(savedItems);
+    return Array.isArray(parsedItems) ? (parsedItems as CartItem[]) : [];
+  } catch {
+    return [];
+  }
+}
 
 async function createOrder(body: Record<string, unknown>, token: string): Promise<ApiOrderResponse> {
   const response = await fetch(`${API_BASE_URL}/ordenes`, {
@@ -97,29 +111,62 @@ async function createOrder(body: Record<string, unknown>, token: string): Promis
 export function CartProvider({ children }: { children: ReactNode }) {
   const { token, user, isAuthenticated, loading: authLoading } = useAuth();
   const [items, setItems] = useState<CartItem[]>(() => {
-    try {
-      const savedItems = sessionStorage.getItem("cartItems");
-      if (!savedItems) return [];
-      const parsedItems: unknown = JSON.parse(savedItems);
-      return Array.isArray(parsedItems) ? (parsedItems as CartItem[]) : [];
-    } catch {
-      return [];
-    }
+    return readStoredCart(USE_API_CART ? GUEST_CART_STORAGE_KEY : "cartItems");
   });
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const cartSyncRef = useRef<{ token: string; promise: Promise<CartItem[]> } | null>(null);
 
   useEffect(() => {
-    if (
-      !USE_API_CART ||
-      authLoading ||
-      !token ||
-      !isAuthenticated ||
-      user?.rol !== "cliente"
-    ) return;
+    if (!USE_API_CART || authLoading) return;
+
+    if (!token || !isAuthenticated || user?.rol !== "cliente") {
+      // Restore guest data when leaving an authenticated customer session.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setItems(readStoredCart(GUEST_CART_STORAGE_KEY));
+      setError(null);
+      setNotice(null);
+      return;
+    }
 
     let isCurrent = true;
-    getActiveCartItems(token)
+    let syncPromise = cartSyncRef.current?.token === token
+      ? cartSyncRef.current.promise
+      : null;
+
+    if (!syncPromise) {
+      syncPromise = (async () => {
+        let guestItems = readStoredCart(GUEST_CART_STORAGE_KEY);
+        for (const guestItem of guestItems) {
+          if (
+            !Number.isInteger(Number(guestItem.restaurantId)) ||
+            Number(guestItem.restaurantId) <= 0 ||
+            !Number.isInteger(Number(guestItem.id)) ||
+            Number(guestItem.id) <= 0 ||
+            !Number.isInteger(guestItem.quantity) ||
+            guestItem.quantity <= 0
+          ) {
+            throw new Error("No se pudo sincronizar un producto del carrito guardado.");
+          }
+          await addCartProduct(
+            token,
+            String(guestItem.restaurantId),
+            guestItem.id,
+            guestItem.quantity,
+          );
+          guestItems = guestItems.filter((item) => item !== guestItem);
+          try {
+            sessionStorage.setItem(GUEST_CART_STORAGE_KEY, JSON.stringify(guestItems));
+          } catch {
+            // The server cart remains available even when guest-cart storage is unavailable.
+          }
+        }
+        return getActiveCartItems(token);
+      })();
+      cartSyncRef.current = { token, promise: syncPromise };
+    }
+
+    syncPromise
       .then((serverItems) => {
         if (isCurrent) {
           setItems(serverItems);
@@ -128,7 +175,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
       })
       .catch((loadError: unknown) => {
         if (isCurrent) {
-          setError(loadError instanceof Error ? loadError.message : "No se pudo cargar el carrito.");
+          setError(loadError instanceof Error
+            ? `No se pudo sincronizar el carrito: ${loadError.message}`
+            : "No se pudo sincronizar el carrito.");
+        }
+      })
+      .finally(() => {
+        if (cartSyncRef.current?.promise === syncPromise) {
+          cartSyncRef.current = null;
         }
       });
     return () => {
@@ -138,17 +192,23 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     try {
-      sessionStorage.setItem("cartItems", JSON.stringify(items));
+      if (USE_API_CART) {
+        if (!authLoading && (!isAuthenticated || user?.rol !== "cliente")) {
+          sessionStorage.setItem(GUEST_CART_STORAGE_KEY, JSON.stringify(items));
+        }
+      } else {
+        sessionStorage.setItem("cartItems", JSON.stringify(items));
+      }
     } catch {
       // El carrito sigue funcionando en memoria si el almacenamiento no está disponible.
     }
-  }, [items]);
+  }, [items, authLoading, isAuthenticated, user?.rol]);
 
   const addToCart = useCallback(async (item: MenuItemData, restaurantId: string, restaurantName: string) => {
     setNotice(null);
-    if (USE_API_CART) {
-      if (!token || !isAuthenticated || user?.rol !== "cliente") {
-        setError("Iniciá sesión como cliente para guardar productos en tu carrito.");
+    if (USE_API_CART && isAuthenticated) {
+      if (!token || user?.rol !== "cliente") {
+        setError("Solo los clientes pueden agregar productos al carrito.");
         return;
       }
       try {
@@ -267,6 +327,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
     setNotice("Se vaciaron tus carritos.");
   }, [items, token]);
 
+  const clearNotice = useCallback(() => setNotice(null), []);
+
   const createOrders = useCallback(async (data: OrderRequest) => {
     if (!token) throw new Error("Iniciá sesión para confirmar tu pedido.");
     const cartIds = [...new Set(items.map((item) => item.cartId).filter((id): id is number => id !== undefined))];
@@ -297,7 +359,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const canViewCart =
     !USE_API_CART ||
-    (!authLoading && isAuthenticated && user?.rol === "cliente");
+    (!authLoading && (!isAuthenticated || user?.rol === "cliente"));
   const value = useMemo(() => ({
     items: canViewCart ? items : [],
     error: canViewCart ? error : null,
@@ -307,8 +369,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
     removeFromCart,
     abandonCart,
     clearCart,
+    clearNotice,
     createOrders,
-  }), [items, error, notice, canViewCart, addToCart, changeQuantity, removeFromCart, abandonCart, clearCart, createOrders]);
+  }), [items, error, notice, canViewCart, addToCart, changeQuantity, removeFromCart, abandonCart, clearCart, clearNotice, createOrders]);
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 }
 
