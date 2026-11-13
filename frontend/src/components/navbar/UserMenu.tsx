@@ -77,7 +77,7 @@ export default function UserMenu({
         <button
           type="button"
           onClick={onLogout}
-          className="w-full rounded-md px-3 py-2 text-left text-sm font-semibold text-eco-dark transition-colors hover:bg-eco-light/30"
+          className="w-full cursor-pointer rounded-md px-3 py-2 text-left text-sm font-semibold text-eco-dark transition-colors hover:bg-eco-light/30"
         >
           Cerrar sesión
         </button>

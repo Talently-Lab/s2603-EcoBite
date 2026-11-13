@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Link, Outlet } from "react-router-dom";
 import Navbar from "@/components/navbar/Navbar";
 import Footer from "@/components/footer/Footer";
@@ -8,10 +9,23 @@ interface MainLayoutProps {
   cartCount: number;
   cartError?: string | null;
   cartNotice?: string | null;
+  onDismissCartNotice: () => void;
 }
 
-export default function MainLayout({ cartCount, cartError, cartNotice }: MainLayoutProps) {
+export default function MainLayout({
+  cartCount,
+  cartError,
+  cartNotice,
+  onDismissCartNotice,
+}: MainLayoutProps) {
   const { sessionExpired } = useAuth();
+
+  useEffect(() => {
+    if (!cartNotice) return;
+
+    const timeout = window.setTimeout(onDismissCartNotice, 4000);
+    return () => window.clearTimeout(timeout);
+  }, [cartNotice, onDismissCartNotice]);
 
   return (
     <div className="flex min-h-screen flex-col">

@@ -17,13 +17,13 @@ import { CustomerOrdersPage } from "./pages/customerOrders";
 import { RestaurantSchedulesPage } from "./pages/restaurantSchedules";
 
 function App() {
-  const { items, addToCart, changeQuantity, removeFromCart, abandonCart, error, notice } = useCart();
+  const { items, addToCart, changeQuantity, removeFromCart, abandonCart, error, notice, clearNotice } = useCart();
   const count = items.reduce((total, item) => total + item.quantity, 0);
 
   return (
     <BrowserRouter>
       <Routes>
-        <Route element={<MainLayout cartCount={count} cartError={error} cartNotice={notice} />}>
+        <Route element={<MainLayout cartCount={count} cartError={error} cartNotice={notice} onDismissCartNotice={clearNotice} />}>
           <Route path="/" element={<HomePage />} />
           <Route element={<AuthLayout />}>
             <Route path="/login" element={<LoginPage />} />
