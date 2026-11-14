@@ -1,11 +1,17 @@
 import { useEffect, useState } from "react";
+import { Navigate, useParams } from "react-router-dom";
 import { GlobalAlert } from "../components/ui/GlobalAlert";
 import { RestaurantSchedulesForm } from "../components/adminDashboard/RestaurantSchedulesForm";
 import { useAuth } from "../contexts/AuthContext";
 import { getRestaurants } from "../services/restaurants";
+import {
+  getUserDashboardPath,
+  getUserSchedulesPath,
+} from "../utils/userRoutes";
 
 export function RestaurantSchedulesPage() {
   const { user, token } = useAuth();
+  const { username } = useParams();
   const restaurantUserId =
     user?.rol === "restaurante" ? user.id : undefined;
   const [restaurantId, setRestaurantId] = useState<number>();
@@ -46,6 +52,14 @@ export function RestaurantSchedulesPage() {
       active = false;
     };
   }, [restaurantUserId]);
+
+  if (user?.rol === "cliente") {
+    return <Navigate to={getUserDashboardPath(user)} replace />;
+  }
+
+  if (user?.rol === "restaurante" && username !== getUserSchedulesPath(user).split("/")[1]) {
+    return <Navigate to={getUserSchedulesPath(user)} replace />;
+  }
 
   if (user?.rol !== "restaurante" || !token) {
     return (

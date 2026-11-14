@@ -1,6 +1,7 @@
 import { Link, useLocation } from "react-router-dom";
 import Button from "../ui/Button";
 import { useAuth } from "../../contexts/AuthContext";
+import { getUserDashboardPath, getUserSchedulesPath } from "../../utils/userRoutes";
 
 interface NavLinksProps {
   mobile?: boolean;
@@ -17,12 +18,14 @@ export default function NavLinks({
   onOpenImpactModal,
   onOpenHowItWorksModal,
 }: NavLinksProps) {
-  const { isAuthenticated, loading } = useAuth();
+  const { isAuthenticated, loading, user } = useAuth();
   const { pathname, search } = useLocation();
 
   if (dashboard) {
     const activeTab = new URLSearchParams(search).get("tab");
-    const isSchedulesPage = pathname === "/admin/horarios";
+    const dashboardPath = user ? getUserDashboardPath(user) : "/dashboard";
+    const schedulesPath = user ? getUserSchedulesPath(user) : "/horarios";
+    const isSchedulesPage = pathname === schedulesPath;
     const dashboardItemStyle =
       mobile
         ? "w-full rounded-md px-3 py-2 text-left text-sm font-semibold"
@@ -42,7 +45,7 @@ export default function NavLinks({
         }
       >
         <Link
-          to="/admin/dashboard"
+          to={dashboardPath}
           onClick={onLinkClick}
           aria-current={!isSchedulesPage && !activeTab ? "page" : undefined}
           className={
@@ -54,7 +57,7 @@ export default function NavLinks({
           Resumen
         </Link>
         <Link
-          to="/admin/dashboard?tab=orders"
+          to={`${dashboardPath}?tab=orders`}
           onClick={onLinkClick}
           aria-current={!isSchedulesPage && activeTab === "orders" ? "page" : undefined}
           className={
@@ -66,7 +69,7 @@ export default function NavLinks({
           Pedidos
         </Link>
         <Link
-          to="/admin/dashboard?tab=products"
+          to={`${dashboardPath}?tab=products`}
           onClick={onLinkClick}
           aria-current={!isSchedulesPage && activeTab === "products" ? "page" : undefined}
           className={
@@ -78,7 +81,7 @@ export default function NavLinks({
           Productos
         </Link>
         <Link
-          to="/admin/horarios"
+          to={schedulesPath}
           onClick={onLinkClick}
           aria-current={isSchedulesPage ? "page" : undefined}
           className={

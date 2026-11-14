@@ -9,6 +9,7 @@ import { useAuth } from "../../contexts/AuthContext";
 import { getRestaurants } from "../../services/restaurants";
 import CartLink from "./CartLink";
 import UserMenu from "./UserMenu";
+import { getUserDashboardPath, getUserSchedulesPath } from "../../utils/userRoutes";
 
 interface NavbarProps {
   cartCount: number;
@@ -21,8 +22,11 @@ export default function Navbar({ cartCount }: NavbarProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isImpactOpen, setIsImpactOpen] = useState(false);
   const [isHowItWorksOpen, setIsHowItWorksOpen] = useState(false);
-  const [restaurantName, setRestaurantName] = useState<string | null>(null);
-  const [restaurantCity, setRestaurantCity] = useState<string | null>(null);
+  const [restaurantProfile, setRestaurantProfile] = useState<{
+    userId: number;
+    name: string | null;
+    city: string | null;
+  } | null>(null);
 
   function handleLogout() {
     logout();
@@ -32,8 +36,6 @@ export default function Navbar({ cartCount }: NavbarProps) {
 
   useEffect(() => {
     if (!isAuthenticated || user?.rol !== "restaurante" || !user.id) {
-      setRestaurantName(null);
-      setRestaurantCity(null);
       return;
     }
 
@@ -42,13 +44,19 @@ export default function Navbar({ cartCount }: NavbarProps) {
       .then((restaurants) => {
         if (!isCurrent) return;
         const restaurant = restaurants.find((item) => item.userId === user.id);
-        setRestaurantName(restaurant?.name ?? null);
-        setRestaurantCity(restaurant?.city ?? null);
+        setRestaurantProfile({
+          userId: user.id,
+          name: restaurant?.name ?? null,
+          city: restaurant?.city ?? null,
+        });
       })
       .catch(() => {
         if (isCurrent) {
-          setRestaurantName(null);
-          setRestaurantCity(null);
+          setRestaurantProfile({
+            userId: user.id,
+            name: null,
+            city: null,
+          });
         }
       });
 
@@ -58,16 +66,21 @@ export default function Navbar({ cartCount }: NavbarProps) {
   }, [isAuthenticated, user]);
 
   const emailName = user?.email?.split("@")[0];
+  const currentRestaurantProfile =
+    restaurantProfile?.userId === user?.id ? restaurantProfile : null;
   const userName =
     user?.rol === "restaurante"
-      ? restaurantName ?? emailName ?? "tu restaurante"
+      ? currentRestaurantProfile?.name ?? emailName ?? "tu restaurante"
       : user?.nombre ?? emailName ?? "usuario";
   const userRole = user?.rol === "restaurante" ? "Restaurante" : "Cliente";
   const userCity =
-    user?.rol === "restaurante" ? restaurantCity : user?.ciudad;
+    user?.rol === "restaurante"
+      ? currentRestaurantProfile?.city
+      : user?.ciudad;
   const isRestaurantDashboard =
-    (pathname === "/admin/dashboard" || pathname === "/admin/horarios") &&
-    (loading || user?.rol === "restaurante");
+    (loading && /^\/[^/]+\/(dashboard|horarios)$/.test(pathname)) ||
+    (user?.rol === "restaurante" &&
+      [getUserDashboardPath(user), getUserSchedulesPath(user)].includes(pathname));
 
   return (
     <>

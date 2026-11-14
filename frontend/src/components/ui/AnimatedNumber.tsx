@@ -56,6 +56,7 @@ export function AnimatedNumber({
       start={0}
       end={Number(value)}
       duration={1}
+      decimals={maximumFractionDigits}
       formattingFn={formatValue}
     />
   );

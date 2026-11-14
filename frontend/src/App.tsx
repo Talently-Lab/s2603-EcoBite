@@ -7,13 +7,15 @@ import { CarritoPage } from "./pages/carrito";
 import { DetalleRestaurantePage } from "./pages/detailRestaurant";
 import { CheckoutPage } from "./pages/checkout";
 import { ConfirmacionPage } from "./pages/confirmation";
-import { DashboardImpactoPage } from "./pages/dashboardImpacto";
 import MainLayout from "./layouts/MainLayout";
 import { AuthLayout } from "./layouts/AuthLayout";
 import { useCart } from "./contexts/CartContext";
 import { RequireAuth } from "./components/auth/RequireAuth";
-import { DashboardPage } from "./pages/dashboard";
-import { CustomerOrdersPage } from "./pages/customerOrders";
+import { DashboardPage, RestaurantSchedulesRedirect } from "./pages/dashboard";
+import {
+  CustomerOrdersPage,
+  CustomerOrdersRedirect,
+} from "./pages/customerOrders";
 import { RestaurantSchedulesPage } from "./pages/restaurantSchedules";
 
 function App() {
@@ -55,12 +57,18 @@ function App() {
             path="/confirmacion"
             element={<ConfirmacionPage items={items} savedCo2Kg={null} />}
           />
-          <Route path="/dashboard" element={<DashboardImpactoPage />} />
           <Route element={<RequireAuth />}>
-            <Route path="/mis-pedidos" element={<CustomerOrdersPage />} />
+            <Route path="/dashboard" element={<DashboardPage />} />
+            <Route path="/mis-pedidos" element={<CustomerOrdersRedirect />} />
+            <Route path="/:username/pedidos" element={<CustomerOrdersPage />} />
             <Route path="/admin/dashboard" element={<DashboardPage />} />
+            <Route path="/:username/dashboard" element={<DashboardPage />} />
             <Route
               path="/admin/horarios"
+              element={<RestaurantSchedulesRedirect />}
+            />
+            <Route
+              path="/:username/horarios"
               element={<RestaurantSchedulesPage />}
             />
           </Route>
