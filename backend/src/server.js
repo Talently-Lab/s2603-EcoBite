@@ -413,6 +413,7 @@ app.post('/api/usuario/login', async (req, res) => {
 });
 
 //======== RESTAURANTE =========
+
 //GET para traer todos los restaurantes
 app.get('/api/restaurantes', async (req, res) => {
     try {
@@ -470,29 +471,32 @@ app.get('/api/restaurantes', async (req, res) => {
         });
     }
 });
-//GET para traer un restaurante
-app.get('/api/restaurantes/:id', async (req,res)=>{
-   try{
-        const id = Number(req.params.id);
 
-        // Validar que el ID sea un número entero positivo
-        if (!Number.isInteger(id) || id <= 0) {
+// VERIFICAR DISPONIBILIDAD DEL CUIT
+app.get('/api/restaurantes/verificar-cuit', async (req, res) => {
+    try {
+        const { cuit } = req.query;
+        const disponible = await restauranteModel.verificarCuit(cuit);
+
+        return res.status(200).json({
+            disponible,
+            ...(disponible ? {} : {
+                mensaje: 'Ese CUIT ya está registrado'
+            })
+        });
+
+    } catch (error) {
+
+        if (error.message === 'El CUIT debe tener exactamente 11 números, sin guiones') {
             return res.status(400).json({
-                error: 'El ID debe ser un número entero positivo'
+                error: error.message
             });
         }
 
-        const restaurante = await restauranteModel.obtenerPorId(id);
-        if(!restaurante){
-            return res.status(404).json({
-                error: 'Restaurante no encontrado'
-            });
-        }
-        res.status(200).json(restaurante);
-    }catch(error){
-        console.error('Error al buscar el restaurante: ', error.message);
-        res.status(500).json({
-            error: 'Error interno del servidor'
+        console.error('Error al verificar CUIT:', error.message);
+
+        return res.status(500).json({
+            error: 'Error interno al verificar el CUIT'
         });
     }
 });
@@ -571,6 +575,33 @@ app.post('/api/restaurantes', verificarToken, async (req, res) => {
 
         return res.status(500).json({
             error: 'Error interno al crear el restaurante'
+        });
+    }
+});
+
+//GET para traer un restaurante
+app.get('/api/restaurantes/:id', async (req,res)=>{
+   try{
+        const id = Number(req.params.id);
+
+        // Validar que el ID sea un número entero positivo
+        if (!Number.isInteger(id) || id <= 0) {
+            return res.status(400).json({
+                error: 'El ID debe ser un número entero positivo'
+            });
+        }
+
+        const restaurante = await restauranteModel.obtenerPorId(id);
+        if(!restaurante){
+            return res.status(404).json({
+                error: 'Restaurante no encontrado'
+            });
+        }
+        res.status(200).json(restaurante);
+    }catch(error){
+        console.error('Error al buscar el restaurante: ', error.message);
+        res.status(500).json({
+            error: 'Error interno del servidor'
         });
     }
 });

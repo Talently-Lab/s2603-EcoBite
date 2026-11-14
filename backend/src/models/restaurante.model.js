@@ -136,6 +136,26 @@ async function crear(restaurante) {//recibe un objeto restaurante
     return resultado.rows[0];
 }
 
+// VERIFICAR SI UN CUIT YA ESTÁ REGISTRADO
+async function verificarCuit(cuit) {
+
+    // Validar formato del CUIT
+    if (typeof cuit !== 'string' || !/^\d{11}$/.test(cuit)) {
+        throw new Error('El CUIT debe tener exactamente 11 números, sin guiones');
+    }
+
+    const resultado = await pool.query(
+        `SELECT EXISTS (
+            SELECT 1
+            FROM restaurante
+            WHERE cuit = $1
+        ) AS existe`,
+        [cuit]
+    );
+    //Si existe, devuelve false. Si no existe, devuelve true.
+    return !resultado.rows[0].existe;
+}
+
 //ACTUALIZAR RESTAURANTE
 async function actualizar(id, restaurante) {
     const {
@@ -279,6 +299,7 @@ module.exports = {
     obtenerTodos,
     obtenerPorId,
     crear,
+    verificarCuit,
     actualizar,
     actualizarImagen,
     eliminar,
