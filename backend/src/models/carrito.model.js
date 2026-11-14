@@ -108,7 +108,7 @@ async function obtenerPendientePorClienteYRestaurante(idCliente, idRestaurante) 
 
 // Marcar como abandonados los carritos pendientes que superaron las 24 horas
 async function abandonarCarritosPendientes() {
-    const resultado = await pool.query(
+    /* const resultado = await pool.query(
         `UPDATE carrito
          SET estado = 'abandonado'
          WHERE estado = 'pendiente'
@@ -119,6 +119,27 @@ async function abandonarCarritosPendientes() {
                WHERE detalle_carrito.id_carrito = carrito.id
            )
          RETURNING id`
+    ); */
+
+    const resultado = await pool.query(
+        `WITH carritos_abandonados AS (
+            UPDATE carrito
+            SET estado = 'abandonado'
+            WHERE estado = 'pendiente'
+              AND fecha_actualizacion <= CURRENT_TIMESTAMP - INTERVAL '24 hours'
+              AND EXISTS (
+                  SELECT 1
+                  FROM detalle_carrito
+                  WHERE detalle_carrito.id_carrito = carrito.id
+              )
+            RETURNING id, id_cliente
+        )
+        SELECT
+            ca.id AS id_carrito,
+            u.email
+        FROM carritos_abandonados ca
+        LEFT JOIN cliente c ON c.id = ca.id_cliente
+        LEFT JOIN usuario u ON u.id = c.id_usuario`,
     );
 
     return resultado.rows;

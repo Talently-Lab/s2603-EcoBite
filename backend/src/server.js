@@ -12,7 +12,7 @@ const cloudinary = require('./cloudinary');
 const { Readable } = require('stream');
 const cors = require('cors');
 
-const { enviarBienvenida } = require('./services/email.service');
+const {enviarBienvenida, enviarRecordatorioCarritoAbandonado} = require('./services/email.service');
 const subirImagen = require('./middlewares/subirImagen');
 const { verificarToken, verificarRol } = require('./middlewares/auth.middleware');
 const { obtenerPublicIdDesdeUrl } = require('./cloudinary.utils');
@@ -2877,7 +2877,31 @@ app.delete('/api/carritos/:idCarrito',verificarToken,verificarRol('cliente'),asy
 // REVISAR CARRITOS PENDIENTES MINUTO A MINUTO y Pasarlo a ABANDONADOS
 cron.schedule('* * * * *', async () => {
     try {
-        await carritoModel.abandonarCarritosPendientes();
+        //await carritoModel.abandonarCarritosPendientes();
+        const carritosAbandonados =
+            await carritoModel.abandonarCarritosPendientes();
+
+        // Enviar un correo a cada cliente cuyo carrito acaba de abandonarse
+        for (const carrito of carritosAbandonados) {
+            if (!carrito.email) {
+                console.error(
+                    `No se pudo enviar el correo: el carrito ${carrito.id_carrito} no tiene un email asociado.`
+                );
+                continue;
+            }
+
+            try {
+                await enviarRecordatorioCarritoAbandonado(
+                    carrito.email,
+                    carrito.id_carrito
+                );
+            } catch (error) {
+                console.error(
+                    `Error al enviar el correo del carrito ${carrito.id_carrito}:`,
+                    error
+                );
+            }
+        }
     } catch (error) {
         console.error(
             'Error al abandonar carritos pendientes:',

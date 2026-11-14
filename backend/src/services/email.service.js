@@ -83,5 +83,59 @@ pedir comida se vuelve la mejor opción.
     return info;
 }
 
+
+async function enviarRecordatorioCarritoAbandonado(email, idCarrito) {
+    const transporte = await obtenerTransporter();
+
+    const asunto = '¡Tu carrito de EcoBite te está esperando!';
+
+    const info = await transporte.sendMail({
+        from: '"EcoBite" <bienvenida@ecobite.com>',
+        to: email,
+        subject: asunto,
+        text: `¡Hola!
+
+Vimos que tenés productos en tu carrito de EcoBite y todavía no completaste tu pedido.
+
+¡No te preocupes! Tus productos siguen en tu carrito para que puedas retomar tu compra cuando quieras.
+
+¡Te esperamos en EcoBite!
+
+Equipo EcoBite`,
+        html: `
+            <h2>¡Hola!</h2>
+
+            <p>
+                Vimos que tenés productos en tu carrito de EcoBite
+                y todavía no completaste tu pedido.
+            </p>
+
+            <p>
+                ¡No te preocupes! Tus productos siguen en tu carrito
+                para que puedas retomar tu compra cuando quieras.
+            </p>
+
+            <p>¡Te esperamos en EcoBite!</p>
+
+            <p><strong>Equipo EcoBite</strong></p>
+        `
+    });
+
+    const urlVistaPrevia = nodemailer.getTestMessageUrl(info);
+
+    if (process.env.NODE_ENV !== 'production') {
+        console.log(
+            `Vista previa del correo de carrito abandonado (carrito ${idCarrito}):`,
+            urlVistaPrevia
+        );
+    }
+
+    return info;
+}
+
+
 //permite que server.js importe la función
-module.exports = { enviarBienvenida };
+module.exports = { 
+    enviarBienvenida,
+    enviarRecordatorioCarritoAbandonado
+};
