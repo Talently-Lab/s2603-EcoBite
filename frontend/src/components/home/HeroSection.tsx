@@ -1,6 +1,7 @@
 import Button from "@/components/ui/Button";
 import { HeroTitle } from "../ui/HeroTitle";
 import { HeroDescription } from "../ui/HeroDescription";
+import { CommunityImpactCard } from "./CommunityImpactCard";
 
 export default function HeroSection() {
   return (
@@ -35,14 +36,9 @@ export default function HeroSection() {
             </Button>
           </div>
         </div>
-
-
-        {/* Placeholder hasta contar con la imagen principal */}
-        {/* <div className="min-h-68 w-full rounded-2xl bg-eco-light shadow-sm md:min-h-112" /> */}
-        <div className="min-h-68 w-full rounded-2xl bg-eco-light shadow-sm md:min-h-112">
-          <img src={"/public/images/EcoBadge.png"} alt="EcoBadge" className="h-full w-full object-contain" />
+        <div className="md:p-8">
+          <CommunityImpactCard />
         </div>
-        
       </div>
     </section>
   );

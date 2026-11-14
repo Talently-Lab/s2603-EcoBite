@@ -2,6 +2,11 @@ import { useRef } from "react";
 import { ChevronDown, UserRound } from "lucide-react";
 import { Link } from "react-router-dom";
 import NavLinks from "./NavLinks";
+import { useAuth } from "../../contexts/AuthContext";
+import {
+  getUserDashboardPath,
+  getUserOrdersPath,
+} from "../../utils/userRoutes";
 
 interface UserMenuProps {
   name: string;
@@ -23,6 +28,8 @@ export default function UserMenu({
   dashboard = false,
 }: UserMenuProps) {
   const menuRef = useRef<HTMLDetailsElement>(null);
+  const { user } = useAuth();
+  const dashboardPath = user ? getUserDashboardPath(user) : "/";
 
   return (
     <details ref={menuRef} className="group relative">
@@ -46,7 +53,7 @@ export default function UserMenu({
         </p>
         {isClient && (
           <Link
-            to="/mis-pedidos"
+            to={user ? getUserOrdersPath(user) : "/"}
             onClick={() => {
               if (menuRef.current) menuRef.current.open = false;
             }}
@@ -69,7 +76,7 @@ export default function UserMenu({
           </>
         )}
         <Link
-          to={dashboard ? "/" : "/admin/dashboard"}
+          to={dashboard ? "/" : dashboardPath}
           className="block rounded-md px-3 py-2 text-sm font-semibold text-eco-dark transition-colors hover:bg-eco-light/30"
         >
           {dashboard ? "Salir del dashboard" : "Mi dashboard"}

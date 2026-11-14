@@ -17,7 +17,7 @@ const BENEFICIOS: BenefitItem[] = [
     badgeText: 'Envases biodegradables',
     badgeClass: 'bg-[#EAF5E9] text-[#2E6F40]', // Colores más suaves y estéticos
     icon: <Leaf className="w-3.5 h-3.5" />,
-    description: 'Cada local usa packaging 100 % compostable.',
+    description: 'Cada local utiliza envases 100 % biodegradables.',
   },
   {
     id: 2,
@@ -31,7 +31,7 @@ const BENEFICIOS: BenefitItem[] = [
     badgeText: 'Medí tu impacto',
     badgeClass: 'bg-[#E1F5FE] text-[#0277BD]',
     icon: <Cloud className="w-3.5 h-3.5" />,
-    description: 'Sabé cuánto CO₂ ahorrás con cada pedido.',
+    description: 'Descubrí cuánto CO₂ evitás con cada pedido.',
   },
 ];
 
@@ -46,7 +46,10 @@ export default function WhyEcoBite() {
       {/* Contenedor Responsivo: 1 columna en celular, 3 columnas en escritorio */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {BENEFICIOS.map((item) => (
-          <SimpleCard key={item.id} className="flex flex-col gap-4 items-start h-full">
+          <SimpleCard key={item.id} 
+          className="flex flex-col gap-4 items-start h-full
+          transition-all duration-700 starting:opacity-4 starting:translate-l-4
+          ">
             {/* Renderizamos el Badge dinámico */}
             <Badge 
               icon={item.icon} 

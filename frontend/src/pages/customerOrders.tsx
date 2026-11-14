@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, Navigate } from "react-router-dom";
+import { Link, Navigate, useParams } from "react-router-dom";
 import { Star } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import {
@@ -16,6 +16,14 @@ import Modal from "../components/modal/Modal";
 import Button from "../components/ui/Button";
 import { GlobalAlert } from "../components/ui/GlobalAlert";
 import { Loader } from "../components/ui/Loader";
+import { getUserDashboardPath, getUserOrdersPath } from "../utils/userRoutes";
+
+export function CustomerOrdersRedirect() {
+  const { user } = useAuth();
+
+  if (!user) return <Navigate to="/login" replace />;
+  return <Navigate to={getUserOrdersPath(user)} replace />;
+}
 
 const currencyFormatter = new Intl.NumberFormat("es-AR", {
   style: "currency",
@@ -96,6 +104,7 @@ function loadStoredRatings(userId: number): {
 
 export function CustomerOrdersPage() {
   const { user, token, loading: authLoading } = useAuth();
+  const { username } = useParams();
   const [orders, setOrders] = useState<CustomerOrder[]>([]);
   const [ratedOrders, setRatedOrders] = useState<Record<number, number>>({});
   const [ratingStorageError, setRatingStorageError] = useState<string | null>(null);
@@ -178,7 +187,17 @@ export function CustomerOrdersPage() {
     );
   }
 
-  if (user?.rol !== "cliente") return <Navigate to="/" replace />;
+  if (user?.rol !== "cliente") {
+    return (
+      <Navigate
+        to={user ? getUserDashboardPath(user) : "/login"}
+        replace
+      />
+    );
+  }
+  if (username !== getUserOrdersPath(user).split("/")[1]) {
+    return <Navigate to={getUserOrdersPath(user)} replace />;
+  }
 
   function openRatingModal(order: CustomerOrder) {
     setSelectedOrder(order);

@@ -5,6 +5,8 @@ import type { CartItem } from "../components/detailRestaurant/OrderSummary";
 import { ComparisonChart } from "../components/confirm/ComparisonChart";
 import { OrderDetails } from "../components/confirm/OrderDetails";
 import { SuccessIndicator } from "../components/confirm/SuccessIndicator";
+import { useAuth } from "../contexts/AuthContext";
+import { getUserOrdersPath } from "../utils/userRoutes";
 
 interface ConfirmacionPageProps {
   items: CartItem[];
@@ -15,6 +17,7 @@ export function ConfirmacionPage({
   items,
   savedCo2Kg,
 }: ConfirmacionPageProps) {
+  const { user } = useAuth();
   const location = useLocation();
   const confirmationState = location.state as {
     items?: CartItem[];
@@ -49,7 +52,7 @@ export function ConfirmacionPage({
           Ver mi dashboard de impacto
         </Button>
         <Button
-          to="/mis-pedidos"
+          to={user ? getUserOrdersPath(user) : "/login"}
           variant="light"
           className="block w-full bg-white text-center transition-colors hover:bg-eco-light/20"
         >

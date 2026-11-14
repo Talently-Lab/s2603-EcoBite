@@ -1,7 +1,7 @@
 import React from 'react';
 
 interface BadgeProps {
-  icon: React.ReactNode;
+  icon?: React.ReactNode;
   text: string;
   className?: string; // Para pasarle los diferentes colores de fondo y texto
 }
