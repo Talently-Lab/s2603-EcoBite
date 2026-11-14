@@ -2589,6 +2589,14 @@ app.post('/api/carritos/:idRestaurante/productos',verificarToken,verificarRol('c
                 );
             }
 
+            // Si estaba abandonado, reactivarlo
+            if (carrito.estado === 'abandonado') {
+                carrito = await carritoModel.actualizarEstado(
+                    carrito.id,
+                    'pendiente'
+                );
+            }
+
             // Agregar el producto o aumentar su cantidad
             await detalleCarritoModel.agregarProducto(
                 carrito.id,
@@ -2628,7 +2636,7 @@ app.patch('/api/carritos/:idCarrito/productos/:idProducto',verificarToken,verifi
         try {
             const idCarrito = Number(req.params.idCarrito);
             const idProducto = Number(req.params.idProducto);
-            const { cantidad } = req.body;
+            const cantidad = Number(req.body.cantidad);
 
             // Validar IDs
             if (!Number.isInteger(idCarrito) || idCarrito <= 0 || !Number.isInteger(idProducto) || idProducto <= 0) {
@@ -2662,14 +2670,14 @@ app.patch('/api/carritos/:idCarrito/productos/:idProducto',verificarToken,verifi
                 });
             }
 
-            // Solo se pueden modificar carritos pendientes
-            if (carrito.estado !== 'pendiente') {
+             // Permitir modificar carritos pendientes o abandonados
+            if (!['pendiente', 'abandonado'].includes(carrito.estado)) {
                 return res.status(400).json({
-                    mensaje: 'Solo se pueden modificar carritos pendientes.'
+                    mensaje: 'No se puede modificar un carrito que ya fue eliminado o convertido.'
                 });
             }
-
-            // Actualizar la cantidad del producto
+           
+            // Actualizar la cantidad exacta del producto
             const detalle = await detalleCarritoModel.actualizarCantidad(
                 idCarrito,
                 idProducto,
@@ -2682,9 +2690,10 @@ app.patch('/api/carritos/:idCarrito/productos/:idProducto',verificarToken,verifi
                 });
             }
 
-            // Actualizar la fecha de modificación del carrito
-            const carritoActualizado =
-                await carritoModel.actualizarFechaActualizacion(idCarrito);
+             // Si estaba abandonado, reactivarlo; si no, actualizar su fecha
+            const carritoActualizado = carrito.estado === 'abandonado'
+                    ? await carritoModel.actualizarEstado(idCarrito, 'pendiente')
+                    : await carritoModel.actualizarFechaActualizacion(idCarrito);
 
             // Obtener los productos actualizados
             const productos = await detalleCarritoModel.obtenerPorCarrito(idCarrito);
@@ -2697,7 +2706,6 @@ app.patch('/api/carritos/:idCarrito/productos/:idProducto',verificarToken,verifi
 
         } catch (error) {
             console.error('Error al modificar la cantidad:', error);
-
             return res.status(500).json({
                 mensaje: 'Error al modificar la cantidad del producto.'
             });
@@ -2740,14 +2748,14 @@ app.delete('/api/carritos/:idCarrito/productos/:idProducto',verificarToken,verif
                 });
             }
 
-            // Solo se pueden modificar carritos pendientes
-            if (carrito.estado !== 'pendiente') {
+            // Permitir eliminar productos de carritos pendientes o abandonados
+            if (!['pendiente', 'abandonado'].includes(carrito.estado)) {
                 return res.status(400).json({
-                    mensaje: 'Solo se pueden modificar carritos pendientes.'
+                    mensaje: 'No se pueden eliminar productos de este carrito.'
                 });
             }
 
-            // Eliminar el producto del carrito
+            // Eliminar todas las unidades del producto 
             const detalle = await detalleCarritoModel.eliminarProducto(
                 idCarrito,
                 idProducto
@@ -2759,19 +2767,26 @@ app.delete('/api/carritos/:idCarrito/productos/:idProducto',verificarToken,verif
                 });
             }
 
-           // Obtener los productos restantes
+           // Consultar si quedan productos restantes
             const productos = await detalleCarritoModel.obtenerPorCarrito(idCarrito);
 
             let carritoActualizado;
 
-            // Si no quedan productos, marcar el carrito como abandonado
+            // Si no quedan productos, marcar el carrito como eliminado 
             if (productos.length === 0) {
                 carritoActualizado = await carritoModel.actualizarEstado(
                     idCarrito,
-                    'abandonado'
+                    //'abandonado'
+                    'eliminado'
+                );
+            } else if (carrito.estado === 'abandonado') {
+                // Si quedan productos, reactivar el carrito
+                carritoActualizado = await carritoModel.actualizarEstado(
+                    idCarrito,
+                    'pendiente'
                 );
             } else {
-                // Si todavía quedan productos, actualizar la fecha de modificación
+                // Si ya estaba pendiente, actualizar la fecha
                 carritoActualizado = await carritoModel.actualizarFechaActualizacion(
                     idCarrito
                 );
@@ -2793,7 +2808,7 @@ app.delete('/api/carritos/:idCarrito/productos/:idProducto',verificarToken,verif
     }
 );
 
-// Abandonar un carrito completo
+// Eliminar(no abandonar) un carrito completo
 app.delete('/api/carritos/:idCarrito',verificarToken,verificarRol('cliente'),async (req, res) => {
         try {
             const idCarrito = Number(req.params.idCarrito);
@@ -2823,37 +2838,53 @@ app.delete('/api/carritos/:idCarrito',verificarToken,verificarRol('cliente'),asy
                 });
             }
 
-            // Solo se pueden abandonar carritos pendientes
-            if (carrito.estado !== 'pendiente') {
+            // Solo se pueden eliminar (no abandonar) carritos pendientes
+            if (!['pendiente', 'abandonado'].includes(carrito.estado)) {
                 return res.status(400).json({
-                    mensaje: 'Solo se pueden abandonar carritos pendientes.'
+                    //mensaje: 'Solo se pueden abandonar carritos pendientes.'
+                    mensaje: 'Solo se pueden eliminar carritos pendientes.'
                 });
             }
 
             // Eliminar todos los productos del carrito
             await detalleCarritoModel.eliminarTodosPorCarrito(idCarrito);
 
-            // Cambiar el estado a abandonado
+            // Cambiar el estado a eliminado no a abandonado
             const carritoActualizado = await carritoModel.actualizarEstado(
                 idCarrito,
-                'abandonado'
+                //'abandonado'
+                'eliminado'
             );
 
             return res.status(200).json({
-                mensaje: 'Carrito abandonado correctamente.',
+                //mensaje: 'Carrito abandonado correctamente.',
+                mensaje: 'Carrito eliminado correctamente.',
                 carrito: carritoActualizado
             });
 
         } catch (error) {
-            console.error('Error al abandonar el carrito:', error);
+            //console.error('Error al abandonar el carrito:', error);
+            console.error('Error al eliminar el carrito:', error);
 
             return res.status(500).json({
-                mensaje: 'Error al abandonar el carrito.'
+                //mensaje: 'Error al abandonar el carrito.'
+                mensaje: 'Error al eliminar el carrito.'
             });
         }
     }
 );
 
+// REVISAR CARRITOS PENDIENTES MINUTO A MINUTO y Pasarlo a ABANDONADOS
+cron.schedule('* * * * *', async () => {
+    try {
+        await carritoModel.abandonarCarritosPendientes();
+    } catch (error) {
+        console.error(
+            'Error al abandonar carritos pendientes:',
+            error
+        );
+    }
+});
 
 //===== DASHBOARD =====
 app.get('/api/dashboard/stats', verificarToken, verificarRol('restaurante'), async (req, res) => {

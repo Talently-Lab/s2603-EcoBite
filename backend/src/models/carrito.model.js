@@ -97,13 +97,31 @@ async function obtenerPendientePorClienteYRestaurante(idCliente, idRestaurante) 
          FROM carrito
          WHERE id_cliente = $1
            AND id_restaurante = $2
-           AND estado = 'pendiente'
+           AND estado IN ('pendiente', 'abandonado')
          ORDER BY fecha_actualizacion DESC
          LIMIT 1`,
         [idCliente, idRestaurante]
     );
 
     return resultado.rows[0] || null;
+}
+
+// Marcar como abandonados los carritos pendientes que superaron las 24 horas
+async function abandonarCarritosPendientes() {
+    const resultado = await pool.query(
+        `UPDATE carrito
+         SET estado = 'abandonado'
+         WHERE estado = 'pendiente'
+           AND fecha_actualizacion <= CURRENT_TIMESTAMP - INTERVAL '24 hours'
+           AND EXISTS (
+               SELECT 1
+               FROM detalle_carrito
+               WHERE detalle_carrito.id_carrito = carrito.id
+           )
+         RETURNING id`
+    );
+
+    return resultado.rows;
 }
 
 module.exports = {
@@ -114,5 +132,6 @@ module.exports = {
     actualizarFechaActualizacion,
     actualizarEstado,
     obtenerIdClientePorUsuario,
-    obtenerPendientePorClienteYRestaurante
+    obtenerPendientePorClienteYRestaurante,
+    abandonarCarritosPendientes
 };

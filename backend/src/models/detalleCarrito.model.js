@@ -55,14 +55,14 @@ async function actualizarCantidad(idCarrito, idProducto, cantidad) {
 }
 
 // Eliminar un producto del carrito
-async function eliminarProducto(idCarrito, idProducto) {
-    const resultado = await pool.query(
-        `DELETE FROM detalle_carrito
-         WHERE id_carrito = $1
-           AND id_producto = $2
-         RETURNING *`,
-        [idCarrito, idProducto]
-    );
+async function eliminarProducto(idCarrito, idProducto) {  
+        const resultado = await pool.query(
+            `DELETE FROM detalle_carrito
+             WHERE id_carrito = $1
+               AND id_producto = $2
+             RETURNING *`,
+            [idCarrito, idProducto]
+        );
 
     return resultado.rows[0] || null;
 }
