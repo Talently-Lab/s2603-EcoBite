@@ -3,28 +3,32 @@ import { HeroTitle } from "../ui/HeroTitle";
 import type { RegistrationAccountType } from "../../services/auth";
 
 interface RegistrationStepHeaderProps {
-  step: 1 | 2;
+  step: 1 | 2 | 3;
   accountType: RegistrationAccountType;
 }
 
 export function RegistrationStepHeader({ step, accountType }: RegistrationStepHeaderProps) {
-  const isRestaurantSchedule = step === 2 && accountType === "restaurante";
+  const isRestaurant = accountType === "restaurante";
+  const isRestaurantSchedule = step === 3 && isRestaurant;
+  const totalSteps = isRestaurant ? 3 : 2;
   const title = isRestaurantSchedule
-    ? "Registro de restaurante"
+    ? "Horarios de atención"
     : step === 1
       ? "Crea tu cuenta"
-      : "Tu perfil";
+      : isRestaurant
+        ? "Datos del restaurante"
+        : "Tu perfil";
   return (
     <header
-      aria-label={`Paso ${step} de 2 del registro`}
+      aria-label={`Paso ${step} de ${totalSteps} del registro`}
       className="mb-5"
     >
       
       <p className="mb-2 text-sm font-semibold text-eco-dark">
-        Paso {step} de 2 <span className="mx-1 text-eco-dark">·</span> {title}
+        Paso {step} de {totalSteps} <span className="mx-1 text-eco-dark">·</span> {title}
       </p>
-      <div className="grid grid-cols-2 gap-2" aria-hidden="true">
-        {[1, 2].map((item) => (
+      <div className={`grid gap-2 ${totalSteps === 3 ? "grid-cols-3" : "grid-cols-2"}`} aria-hidden="true">
+        {Array.from({ length: totalSteps }, (_, index) => index + 1).map((item) => (
           <span
             key={item}
             className={`h-1 rounded-full transition-colors duration-300 ${
@@ -45,8 +49,12 @@ export function RegistrationStepHeader({ step, accountType }: RegistrationStepHe
       ) : (
         <HeroDescription className="mt-2 !text-sm">
           {step === 1
-            ? "Con tu email y contraseña ya podés pedir. En el paso siguiente completás tus datos personales."
-            : "Con estos datos te entregamos tus pedidos. Los completás una sola vez y después podés modificarlos desde Mi cuenta."}
+            ? isRestaurant
+              ? "Completá tu email y contraseña. Después vas a cargar los datos del local."
+              : "Con tu email y contraseña ya podés pedir. En el paso siguiente completás tus datos personales."
+            : isRestaurant
+              ? "Completá los datos del local. Verificaremos que el CUIT esté disponible antes de continuar."
+              : "Con estos datos te entregamos tus pedidos. Los completás una sola vez y después podés modificarlos desde Mi cuenta."}
         </HeroDescription>
       )}
       

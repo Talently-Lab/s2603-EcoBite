@@ -18,6 +18,7 @@ import {
   createRestaurantProfile,
   registerAccount,
   uploadRestaurantImage,
+  verifyRestaurantCuit,
   type RegistrationAccountType,
   type LoginResponse,
 } from "../../services/auth";
@@ -50,8 +51,7 @@ const accountStepSchema = registrationFields
     path: ["termsAccepted"],
   });
 
-const registrationSchema = registrationFields
-  .extend({
+const clientProfileFields = z.object({
     nombre: z
       .string()
       .trim()
@@ -85,7 +85,10 @@ const registrationSchema = registrationFields
       .regex(/^\d*$/, "El departamento solo puede contener números."),
     ciudad: z.string().trim().max(100, "La ciudad no puede superar los 100 caracteres."),
     id_zona: z.string().min(1, "Elegí tu zona de domicilio."),
-  })
+  });
+
+const registrationSchema = registrationFields
+  .merge(clientProfileFields)
   .refine((data) => data.contrasena === data.confirmPassword, {
     message: "Las contraseñas no coinciden.",
     path: ["confirmPassword"],
@@ -95,8 +98,7 @@ const registrationSchema = registrationFields
     path: ["termsAccepted"],
   });
 
-const restaurantRegistrationSchema = registrationFields
-  .extend({
+const restaurantProfileFields = z.object({
     nombre: z
       .string()
       .trim()
@@ -127,7 +129,10 @@ const restaurantRegistrationSchema = registrationFields
       .max(255, "La dirección no puede superar los 255 caracteres."),
     descripcion: z.string().trim(),
     ciudad: z.string().trim().max(100, "La ciudad no puede superar los 100 caracteres."),
-  })
+  });
+
+const restaurantRegistrationSchema = registrationFields
+  .merge(restaurantProfileFields)
   .refine((data) => data.contrasena === data.confirmPassword, {
     message: "Las contraseñas no coinciden.",
     path: ["confirmPassword"],
@@ -168,13 +173,13 @@ const invalidRestaurantScheduleMessage =
   "Revisá los horarios marcados para poder guardarlos.";
 
 interface RegistrationFormProps {
-  onStepChange: (step: 1 | 2) => void;
+  onStepChange: (step: 1 | 2 | 3) => void;
   onAccountTypeChange: (accountType: RegistrationAccountType) => void;
 }
 
 export function RegistrationForm({ onStepChange, onAccountTypeChange }: RegistrationFormProps) {
   const { login } = useAuth();
-  const [step, setStep] = useState<1 | 2>(1);
+  const [step, setStep] = useState<1 | 2 | 3>(1);
   const [accountType, setAccountType] =
     useState<RegistrationAccountType>("cliente");
   const [form, setForm] = useState<RegistrationFormValues>({
@@ -216,7 +221,7 @@ export function RegistrationForm({ onStepChange, onAccountTypeChange }: Registra
   >(null);
   const [isRetryingImage, setIsRetryingImage] = useState(false);
 
-  function changeStep(nextStep: 1 | 2) {
+  function changeStep(nextStep: 1 | 2 | 3) {
     setStep(nextStep);
     onStepChange(nextStep);
   }
@@ -257,10 +262,7 @@ export function RegistrationForm({ onStepChange, onAccountTypeChange }: Registra
     setSubmitError(null);
 
     if (step === 1) {
-      const accountResult =
-        accountType === "restaurante"
-          ? restaurantRegistrationSchema.safeParse(form)
-          : accountStepSchema.safeParse(form);
+      const accountResult = accountStepSchema.safeParse(form);
       if (!accountResult.success) {
         const nextErrors: Partial<Record<keyof RegistrationFormValues, string>> = {};
         for (const issue of accountResult.error.issues) {
@@ -276,6 +278,51 @@ export function RegistrationForm({ onStepChange, onAccountTypeChange }: Registra
 
       setErrors({});
       changeStep(2);
+      return;
+    }
+
+    if (step === 2 && accountType === "restaurante") {
+      const profileResult = restaurantProfileFields.safeParse(form);
+      if (!profileResult.success) {
+        const nextErrors: Partial<Record<keyof RegistrationFormValues, string>> = {};
+        for (const issue of profileResult.error.issues) {
+          const field = issue.path[0];
+          if (typeof field === "string" && field in form) {
+            nextErrors[field as keyof RegistrationFormValues] = issue.message;
+          }
+        }
+        setErrors(nextErrors);
+        setSubmitError("Revisá los datos del restaurante para continuar.");
+        return;
+      }
+
+      setErrors({});
+      setIsSubmitting(true);
+      try {
+        const available = await verifyRestaurantCuit(
+          profileResult.data.cuit.replace(/-/g, ""),
+        );
+        if (!available) {
+          setErrors((current) => ({
+            ...current,
+            cuit: "Ese CUIT ya está registrado. Revisá el número o iniciá sesión.",
+          }));
+          setSubmitError("No podemos continuar con un CUIT que ya está registrado.");
+          return;
+        }
+
+        changeStep(3);
+      } catch (error) {
+        setSubmitError(
+          error instanceof TypeError
+            ? "No pudimos conectar con el servidor para verificar el CUIT. Revisá tu conexión e intentá de nuevo."
+            : error instanceof Error
+              ? error.message
+              : "No se pudo verificar el CUIT. Intentá de nuevo.",
+        );
+      } finally {
+        setIsSubmitting(false);
+      }
       return;
     }
 
@@ -463,7 +510,7 @@ export function RegistrationForm({ onStepChange, onAccountTypeChange }: Registra
           ...current,
           cuit: "Ese CUIT ya está registrado. Revisá el número o iniciá sesión.",
         }));
-        changeStep(1);
+        changeStep(2);
       } else {
         setSubmitError(
           error instanceof TypeError
@@ -517,7 +564,7 @@ export function RegistrationForm({ onStepChange, onAccountTypeChange }: Registra
   return (
     <div className="flex flex-col gap-5">
       {step === 2 && accountType === "cliente" && (
-        <HeroTitle className="!text-2xl !leading-tight">
+        <HeroTitle className="text-2xl! leading-tight!">
           Completa tu perfil
         </HeroTitle>
       )}
@@ -567,7 +614,7 @@ export function RegistrationForm({ onStepChange, onAccountTypeChange }: Registra
         onSubmit={onSubmit}
         noValidate
       >
-        {step === 1 && accountType === "restaurante" && (
+        {step === 2 && accountType === "restaurante" && (
           <>
             <Input
               label="Nombre del local"
@@ -659,7 +706,7 @@ export function RegistrationForm({ onStepChange, onAccountTypeChange }: Registra
           </>
         )}
 
-        {step === 2 && accountType === "restaurante" && (
+        {step === 3 && accountType === "restaurante" && (
           <RestaurantOpeningHours
             days={restaurantOpeningDays}
             onChange={setRestaurantOpeningDays}
@@ -872,7 +919,7 @@ export function RegistrationForm({ onStepChange, onAccountTypeChange }: Registra
         </div>
         </>}
 
-        {step === 1 && accountType === "restaurante" && (
+        {step === 2 && accountType === "restaurante" && (
           <RestaurantImagePicker
             onChange={(image) => {
               setRestaurantImage(image);
@@ -910,11 +957,11 @@ export function RegistrationForm({ onStepChange, onAccountTypeChange }: Registra
         </div>}
 
         <div className="flex gap-3">
-          {step === 2 && (
+          {step > 1 && (
             <Button
               type="button"
               variant="light"
-              onClick={() => changeStep(1)}
+              onClick={() => changeStep(step === 3 ? 2 : 1)}
               disabled={isSubmitting}
               className="inline-flex w-1/3 items-center justify-center gap-2 text-center"
             >
@@ -928,12 +975,16 @@ export function RegistrationForm({ onStepChange, onAccountTypeChange }: Registra
             className="w-full text-center shadow-sm transition-colors hover:brightness-110 disabled:cursor-wait disabled:opacity-60"
           >
             {isSubmitting
-              ? "Creando cuenta..."
+              ? step === 2 && accountType === "restaurante"
+                ? "Verificando CUIT..."
+                : "Creando cuenta..."
               : step === 1
                 ? "Continuar"
-                : accountType === "cliente"
-                  ? "Guardar y continuar"
-                  : "Crear cuenta"}
+                : step === 2 && accountType === "restaurante"
+                  ? "Continuar"
+                  : accountType === "cliente"
+                    ? "Guardar y continuar"
+                    : "Crear cuenta"}
           </Button>
         </div>
       </form>

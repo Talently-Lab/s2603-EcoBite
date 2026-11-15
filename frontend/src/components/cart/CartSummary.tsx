@@ -8,7 +8,6 @@ interface CartSummaryProps {
 }
 
 export default function CartSummary({ items }: CartSummaryProps) {
-  const totalItems = items.reduce((total, item) => total + item.quantity, 0);
   const subtotal = items.reduce((total, item) => total + item.price, 0);
 
   function formatCurrency(value: number) {
@@ -33,7 +32,7 @@ export default function CartSummary({ items }: CartSummaryProps) {
 
       <div className="flex items-center justify-between gap-4 text-sm text-gray-600">
         <span>Subtotal</span>
-        <span>{totalItems}</span>
+        <span>{formatCurrency(subtotal)}</span>
       </div>
       <div className="flex items-center justify-between gap-4 text-sm text-gray-600">
         <span>Envío</span>
