@@ -134,8 +134,26 @@ function mapMockRestaurant(data: RestaurantApiResponse): Restaurant {
   };
 }
 
+function ensureUniqueRestaurantSlugs(restaurants: Restaurant[]): Restaurant[] {
+  const slugCounts = new Map<string, number>();
+  for (const restaurant of restaurants) {
+    slugCounts.set(restaurant.slug, (slugCounts.get(restaurant.slug) ?? 0) + 1);
+  }
+
+  return restaurants.map((restaurant) => {
+    const slugCount = slugCounts.get(restaurant.slug);
+    return slugCount && slugCount > 1
+      ? { ...restaurant, slug: `${restaurant.slug}-${restaurant.id}` }
+      : restaurant;
+  });
+}
+
+function mapMockRestaurants(): Restaurant[] {
+  return ensureUniqueRestaurantSlugs(MOCK_RESTAURANTS.map(mapMockRestaurant));
+}
+
 function getMockRestaurantBySlug(slug: string): Restaurant | undefined {
-  return MOCK_RESTAURANTS.map(mapMockRestaurant).find(
+  return mapMockRestaurants().find(
     (restaurant) => restaurant.slug === slug,
   );
 }
@@ -158,13 +176,13 @@ async function fetchApi<T>(path: string): Promise<T> {
 export async function getRestaurants(): Promise<Restaurant[]> {
   try {
     if (USE_MOCK_DATA) {
-      return MOCK_RESTAURANTS.map(mapMockRestaurant);
+      return mapMockRestaurants();
     }
 
     const restaurants =
       await fetchApi<RestaurantApiResponse[]>("/restaurantes");
 
-    return restaurants.map(mapRestaurant);
+    return ensureUniqueRestaurantSlugs(restaurants.map(mapRestaurant));
   } catch (error) {
     if (!USE_MOCK_DATA && error instanceof TypeError) {
       const connectionError = new Error(
@@ -269,7 +287,7 @@ export async function getRestaurantMenu(
   slug: string,
 ): Promise<RestaurantMenu> {
   if (USE_MOCK_DATA) {
-    const restaurant = MOCK_RESTAURANTS.map(mapMockRestaurant).find(
+    const restaurant = mapMockRestaurants().find(
       (item) => item.slug === slug,
     );
 

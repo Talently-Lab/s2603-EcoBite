@@ -18,6 +18,7 @@ export function FilterDropdown({ label, value, options, onChange }: FilterDropdo
       <select
         id="restaurant-category-filter"
         name="category"
+        aria-label={label}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         className="w-full appearance-none bg-gray-100 hover:bg-gray-200/70 text-gray-700 text-sm font-medium px-4 py-2.5 pr-10 rounded-full border-none cursor-pointer transition-colors outline-none"

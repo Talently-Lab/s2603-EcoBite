@@ -55,9 +55,9 @@ export default function MainLayout({
         </div>
       )}
 
-      <main className="flex-1">
+      <div className="flex-1">
         <Outlet />
-      </main>
+      </div>
 
       <Footer />
     </div>

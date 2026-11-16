@@ -29,7 +29,7 @@ const BENEFICIOS: BenefitItem[] = [
   {
     id: 3,
     badgeText: 'Medí tu impacto',
-    badgeClass: 'bg-[#E1F5FE] text-[#0277BD]',
+    badgeClass: 'bg-[#E1F5FE] text-[#01579B]',
     icon: <Cloud className="w-3.5 h-3.5" />,
     description: 'Descubrí cuánto CO₂ evitás con cada pedido.',
   },
