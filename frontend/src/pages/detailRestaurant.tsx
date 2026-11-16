@@ -81,7 +81,7 @@ export function DetalleRestaurantePage({
 
   if (!slug) {
     return (
-      <main className="mx-auto w-full max-w-6xl px-5 py-12 sm:px-8">
+      <main className="mx-auto w-full max-w-[1200px] px-5 py-12 sm:px-8">
         <p role="alert" className="text-red-700">
           No se indicó qué restaurante se quiere consultar.
         </p>
@@ -94,7 +94,7 @@ export function DetalleRestaurantePage({
 
   if (!currentData && !currentError) {
     return (
-      <main className="mx-auto w-full max-w-6xl px-5 py-12 sm:px-8">
+      <main className="mx-auto w-full max-w-[1200px] px-5 py-12 sm:px-8">
         <p role="status">Cargando restaurante...</p>
       </main>
     );
@@ -102,7 +102,7 @@ export function DetalleRestaurantePage({
 
   if (currentError || !currentData) {
     return (
-      <main className="mx-auto w-full max-w-6xl px-5 py-12 sm:px-8">
+      <main className="mx-auto w-full max-w-[1200px] px-5 py-12 sm:px-8">
         <p role="alert" className="text-red-700">
           {currentError ?? "No se pudo cargar el restaurante."}
         </p>
@@ -129,7 +129,7 @@ export function DetalleRestaurantePage({
   ];
 
   return (
-    <main className="mx-auto w-full max-w-6xl px-5 py-8 font-sans sm:px-8 sm:py-12">
+    <main className="mx-auto w-full max-w-[1200px] px-5 py-8 font-sans sm:px-8 sm:py-12">
       <section
         aria-label={`Banner de ${restaurant.name}`}
         className="relative min-h-48 overflow-hidden rounded-2xl bg-eco-light sm:min-h-64"
@@ -176,7 +176,7 @@ export function DetalleRestaurantePage({
               <section aria-labelledby="main-dishes-title">
                 <h2
                   id="main-dishes-title"
-                  className="text-2xl font-bold text-eco-dark"
+                  className="text-[32px] font-bold text-eco-dark"
                 >
                   Platos principales
                 </h2>
@@ -201,7 +201,7 @@ export function DetalleRestaurantePage({
               <section aria-labelledby="drinks-title" className="mt-12">
                 <h2
                   id="drinks-title"
-                  className="text-2xl font-bold text-eco-dark"
+                  className="text-[32px] font-bold text-eco-dark"
                 >
                   Bebidas
                 </h2>

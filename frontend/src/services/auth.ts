@@ -158,6 +158,31 @@ export async function registerAccount(
   return responseBody as LoginResponse;
 }
 
+export async function verifyRestaurantCuit(cuit: string): Promise<boolean> {
+  const response = await fetch(
+    `${API_BASE_URL}/restaurantes/verificar-cuit?cuit=${encodeURIComponent(cuit)}`,
+  );
+  const responseBody: unknown = await response.json();
+
+  if (!response.ok) {
+    throw new Error(
+      getErrorMessage(responseBody) ??
+        `No se pudo verificar el CUIT (estado ${response.status}).`,
+    );
+  }
+
+  if (
+    typeof responseBody !== "object" ||
+    responseBody === null ||
+    !("disponible" in responseBody) ||
+    typeof responseBody.disponible !== "boolean"
+  ) {
+    throw new Error("El servidor devolvió una respuesta de verificación de CUIT inválida.");
+  }
+
+  return responseBody.disponible;
+}
+
 export async function loginAccount(
   credentials: LoginCredentials,
 ): Promise<LoginResponse> {

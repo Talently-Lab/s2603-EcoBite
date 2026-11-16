@@ -4,13 +4,16 @@ Frontend de EcoBite, una plataforma de delivery con enfoque sostenible.
 
 ## Stack
 
-- **React** para construir la interfaz.
-- **TypeScript** para el tipado estático.
+- **React** y **TypeScript** para construir y tipar la interfaz.
 - **Vite** como servidor de desarrollo y herramienta de build.
 - **Tailwind CSS 4** para los estilos, integrado mediante el plugin de Vite.
 - **React Router DOM** para la navegación entre pantallas.
-- **Context API** (`CartContext`) para compartir el carrito entre
-  el menú, el encabezado, la página del carrito y el checkout.
+- **Context API** (`CartContext`) para compartir el carrito entre el menú, el
+  encabezado, la página del carrito y el checkout.
+- **Node.js y Express** para la API backend; **pg** conecta el backend con
+  **PostgreSQL**.
+- **Docker Compose** para ejecutar PostgreSQL en el entorno local y
+  **pgAdmin** para administrar la base de datos visualmente.
 
 ## Requisitos
 
@@ -38,18 +41,24 @@ VITE_DATA_SOURCE=mock
 VITE_API_URL=http://localhost:3000/api
 ```
 
-Con `VITE_DATA_SOURCE=mock`, la aplicación usa directamente los datos locales
-definidos en `src/services/restaurants.ts`; no hace falta iniciar el backend.
+Con `VITE_DATA_SOURCE=mock`, la aplicación usa los datos locales definidos en
+`src/services/restaurants.mock.ts`; no hace falta iniciar el backend. Las fotos
+de portada se toman del campo `imagen` de cada restaurante; si es `null`, no se
+muestra una foto en el perfil.
 Para conectarte a la API, cambiá el valor a `VITE_DATA_SOURCE=api` y configurá
 `VITE_API_URL` con su URL base. Se usan `GET /api/restaurantes` y
 `GET /api/restaurantes/:id/productos`; los productos del backend se agrupan en
 platos y bebidas según su categoría. Si la conexión falla,
 se registra un error en la consola del navegador y la interfaz muestra el
 mensaje de error; no se sustituyen los datos de la API por datos mock.
+Los perfiles se identifican con un slug derivado del nombre. Si varios locales
+tienen el mismo nombre, se agrega el ID al slug para que cada enlace abra el
+perfil, la foto y el menú del local correcto.
 
 Después de crear o modificar `.env.local`, detené y volvé a iniciar Vite con
-`pnpm dev` para que lea la configuración nueva. Los cambios en los datos mock
-del archivo del servicio se reflejan al guardar, gracias a la recarga de Vite.
+`pnpm dev` para que lea la configuración nueva. Los cambios en
+`src/services/restaurants.mock.ts` se reflejan al guardar, gracias a la recarga
+de Vite.
 
 ## Comandos
 
@@ -64,70 +73,16 @@ del archivo del servicio se reflejan al guardar, gracias a la recarga de Vite.
 
 ```text
 src/
-├── assets/       # Recursos gráficos
-├── components/
-│   ├── cart/     # Elementos del carrito
-│   ├── checkout/ # Elementos del proceso de compra
-│   ├── confirm/  # Elementos de confirmación del pedido
-│   ├── footer/   # Pie de página
-│   ├── login/    # Formulario de acceso
-│   ├── navbar/   # Navegación principal
-│   ├── restaurant/ # Listado, filtros y tarjetas de restaurantes
-│   └── ui/       # Componentes de interfaz reutilizables
-├── contexts/     # Contextos de autenticación y carrito
+├── components/   # Componentes organizados por dominio (adminDashboard, cart,
+│                 # checkout, confirm, detailRestaurant, home, login, navbar,
+│                 # restaurant, ui, entre otros)
+├── contexts/     # Estado compartido de autenticación y carrito
 ├── layouts/      # Estructuras compartidas de página
 ├── pages/        # Pantallas asociadas a las rutas
-├── services/     # Acceso a datos y servicios
+├── services/     # Acceso a datos, API y mocks
 ├── App.tsx       # Rutas de la aplicación
 ├── index.css     # Estilos globales y Tailwind
 └── main.tsx      # Punto de entrada
-```
-
-## Componentes
-
-```text
-components/
-├── cart/
-│   ├── CartItem.tsx
-│   ├── CartList.tsx
-│   ├── CartSummary.tsx
-│   ├── QuantitySelector.tsx
-│   └── empty/
-│       ├── EmptyCart.tsx
-│       └── ZeroBadge.tsx
-├── checkout/
-│   ├── direction/
-│   │   └── direction.tsx
-│   └── method-page/
-│       └── method-paage.tsx
-├── confirm/
-│   ├── ComparisonChart.tsx
-│   ├── OrderDetails.tsx
-│   └── SuccessIndicator.tsx
-├── footer/
-│   └── Footer.tsx
-├── login/
-│   └── LoginForm.tsx
-├── navbar/
-│   └── Navbar.tsx
-├── restaurant/
-│   ├── Banner.tsx
-│   ├── FilterBar.tsx
-│   ├── NoResults.tsx
-│   ├── RestaurantCard.tsx
-│   └── RestaurantList.tsx
-└── ui/
-    ├── AlertBanner.tsx
-    ├── Badge.tsx
-    ├── Button.tsx
-    ├── EmptyIndicator.tsx
-    ├── GreenBadge.tsx
-    ├── ImpactBadge.tsx
-    ├── Indicator.tsx
-    ├── Logo.tsx
-    ├── SectionTitle.tsx
-    ├── SimpleCard.tsx
-    └── StepIndicator.tsx
 ```
 
 ## Datos y estado
@@ -139,9 +94,27 @@ disponible en `VITE_API_URL`.
 
 `src/contexts/CartContext.tsx` mantiene en el frontend el estado compartido del
 carrito. En modo `api`, los cambios se sincronizan con los endpoints de
-`/carritos`; en modo `mock`, el estado se mantiene localmente. El encabezado
-muestra la cantidad total; la página del carrito permite cambiar cantidades,
-quitar productos y abandonar carritos.
+`/carritos` para clientes autenticados; el carrito del servidor se vuelve a
+cargar al iniciar la sesión. En modo `mock`, y para el carrito de invitado en
+modo `api`, los ítems se guardan en `sessionStorage`: se conservan al recargar
+la página en la misma pestaña, pero no se garantiza que permanezcan al cerrarla.
+El encabezado muestra la cantidad total; la página del carrito permite cambiar
+cantidades, quitar productos y abandonar carritos.
+
+## Catálogo e interfaz
+
+- Los perfiles de restaurantes usan un slug derivado del nombre; si hay nombres
+  repetidos, se agrega el ID para que cada perfil abra los datos del local
+  correcto.
+- El catálogo y el detalle del local tienen un ancho máximo de 1200 px. Los
+  títulos de catálogo, platos y bebidas usan 32 px y negrita.
+- Los precios del menú y del pedido se muestran con el formato argentino, por
+  ejemplo, `$ 9.500`.
+- El selector de tipo de comida tiene un nombre accesible. El layout general
+  no agrega un `<main>` alrededor de las páginas, que ya definen su propio
+  contenido principal.
+- Se carga Poppins en pesos 400, 500, 600, 700 y 800. El favicon es
+  `public/images/eco_badge.svg`.
 
 ### Pedidos y calificaciones
 
@@ -164,13 +137,14 @@ con `PATCH /api/ordenes/:id/calificar`.
 2. Abrí la URL que Vite muestra en la terminal y agregá estas rutas:
 
    - `/restaurantes`: listado mock con el filtro por tipo de comida.
-   - `/restaurantes/verde-raiz`: detalle y menú de Verde Raíz.
+   - `/restaurantes/verde-raiz`: detalle, foto y menú de Verde Raíz.
    - `/restaurantes/hoja-y-fuego`: detalle y menú de Hoja y Fuego.
 
 Por ejemplo, si Vite muestra `http://localhost:5173`, el listado estará en
 `http://localhost:5173/restaurantes`. Los datos mock de restaurantes y menús
 están definidos en `src/services/restaurants.mock.ts`; no hace falta iniciar el
-backend.
+backend. Este archivo contiene los restaurantes, horarios y productos mock,
+incluidas las imágenes de portada configuradas para los locales de ejemplo.
 
 ## Registro de cliente
 

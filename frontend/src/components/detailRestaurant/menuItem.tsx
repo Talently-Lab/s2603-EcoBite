@@ -7,6 +7,13 @@ import type { MenuItemData } from "../../services/restaurants";
 
 export type { MenuItemData } from "../../services/restaurants";
 
+function formatCurrency(value: number) {
+  return `$ ${value.toLocaleString("es-AR", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  })}`;
+}
+
 interface MenuItemProps {
   item: MenuItemData;
   onAdd: (item: MenuItemData) => void;
@@ -39,7 +46,7 @@ export function MenuItem({ item, onAdd, canAddToCart }: MenuItemProps) {
         <p className="mt-1 text-sm text-gray-600">{item.description}</p>
         <div className="mt-3 flex flex-col items-start gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3">
           <span className="font-bold text-eco-dark">
-            ${item.price.toFixed(2)}
+            {formatCurrency(item.price)}
           </span>
           <Badge
             text={item.classification}

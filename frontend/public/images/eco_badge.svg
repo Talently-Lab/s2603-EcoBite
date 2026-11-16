@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="540" height="540" viewBox="165 809 270 270" role="img" aria-label="Envases biodegradables"><defs><clipPath id="photo"><rect y="135" width="600" height="740"/></clipPath><linearGradient id="badge" x2="1" y2="1"><stop stop-color="#dce8c6"/><stop offset="1" stop-color="#b9ce9b"/></linearGradient></defs><circle cx="300" cy="944" r="128" fill="url(#badge)" stroke="#f7f6ee" stroke-width="7"/>
+<circle cx="300" cy="944" r="113" fill="none" stroke="#729366" stroke-width="1"/>
+<text x="300" y="870" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" font-weight="700" letter-spacing="4" fill="#2d644c">ENVASES</text>
+<g transform="translate(300 945) scale(1.12)"><path d="M-32 22 C-55-28-5-42 38-48 C38 1 21 35-18 28 C-5 7 9-5 23-18 C-2-7-20 10-32 22Z" fill="#507951"/><path d="M-35 35 L-19 13" stroke="#507951" stroke-width="7" stroke-linecap="round"/></g>
+<text x="300" y="1025" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" font-weight="700" letter-spacing="1" fill="#2d644c">BIODEGRADABLES</text>
+</svg>

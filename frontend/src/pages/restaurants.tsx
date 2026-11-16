@@ -174,8 +174,8 @@ export function RestaurantesPage() {
   }));
 
   return (
-    <main className="mx-auto max-w-6xl px-5 py-12 sm:px-8 font-sans">
-      <HeroTitle>Explorar Restaurantes</HeroTitle>
+    <main className="mx-auto w-full max-w-[1200px] px-5 py-12 sm:px-8 font-sans">
+      <HeroTitle className="!text-[32px] !font-bold">Explorar Restaurantes</HeroTitle>
       <HeroDescription className="mt-5">
         Descubrí restaurantes según el tipo de comida.
       </HeroDescription>
