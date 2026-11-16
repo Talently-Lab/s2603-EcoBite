@@ -38,14 +38,19 @@ VITE_DATA_SOURCE=mock
 VITE_API_URL=http://localhost:3000/api
 ```
 
-Con `VITE_DATA_SOURCE=mock`, la aplicación usa directamente los datos locales
-definidos en `src/services/restaurants.ts`; no hace falta iniciar el backend.
+Con `VITE_DATA_SOURCE=mock`, la aplicación usa los datos locales definidos en
+`src/services/restaurants.mock.ts`; no hace falta iniciar el backend. Las fotos
+de portada se toman del campo `imagen` de cada restaurante; si es `null`, no se
+muestra una foto en el perfil.
 Para conectarte a la API, cambiá el valor a `VITE_DATA_SOURCE=api` y configurá
 `VITE_API_URL` con su URL base. Se usan `GET /api/restaurantes` y
 `GET /api/restaurantes/:id/productos`; los productos del backend se agrupan en
 platos y bebidas según su categoría. Si la conexión falla,
 se registra un error en la consola del navegador y la interfaz muestra el
 mensaje de error; no se sustituyen los datos de la API por datos mock.
+Los perfiles se identifican con un slug derivado del nombre. Si varios locales
+tienen el mismo nombre, se agrega el ID al slug para que cada enlace abra el
+perfil, la foto y el menú del local correcto.
 
 Después de crear o modificar `.env.local`, detené y volvé a iniciar Vite con
 `pnpm dev` para que lea la configuración nueva. Los cambios en los datos mock
