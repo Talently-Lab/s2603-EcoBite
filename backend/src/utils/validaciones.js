@@ -179,20 +179,6 @@ function validarEnteroPositivo(valor, campo) {
     return valor;
 }
 
-function validarCostoEnvio(valor) {
-    if (
-        typeof valor !== 'number' ||
-        !Number.isFinite(valor) ||
-        valor < 0
-    ) {
-        throw new ErrorValidacion(
-            'El costo de envío debe ser un número mayor o igual a cero'
-        );
-    }
-
-    return valor;
-}
-
 function validarTipoPago(valor) {
     if (!['efectivo', 'tarjeta'].includes(valor)) {
         throw new ErrorValidacion(
@@ -214,6 +200,5 @@ module.exports = {
     validarPrecio,
     validarDisponible,
     validarEnteroPositivo,
-    validarCostoEnvio,
     validarTipoPago
 };

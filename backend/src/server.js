@@ -2045,7 +2045,6 @@ app.post('/api/ordenes', verificarToken, verificarRol('cliente'), async (req, re
             id_carrito,
             id_zona,
             tipo_pago,
-            costo_envio,
             direccion_entrega,
             piso_entrega,
             departamento_entrega,
@@ -2057,7 +2056,6 @@ app.post('/api/ordenes', verificarToken, verificarRol('cliente'), async (req, re
             id_carrito,
             id_zona,
             tipo_pago,
-            costo_envio,
             direccion_entrega,
             piso_entrega,
             departamento_entrega,
@@ -2096,7 +2094,8 @@ app.post('/api/ordenes', verificarToken, verificarRol('cliente'), async (req, re
             'El carrito no pertenece al cliente',
             'El carrito no está pendiente',
             'El carrito está vacío',
-            'Hay productos que no están disponibles o no pertenecen al restaurante'
+            'Hay productos que no están disponibles o no pertenecen al restaurante',
+            'La zona no tiene un costo de envío configurado'
         ];
 
           if (erroresSolicitud.includes(error.message)) {
@@ -2118,6 +2117,42 @@ app.post('/api/ordenes', verificarToken, verificarRol('cliente'), async (req, re
         });
     }
 });
+
+// OBTENER COSTO DE ENVÍO SEGÚN LA ZONA
+app.get('/api/ordenes/costo-envio', async (req, res) => {
+    try {
+        const { id_zona } = req.query;
+        const resultado = await pedidoModel.obtenerCostoEnvio(id_zona);
+        return res.status(200).json(resultado);
+
+    } catch (error) {
+
+        if (error instanceof ErrorValidacion) {
+            return res.status(400).json({
+                mensaje: error.message
+            });
+        }
+
+        if (error.message === 'La zona no existe') {
+            return res.status(404).json({
+                mensaje: error.message
+            });
+        }
+
+        if (error.message === 'La zona no tiene un costo de envío configurado') {
+            return res.status(400).json({
+                mensaje: error.message
+            });
+        }
+
+        console.error('Error al obtener costo de envío:', error);
+
+        return res.status(500).json({
+            mensaje: 'Error interno al obtener el costo de envío'
+        });
+    }
+});
+
 
  // ACEPTAR PEDIDO
 app.patch('/api/ordenes/:id/aceptar',verificarToken,verificarRol('restaurante'),async (req, res) => {

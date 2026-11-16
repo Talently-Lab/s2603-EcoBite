@@ -4,7 +4,7 @@
 // ==========================================
 
 const pool = require('../db');
-const {validarEnteroPositivo, validarCostoEnvio, validarTipoPago, validarTexto} = require('../utils/validaciones');
+const {validarEnteroPositivo, validarTipoPago, validarTexto} = require('../utils/validaciones');
 
 async function crear(pedido) {
     const {
@@ -12,7 +12,6 @@ async function crear(pedido) {
         id_carrito,
         id_zona,
         tipo_pago,
-        costo_envio = 0,
         direccion_entrega,
         piso_entrega,
         departamento_entrega,
@@ -24,7 +23,6 @@ async function crear(pedido) {
     validarEnteroPositivo(id_zona, 'El id_zona');
 
     validarTipoPago(tipo_pago);
-    validarCostoEnvio(costo_envio);
 
     const direccionValidada = validarTexto(direccion_entrega,'La dirección de entrega',{
          minimo: 3, 
@@ -91,7 +89,7 @@ async function crear(pedido) {
 
         // 5. Consultar la zona y su distancia promedio
         const resultadoZona = await client.query(
-            `SELECT id, distancia_promedio
+            `SELECT id, zona, distancia_promedio
              FROM zona
              WHERE id = $1`,
             [id_zona]
@@ -100,6 +98,8 @@ async function crear(pedido) {
         if (resultadoZona.rows.length === 0) {
             throw new Error('La zona no existe');
         }
+
+        const costo_envio = calcularCostoEnvio(resultadoZona.rows[0].zona);
 
         // 6. Obtener los productos guardados en el carrito
         const resultadoProductos = await client.query(
@@ -248,6 +248,47 @@ async function crear(pedido) {
     } finally {
         client.release();
     }
+}
+
+// CALCULAR COSTO DE ENVÍO SEGÚN LA ZONA
+function calcularCostoEnvio(nombreZona) {
+    const zona = nombreZona.trim().toLowerCase();
+
+    if (zona === 'centro') {
+        return 1500;
+    }
+    if (['sur', 'norte', 'este', 'oeste'].includes(zona)) {
+        return 3000;
+    }
+
+    throw new Error('La zona no tiene un costo de envío configurado');
+}
+
+// OBTENER COSTO DE ENVÍO POR ID DE ZONA
+async function obtenerCostoEnvio(id_zona) {
+
+    const idZona = Number(id_zona);
+    validarEnteroPositivo(idZona, 'El id_zona');
+
+    const resultado = await pool.query(
+        `SELECT id, zona
+         FROM zona
+         WHERE id = $1`,
+        [id_zona]
+    );
+
+    if (resultado.rows.length === 0) {
+        throw new Error('La zona no existe');
+    }
+
+    const nombreZona = resultado.rows[0].zona;
+    const costo_envio = calcularCostoEnvio(nombreZona);
+
+    return {
+        id_zona: resultado.rows[0].id,
+        zona: nombreZona,
+        costo_envio
+    };
 }
 
 async function aceptarPedido(idPedido, idUsuario) {
@@ -546,6 +587,7 @@ async function obtenerDetalleRestaurante(idPedido, idUsuario) {
 
 module.exports = { 
     crear,
+    obtenerCostoEnvio,
     aceptarPedido,
     despacharPedido,
     confirmarEntrega,
