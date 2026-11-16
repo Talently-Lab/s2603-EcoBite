@@ -72,17 +72,12 @@ async function crear(restaurante) {//recibe un objeto restaurante
         imagen
     } = restaurante;
 
-    // Validar los datos obligatorios
-    /* if (!id_usuario || !nombre || !cuit || !categoria) {
-        throw new Error('Faltan datos obligatorios para el restaurante');
-    } */
-
     // Validar campos obligatorios
     const nombreValidado = validarTexto(nombre, 'El nombre', {minimo: 3,maximo: 150,obligatorio: true});
     const telefonoValidado = validarTelefono(telefono);
     const direccionValidada = validarTexto(direccion, 'La dirección', {minimo: 5,maximo: 255,obligatorio: true});
     const categoriaValidada = validarTexto(categoria, 'La categoría', {maximo: 100, obligatorio: true});
-    const imagenValidada = validarTexto(imagen, 'La imagen', { maximo: 255, obligatorio: true});
+    const imagenValidada = imagen ? validarTexto(imagen, 'La imagen', { maximo: 255}):null;
 
     // Validar campos opcionales
     const descripcionValidada = validarTexto(descripcion, 'La descripción');
@@ -161,12 +156,10 @@ async function actualizar(id, restaurante) {
     const {
         nombre,
         telefono,
-        cuit,
         direccion,
         descripcion,
         categoria,
-        ciudad,
-        imagen
+        ciudad
     } = restaurante;
 
      // Validar campos si se envían para modificar
@@ -177,16 +170,6 @@ async function actualizar(id, restaurante) {
         });
 
     const telefonoValidado = telefono === undefined ? null : validarTelefono(telefono);
-
-    // Validar CUIT si se envía
-    let cuitValidado = null;
-
-    if (cuit !== undefined) {
-        if (typeof cuit !== 'string' || !/^\d{11}$/.test(cuit)) {
-            throw new Error('El CUIT debe tener exactamente 11 números, sin guiones');
-        }
-        cuitValidado = cuit;
-    }
 
     const direccionValidada = direccion === undefined ? null : validarTexto(direccion, 'La dirección', {
             minimo: 5,
@@ -205,33 +188,25 @@ async function actualizar(id, restaurante) {
             maximo: 100
         });
 
-    const imagenValidada = imagen === undefined ? null : validarTexto(imagen, 'La imagen', {
-            maximo: 255,
-            obligatorio: true
-        });
 
     //Actualizar restaurante
     const resultado = await pool.query(
         `UPDATE restaurante
          SET nombre = COALESCE($1, nombre),
              telefono = COALESCE($2, telefono),
-             cuit = COALESCE($3, cuit),
              direccion = COALESCE($4, direccion),
              descripcion = COALESCE($5, descripcion),
              categoria = COALESCE($6, categoria),
-             ciudad = COALESCE($7, ciudad),
-             imagen = COALESCE($8, imagen)
+             ciudad = COALESCE($7, ciudad)
          WHERE id = $9
          RETURNING *`,
         [
             nombreValidado,
             telefonoValidado,
-            cuitValidado,
             direccionValidada,
             descripcionValidada,
             categoriaValidada,
             ciudadValidada,
-            imagenValidada,
             id
         ]
     );

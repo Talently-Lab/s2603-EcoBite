@@ -472,6 +472,36 @@ app.get('/api/restaurantes', async (req, res) => {
     }
 });
 
+// VERIFICAR DISPONIBILIDAD DE EMAIL
+app.get('/api/usuario/verificar-email', async (req, res) => {
+    try {
+        const { email } = req.query;
+
+        const disponible = await usuarioModel.verificarEmail(email);
+
+        return res.status(200).json({
+            disponible,
+            ...(!disponible && {
+                mensaje: 'Ese email ya está registrado'
+            })
+        });
+
+    } catch (error) {
+
+        if (error instanceof ErrorValidacion) {
+            return res.status(400).json({
+                error: error.message
+            });
+        }
+
+        console.error('Error al verificar email:', error.message);
+
+        return res.status(500).json({
+            error: 'Error interno al verificar el email'
+        });
+    }
+});
+
 // VERIFICAR DISPONIBILIDAD DEL CUIT
 app.get('/api/restaurantes/verificar-cuit', async (req, res) => {
     try {
@@ -579,151 +609,7 @@ app.post('/api/restaurantes', verificarToken, async (req, res) => {
     }
 });
 
-//GET para traer un restaurante
-app.get('/api/restaurantes/:id', async (req,res)=>{
-   try{
-        const id = Number(req.params.id);
-
-        // Validar que el ID sea un número entero positivo
-        if (!Number.isInteger(id) || id <= 0) {
-            return res.status(400).json({
-                error: 'El ID debe ser un número entero positivo'
-            });
-        }
-
-        const restaurante = await restauranteModel.obtenerPorId(id);
-        if(!restaurante){
-            return res.status(404).json({
-                error: 'Restaurante no encontrado'
-            });
-        }
-        res.status(200).json(restaurante);
-    }catch(error){
-        console.error('Error al buscar el restaurante: ', error.message);
-        res.status(500).json({
-            error: 'Error interno del servidor'
-        });
-    }
-});
-
-//PUT para modificar un restaurante
-app.put('/api/restaurantes/:id', verificarToken, async (req, res) => {
-    try {
-        const id = Number(req.params.id);
-        const restaurante = req.body;
-
-        //verifica id(num)
-        if (!Number.isInteger(id) || id <= 0) {
-            return res.status(400).json({
-                error: 'El ID debe ser un número entero positivo'
-            });
-        }
-
-        //verifica formato JSON
-        if (!restaurante || typeof restaurante !== 'object' || Array.isArray(restaurante)) {
-            return res.status(400).json({
-                error: 'Debés enviar los datos del restaurante en formato JSON'
-            });
-        }
-
-        if (!restaurante.nombre ||!restaurante.cuit ||!restaurante.categoria) {
-            return res.status(400).json({
-                error: 'Faltan datos obligatorios para actualizar el restaurante'
-            });
-        }
-
-        // Verificamos permiso: que el usuario sea dueño del restaurante o administrador.
-        // Buscamos el restaurante que se quiere modificar
-        const restauranteExistente = await restauranteModel.obtenerPorId(id);
-
-        if (!restauranteExistente) {
-            return res.status(404).json({
-                error: 'Restaurante no encontrado'
-            });
-        }
-
-        // Verificamos que el usuario sea el dueño o administrador
-        if (Number(req.usuario.id) !== Number(restauranteExistente.id_usuario) && req.usuario.rol !== 'administrador'){
-            return res.status(403).json({
-                error: 'No tenés permisos para modificar este restaurante'
-            });
-        }
-
-        //----------------------------------
-        const restauranteActualizado = await restauranteModel.actualizar(
-            id,
-            restaurante
-        );
-
-        if (!restauranteActualizado) {
-            return res.status(404).json({
-                error: 'Restaurante no encontrado'
-            });
-        }
-
-        res.status(200).json({
-            mensaje: 'Restaurante actualizado con éxito',
-            restaurante: restauranteActualizado
-        });
-    } catch (error) {
-        console.error('Error al actualizar el restaurante:', error.message);
-
-        res.status(500).json({
-            error: 'Error interno al actualizar el restaurante'
-        });
-    }
-});
-
-//DELETE para eliminar un restaurante
-app.delete('/api/restaurantes/:id', verificarToken, async (req, res) => {
-    try {
-        const id = Number(req.params.id);
-
-        //verifica id(num)
-        if (!Number.isInteger(id) || id <= 0) {
-            return res.status(400).json({
-                error: 'El ID debe ser un número entero positivo'
-            });
-        }
-
-        // Verificar permiso: Buscar el restaurante
-        const restauranteExistente = await restauranteModel.obtenerPorId(id);
-
-        if (!restauranteExistente) {
-            return res.status(404).json({
-                error: 'Restaurante no encontrado'
-            });
-        }
-
-        // Verificar permisos antes de eliminar
-        if (Number(req.usuario.id) !== Number(restauranteExistente.id_usuario) && req.usuario.rol !== 'administrador') {
-            return res.status(403).json({
-                error: 'No tenés permisos para eliminar este restaurante'
-            });
-        }
-
-        const restauranteEliminado = await restauranteModel.eliminar(id);
-
-        if (!restauranteEliminado) {
-            return res.status(404).json({
-                error: 'Restaurante no encontrado'
-            });
-        }
-
-        res.status(200).json({
-            mensaje: 'Restaurante eliminado con éxito',
-            restaurante: restauranteEliminado
-        });
-    } catch (error) {
-        console.error('Error al eliminar el restaurante:', error.message);
-
-        res.status(500).json({
-            error: 'Error interno al eliminar el restaurante'
-        });
-    }
-});
-
-//SUBIR IMAGEN RESTAURANTE
+//SUBIR IMAGEN RESTAURANTE con otro endpoint porque requiere un tratamiento diferente.
 app.patch('/api/restaurantes/:id/imagen',verificarToken,subirImagen.single('imagen'),async (req, res) => {
         try {
             const id = Number(req.params.id);
@@ -822,6 +708,153 @@ app.patch('/api/restaurantes/:id/imagen',verificarToken,subirImagen.single('imag
         }
     }
 );
+
+//GET para traer un restaurante
+app.get('/api/restaurantes/:id', async (req,res)=>{
+   try{
+        const id = Number(req.params.id);
+
+        // Validar que el ID sea un número entero positivo
+        if (!Number.isInteger(id) || id <= 0) {
+            return res.status(400).json({
+                error: 'El ID debe ser un número entero positivo'
+            });
+        }
+
+        const restaurante = await restauranteModel.obtenerPorId(id);
+        if(!restaurante){
+            return res.status(404).json({
+                error: 'Restaurante no encontrado'
+            });
+        }
+        res.status(200).json(restaurante);
+    }catch(error){
+        console.error('Error al buscar el restaurante: ', error.message);
+        res.status(500).json({
+            error: 'Error interno del servidor'
+        });
+    }
+});
+
+//PUT para modificar un restaurante
+app.patch('/api/restaurantes/:id', verificarToken, async (req, res) => {
+    try {
+        const id = Number(req.params.id);
+        const restaurante = req.body;
+
+        //verifica id(num)
+        if (!Number.isInteger(id) || id <= 0) {
+            return res.status(400).json({
+                error: 'El ID debe ser un número entero positivo'
+            });
+        }
+
+        //verifica formato JSON
+        if (!restaurante || typeof restaurante !== 'object' || Array.isArray(restaurante)) {
+            return res.status(400).json({
+                error: 'Debés enviar los datos del restaurante en formato JSON'
+            });
+        }
+
+        if (Object.keys(restaurante).length === 0) {
+            return res.status(400).json({
+                error: 'Debés enviar al menos un dato para actualizar'
+            });
+        }
+
+        // Verificamos permiso: que el usuario sea dueño del restaurante o administrador.
+        // Buscamos el restaurante que se quiere modificar
+        const restauranteExistente = await restauranteModel.obtenerPorId(id);
+
+        if (!restauranteExistente) {
+            return res.status(404).json({
+                error: 'Restaurante no encontrado'
+            });
+        }
+
+        // Verificamos que el usuario sea el dueño o administrador
+        if (Number(req.usuario.id) !== Number(restauranteExistente.id_usuario) && req.usuario.rol !== 'administrador'){
+            return res.status(403).json({
+                error: 'No tenés permisos para modificar este restaurante'
+            });
+        }
+
+        if (restaurante.cuit !== undefined) {
+            return res.status(400).json({
+                error: 'El CUIT no se puede modificar'
+            });
+        }
+        //----------------------------------
+        const restauranteActualizado = await restauranteModel.actualizar(id,restaurante);
+
+        if (!restauranteActualizado) {
+            return res.status(404).json({
+                error: 'Restaurante no encontrado'
+            });
+        }
+
+        res.status(200).json({
+            mensaje: 'Restaurante actualizado con éxito',
+            restaurante: restauranteActualizado
+        });
+    } catch (error) {
+        console.error('Error al actualizar el restaurante:', error.message);
+
+        res.status(500).json({
+            error: 'Error interno al actualizar el restaurante'
+        });
+    }
+});
+
+//DELETE para eliminar un restaurante
+app.delete('/api/restaurantes/:id', verificarToken, async (req, res) => {
+    try {
+        const id = Number(req.params.id);
+
+        //verifica id(num)
+        if (!Number.isInteger(id) || id <= 0) {
+            return res.status(400).json({
+                error: 'El ID debe ser un número entero positivo'
+            });
+        }
+
+        // Verificar permiso: Buscar el restaurante
+        const restauranteExistente = await restauranteModel.obtenerPorId(id);
+
+        if (!restauranteExistente) {
+            return res.status(404).json({
+                error: 'Restaurante no encontrado'
+            });
+        }
+
+        // Verificar permisos antes de eliminar
+        if (Number(req.usuario.id) !== Number(restauranteExistente.id_usuario) && req.usuario.rol !== 'administrador') {
+            return res.status(403).json({
+                error: 'No tenés permisos para eliminar este restaurante'
+            });
+        }
+
+        const restauranteEliminado = await restauranteModel.eliminar(id);
+
+        if (!restauranteEliminado) {
+            return res.status(404).json({
+                error: 'Restaurante no encontrado'
+            });
+        }
+
+        res.status(200).json({
+            mensaje: 'Restaurante eliminado con éxito',
+            restaurante: restauranteEliminado
+        });
+    } catch (error) {
+        console.error('Error al eliminar el restaurante:', error.message);
+
+        res.status(500).json({
+            error: 'Error interno al eliminar el restaurante'
+        });
+    }
+});
+
 
 //======== PRODUCTOS =========
 // OBTENER PRODUCTOS DE UN RESTAURANTE

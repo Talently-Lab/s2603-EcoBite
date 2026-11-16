@@ -5,6 +5,7 @@
 const pool = require('../db');
 const bcrypt = require('bcrypt');//para hash contraseña
 const {validarCanalAdquisicion, validarContrasena, validarEmail, validarUrlImagen} = require('../utils/validaciones');
+const { verificarCuit } = require('./restaurante.model');
 
 //CREAR USUARIO-CLIENTE
 async function crearCliente(usuario) {
@@ -15,10 +16,6 @@ async function crearCliente(usuario) {
         canal_adquisicion
     } = usuario;
 
-    // Validamos los datos obligatorios
-    /* if (!email || !contrasena || !canal_adquisicion) {
-        throw new Error('Faltan datos obligatorios');
-    } */
 
     //Validacion de string , longitud y canal permitidos
     const contrasenaValidada = validarContrasena(contrasena);
@@ -44,6 +41,22 @@ async function crearCliente(usuario) {
     return resultado.rows[0];
 }
 
+// VERIFICAR DISPONIBILIDAD DE EMAIL
+async function verificarEmail(email) {
+    const emailValidado = validarEmail(email);
+
+    const resultado = await pool.query(
+        `SELECT EXISTS (
+            SELECT 1
+            FROM usuario
+            WHERE email = $1
+        ) AS existe`,
+        [emailValidado]
+    );
+
+    return !resultado.rows[0].existe;
+}
+
 //CREACION USUARIO-RESTAURANTE
 async function crearRestaurante(usuario) {
     const {
@@ -52,11 +65,6 @@ async function crearRestaurante(usuario) {
         avatar,
         canal_adquisicion
     } = usuario;
-
-    // Validamos los datos obligatorios
-    /* if (!email || !contrasena || !canal_adquisicion) {
-        throw new Error('Faltan datos obligatorios');
-    } */
 
     //Validacion de string , longitud y canal permitidos
     const contrasenaValidada = validarContrasena(contrasena);
@@ -182,6 +190,7 @@ async function eliminar(id) {
 
 module.exports = {
     crearCliente,
+    verificarEmail,
     crearRestaurante,
     obtenerTodos,
     obtenerPorEmail,
