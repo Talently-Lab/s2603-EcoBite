@@ -32,7 +32,12 @@ interface CartContextValue {
   abandonCart: (cartId: number | undefined, restaurantName: string) => void | Promise<void>;
   clearCart: () => void | Promise<void>;
   clearNotice: () => void;
-  createOrders: (data: OrderRequest) => Promise<number>;
+  createOrders: (data: OrderRequest) => Promise<{
+    co2Saved: number;
+    subtotal: number;
+    deliveryCost: number;
+    total: number;
+  }>;
 }
 
 interface OrderRequest {
@@ -48,6 +53,45 @@ interface ApiOrderResponse {
   pedido: unknown;
   mensaje?: string;
   error?: string;
+}
+
+function getOrderTotals(order: unknown): {
+  subtotal: number;
+  deliveryCost: number;
+  total: number;
+} {
+  if (
+    typeof order !== "object" ||
+    order === null ||
+    !("costo_envio" in order) ||
+    !("total_pedido" in order)
+  ) {
+    throw new Error(
+      "El pedido se creó, pero la respuesta no incluye el envío y el total.",
+    );
+  }
+
+  const parseAmount = (value: unknown) =>
+    typeof value === "number"
+      ? value
+      : typeof value === "string" && value.trim()
+        ? Number(value)
+        : Number.NaN;
+  const deliveryCost = parseAmount(order.costo_envio);
+  const total = parseAmount(order.total_pedido);
+
+  if (
+    !Number.isFinite(deliveryCost) ||
+    deliveryCost < 0 ||
+    !Number.isFinite(total) ||
+    total < deliveryCost
+  ) {
+    throw new Error(
+      "El pedido se creó, pero los importes devueltos no son válidos.",
+    );
+  }
+
+  return { subtotal: total - deliveryCost, deliveryCost, total };
 }
 
 function getOrderCo2Saved(order: unknown): number {
@@ -337,6 +381,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
 
     let totalCo2Saved = 0;
+    let subtotalCents = 0;
+    let deliveryCostCents = 0;
+    let totalCents = 0;
     for (const cartId of cartIds) {
       const restaurantItems = items.filter((item) => item.cartId === cartId);
       const restaurantId = restaurantItems[0]?.restaurantId;
@@ -350,11 +397,20 @@ export function CartProvider({ children }: { children: ReactNode }) {
         })),
       }, token);
       totalCo2Saved += getOrderCo2Saved(result.pedido);
+      const orderTotals = getOrderTotals(result.pedido);
+      subtotalCents += Math.round(orderTotals.subtotal * 100);
+      deliveryCostCents += Math.round(orderTotals.deliveryCost * 100);
+      totalCents += Math.round(orderTotals.total * 100);
       setItems((current) => current.filter((item) => item.cartId !== cartId));
     }
     setNotice(null);
     setError(null);
-    return totalCo2Saved;
+    return {
+      co2Saved: totalCo2Saved,
+      subtotal: subtotalCents / 100,
+      deliveryCost: deliveryCostCents / 100,
+      total: totalCents / 100,
+    };
   }, [items, token]);
 
   const canViewCart =

@@ -1,8 +1,10 @@
 import { Title } from "../ui/Title";
 import type { CartItem } from "../detailRestaurant/OrderSummary";
+import type { OrderConfirmationTotals } from "../../services/orders";
 
 interface OrderDetailsProps {
   items: CartItem[];
+  totals: OrderConfirmationTotals | null;
 }
 
 function formatCurrency(value: number) {
@@ -12,8 +14,9 @@ function formatCurrency(value: number) {
   })}`;
 }
 
-export function OrderDetails({ items }: OrderDetailsProps) {
-  const total = items.reduce((sum, item) => sum + item.price, 0);
+export function OrderDetails({ items, totals }: OrderDetailsProps) {
+  const subtotal =
+    totals?.subtotal ?? items.reduce((sum, item) => sum + item.price, 0);
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
 
   return (
@@ -59,9 +62,21 @@ export function OrderDetails({ items }: OrderDetailsProps) {
 
       <hr className="my-0 w-full border-0 border-t border-gray-200" />
 
+      <div className="flex items-center justify-between gap-4 text-sm text-gray-600">
+        <span>Subtotal de productos</span>
+        <span>{formatCurrency(subtotal)}</span>
+      </div>
+      <div className="flex items-center justify-between gap-4 text-sm text-gray-600">
+        <span>Envío</span>
+        <span>
+          {totals ? formatCurrency(totals.deliveryCost) : "No disponible"}
+        </span>
+      </div>
       <div className="flex items-center justify-between gap-4 font-bold text-eco-dark">
         <span>Total</span>
-        <span>{formatCurrency(total)}</span>
+        <span>
+          {totals ? formatCurrency(totals.total) : "No disponible"}
+        </span>
       </div>
     </section>
   );

@@ -4,10 +4,14 @@ import { Title } from "../ui/Title";
 
 interface DeliveryAddressSectionProps {
   showValidationErrors: boolean;
+  zoneId: number | null;
+  onZoneChange: (zoneId: number | null) => void;
 }
 
 export function DeliveryAddressSection({
   showValidationErrors,
+  zoneId,
+  onZoneChange,
 }: DeliveryAddressSectionProps) {
   const [form, setForm] = useState({
     street: "",
@@ -84,9 +88,14 @@ export function DeliveryAddressSection({
           Zona de entrega
           <select
             name="zone"
-            defaultValue=""
+            value={zoneId?.toString() ?? ""}
+            onChange={(event) => {
+              const value = event.currentTarget.value;
+              onZoneChange(value ? Number(value) : null);
+            }}
             required
             aria-label="Zona de entrega"
+            aria-invalid={showValidationErrors && zoneId === null || undefined}
             className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 font-normal text-gray-800 focus:border-eco-dark focus:outline-none focus:ring-2 focus:ring-eco-dark/20"
           >
             <option value="" disabled>Elegí tu zona</option>
@@ -96,6 +105,11 @@ export function DeliveryAddressSection({
             <option value="4">Este</option>
             <option value="5">Oeste</option>
           </select>
+          {showValidationErrors && zoneId === null && (
+            <span className="text-xs font-normal text-red-600">
+              Elegí una zona de entrega.
+            </span>
+          )}
         </label>
       </div>
       <button
