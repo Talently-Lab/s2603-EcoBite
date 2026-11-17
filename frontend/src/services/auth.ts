@@ -183,6 +183,38 @@ export async function verifyRestaurantCuit(cuit: string): Promise<boolean> {
   return responseBody.disponible;
 }
 
+export async function verifyEmailAvailability(
+  email: string,
+): Promise<{ disponible: boolean; mensaje?: string }> {
+  const response = await fetch(
+    `${API_BASE_URL}/usuario/verificar-email?email=${encodeURIComponent(email.trim())}`,
+  );
+  const responseBody: unknown = await response.json();
+
+  if (!response.ok) {
+    throw new Error(
+      getErrorMessage(responseBody) ??
+        `No se pudo verificar el email (estado ${response.status}).`,
+    );
+  }
+
+  if (
+    typeof responseBody !== "object" ||
+    responseBody === null ||
+    !("disponible" in responseBody) ||
+    typeof responseBody.disponible !== "boolean"
+  ) {
+    throw new Error("El servidor devolvió una respuesta de verificación de email inválida.");
+  }
+
+  return {
+    disponible: responseBody.disponible,
+    ...("mensaje" in responseBody && typeof responseBody.mensaje === "string"
+      ? { mensaje: responseBody.mensaje }
+      : {}),
+  };
+}
+
 export async function loginAccount(
   credentials: LoginCredentials,
 ): Promise<LoginResponse> {
