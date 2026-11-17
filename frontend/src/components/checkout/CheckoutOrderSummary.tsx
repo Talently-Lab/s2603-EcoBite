@@ -7,6 +7,10 @@ import { Link } from "react-router-dom";
 interface CheckoutOrderSummaryProps {
   items: CartItem[];
   isLoading: boolean;
+  deliveryCost: number | null;
+  isDeliveryCostLoading: boolean;
+  deliveryCostError: string | null;
+  deliveryOrderCount: number;
 }
 
 function formatCurrency(value: number) {
@@ -19,8 +23,13 @@ function formatCurrency(value: number) {
 export function CheckoutOrderSummary({
   items,
   isLoading,
+  deliveryCost,
+  isDeliveryCostLoading,
+  deliveryCostError,
+  deliveryOrderCount,
 }: CheckoutOrderSummaryProps) {
   const subtotal = items.reduce((total, item) => total + item.price, 0);
+  const total = deliveryCost === null ? null : subtotal + deliveryCost;
 
   return (
     <aside
@@ -60,17 +69,33 @@ export function CheckoutOrderSummary({
         <span>{formatCurrency(subtotal)}</span>
       </div>
       <div className="flex items-center justify-between gap-4 text-sm text-gray-600">
-        <span>Envío</span>
-        <span>Se calcula después</span>
+        <span>
+          Envío
+          {deliveryOrderCount > 1 ? ` (${deliveryOrderCount} pedidos)` : ""}
+        </span>
+        <span>
+          {isDeliveryCostLoading
+            ? "Calculando..."
+            : deliveryCost !== null
+              ? formatCurrency(deliveryCost)
+              : deliveryCostError
+                ? "No disponible"
+                : "Elegí una zona"}
+        </span>
       </div>
+      {deliveryCostError && (
+        <p role="alert" className="-mt-2 text-xs text-red-600">
+          {deliveryCostError}
+        </p>
+      )}
       <div className="flex items-center justify-between gap-4 font-bold text-eco-dark">
         <span>Total</span>
-        <span>{formatCurrency(subtotal)}</span>
+        <span>{total === null ? "—" : formatCurrency(total)}</span>
       </div>
 
       <Button
         type="submit"
-        disabled={isLoading}
+        disabled={isLoading || isDeliveryCostLoading || deliveryCost === null}
         className="block w-full cursor-pointer text-center shadow-sm transition-colors hover:brightness-110 disabled:cursor-not-allowed"
       >
         {isLoading ? <CheckoutSubmitLoader /> : "Confirmar pedido"}

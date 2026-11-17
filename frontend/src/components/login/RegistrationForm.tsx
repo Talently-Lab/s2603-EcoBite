@@ -19,6 +19,7 @@ import {
   registerAccount,
   uploadRestaurantImage,
   verifyRestaurantCuit,
+  verifyEmailAvailability,
   type RegistrationAccountType,
   type LoginResponse,
 } from "../../services/auth";
@@ -277,7 +278,31 @@ export function RegistrationForm({ onStepChange, onAccountTypeChange }: Registra
       }
 
       setErrors({});
-      changeStep(2);
+      setIsSubmitting(true);
+      try {
+        const emailStatus = await verifyEmailAvailability(accountResult.data.email);
+        if (!emailStatus.disponible) {
+          setErrors({
+            email:
+              emailStatus.mensaje ??
+              "Ese email ya está registrado. Iniciá sesión o probá con otro.",
+          });
+          setSubmitError("No podemos continuar con un email que ya está registrado.");
+          return;
+        }
+
+        changeStep(2);
+      } catch (error) {
+        setSubmitError(
+          error instanceof TypeError
+            ? "No pudimos conectar con el servidor para verificar el email. Revisá tu conexión e intentá de nuevo."
+            : error instanceof Error
+              ? error.message
+              : "No se pudo verificar el email. Intentá de nuevo.",
+        );
+      } finally {
+        setIsSubmitting(false);
+      }
       return;
     }
 
@@ -975,9 +1000,11 @@ export function RegistrationForm({ onStepChange, onAccountTypeChange }: Registra
             className="w-full text-center shadow-sm transition-colors hover:brightness-110 disabled:cursor-wait disabled:opacity-60"
           >
             {isSubmitting
-              ? step === 2 && accountType === "restaurante"
-                ? "Verificando CUIT..."
-                : "Creando cuenta..."
+              ? step === 1
+                ? "Verificando email..."
+                : step === 2 && accountType === "restaurante"
+                  ? "Verificando CUIT..."
+                  : "Creando cuenta..."
               : step === 1
                 ? "Continuar"
                 : step === 2 && accountType === "restaurante"

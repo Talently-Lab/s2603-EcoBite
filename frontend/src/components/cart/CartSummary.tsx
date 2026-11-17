@@ -34,13 +34,9 @@ export default function CartSummary({ items }: CartSummaryProps) {
         <span>Subtotal</span>
         <span>{formatCurrency(subtotal)}</span>
       </div>
-      <div className="flex items-center justify-between gap-4 text-sm text-gray-600">
-        <span>Envío</span>
-        <span>Se calcula después</span>
-      </div>
       <hr className="my-0 w-full border-0 border-t border-gray-200" />
       <div className="flex items-center justify-between gap-4 font-bold text-eco-dark">
-        <span>Total</span>
+        <span>Total parcial</span>
         <span>{formatCurrency(subtotal)}</span>
       </div>
       <Button

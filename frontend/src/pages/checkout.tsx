@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import type { CartItem } from "../components/detailRestaurant/OrderSummary";
 import { DeliveryAddressSection } from "../components/checkout/direction";
@@ -8,6 +8,7 @@ import { GlobalAlert } from "../components/ui/GlobalAlert";
 import { HeroTitle } from "../components/ui/HeroTitle";
 import { CheckoutConfirmationModal } from "../components/checkout/CheckoutConfirmationModal";
 import { useCart } from "../contexts/CartContext";
+import { getDeliveryCost, type OrderConfirmationTotals } from "../services/orders";
 
 interface CheckoutPageProps {
   items: CartItem[];
@@ -24,6 +25,54 @@ export function CheckoutPage({ items }: CheckoutPageProps) {
   const [confirmedCo2Saved, setConfirmedCo2Saved] = useState<number | null>(
     null,
   );
+  const [selectedZone, setSelectedZone] = useState<number | null>(null);
+  const [deliveryCost, setDeliveryCost] = useState<number | null>(null);
+  const [isDeliveryCostLoading, setIsDeliveryCostLoading] = useState(false);
+  const [deliveryCostError, setDeliveryCostError] = useState<string | null>(null);
+  const [confirmedOrderTotals, setConfirmedOrderTotals] =
+    useState<OrderConfirmationTotals | null>(null);
+  const deliveryCostRequest = useRef<AbortController | null>(null);
+  const deliveryOrderCount =
+    new Set(items.map((item) => item.cartId).filter((id) => id !== undefined))
+      .size || 1;
+  const estimatedDeliveryCost =
+    deliveryCost === null ? null : deliveryCost * deliveryOrderCount;
+
+  useEffect(() => {
+    return () => deliveryCostRequest.current?.abort();
+  }, []);
+
+  function handleZoneChange(zoneId: number | null) {
+    setSelectedZone(zoneId);
+    setValidationMessage(null);
+    deliveryCostRequest.current?.abort();
+    setDeliveryCost(null);
+    setDeliveryCostError(null);
+
+    if (zoneId === null) {
+      setIsDeliveryCostLoading(false);
+      return;
+    }
+
+    const controller = new AbortController();
+    deliveryCostRequest.current = controller;
+    setIsDeliveryCostLoading(true);
+    getDeliveryCost(zoneId, controller.signal)
+      .then((cost) => {
+        if (!controller.signal.aborted) setDeliveryCost(cost);
+      })
+      .catch((error: unknown) => {
+        if (controller.signal.aborted) return;
+        setDeliveryCostError(
+          error instanceof Error
+            ? error.message
+            : "No se pudo consultar el costo de envío.",
+        );
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setIsDeliveryCostLoading(false);
+      });
+  }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -47,6 +96,13 @@ export function CheckoutPage({ items }: CheckoutPageProps) {
       );
       return;
     }
+    if (deliveryCost === null || isDeliveryCostLoading || deliveryCostError) {
+      setValidationMessage(
+        deliveryCostError ??
+          "Esperá a que se calcule el costo de envío antes de confirmar.",
+      );
+      return;
+    }
 
     setValidationMessage(null);
     setIsLoading(true);
@@ -57,8 +113,13 @@ export function CheckoutPage({ items }: CheckoutPageProps) {
       direccion_entrega: `${street}, ${city}`,
       piso_entrega: formData.get("apartment")?.toString().trim() || undefined,
       indicacion_entrega: formData.get("instructions")?.toString().trim() || undefined,
-    }).then((co2Saved) => {
-      setConfirmedCo2Saved(co2Saved);
+    }).then((result) => {
+      setConfirmedCo2Saved(result.co2Saved);
+      setConfirmedOrderTotals({
+        subtotal: result.subtotal,
+        deliveryCost: result.deliveryCost,
+        total: result.total,
+      });
       setIsLoading(false);
       setIsConfirmationOpen(true);
     }).catch((error: unknown) => {
@@ -70,7 +131,11 @@ export function CheckoutPage({ items }: CheckoutPageProps) {
   function goToConfirmation() {
     setIsConfirmationOpen(false);
     navigate("/confirmacion", {
-      state: { items: purchasedItems, savedCo2Kg: confirmedCo2Saved },
+      state: {
+        items: purchasedItems,
+        savedCo2Kg: confirmedCo2Saved,
+        orderTotals: confirmedOrderTotals,
+      },
     });
   }
 
@@ -92,12 +157,18 @@ export function CheckoutPage({ items }: CheckoutPageProps) {
           <div className="flex flex-col gap-6 lg:col-span-2">
             <DeliveryAddressSection
               showValidationErrors={showValidationErrors}
+              zoneId={selectedZone}
+              onZoneChange={handleZoneChange}
             />
             <PaymentMethodSection />
           </div>
           <CheckoutOrderSummary
             items={items}
             isLoading={isLoading}
+            deliveryCost={estimatedDeliveryCost}
+            isDeliveryCostLoading={isDeliveryCostLoading}
+            deliveryCostError={deliveryCostError}
+            deliveryOrderCount={deliveryOrderCount}
           />
         </div>
       </form>

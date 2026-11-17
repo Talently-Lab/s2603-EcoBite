@@ -6,6 +6,7 @@ import { ComparisonChart } from "../components/confirm/ComparisonChart";
 import { OrderDetails } from "../components/confirm/OrderDetails";
 import { SuccessIndicator } from "../components/confirm/SuccessIndicator";
 import { useAuth } from "../contexts/AuthContext";
+import type { OrderConfirmationTotals } from "../services/orders";
 import { getUserOrdersPath } from "../utils/userRoutes";
 
 interface ConfirmacionPageProps {
@@ -22,6 +23,7 @@ export function ConfirmacionPage({
   const confirmationState = location.state as {
     items?: CartItem[];
     savedCo2Kg?: number | null;
+    orderTotals?: OrderConfirmationTotals | null;
   } | null;
   const orderItems = confirmationState?.items ?? items;
   const confirmedCo2Saved =
@@ -34,7 +36,10 @@ export function ConfirmacionPage({
       <SuccessIndicator />
 
       <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-2">
-        <OrderDetails items={orderItems} />
+        <OrderDetails
+          items={orderItems}
+          totals={confirmationState?.orderTotals ?? null}
+        />
         <div className="flex flex-col gap-6">
           <ImpactBadge
             titulo="Ahorraste con este pedido"
