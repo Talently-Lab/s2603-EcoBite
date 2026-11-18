@@ -54,14 +54,13 @@ La documentación de testing del proyecto está centralizada en Google Drive:
 | Tester | Erika Helfenstern | https://www.linkedin.com/in/hevieri/ |
 | Tester | Mayra Chazarreta | https://www.linkedin.com/in/mayra-chazarreta-33a3b9406?utm_source=share_via&utm_content=profile&utm_medium=member_android |
 | Frontend | Franco Alex Torrico | https://www.linkedin.com/in/francotorrico/ | 
-| Diseñador Gráfico | Maria Pilar Donovan | |
+| Diseñador Gráfico | Maria Pilar Donovan | https://www.linkedin.com/in/pilar-donovan-21650b256?utm_source=share_via&utm_content=profile&utm_medium=member_android|
 | Diseñador UX/UI | Carina Alejandra Luna | https://www.linkedin.com/in/carina-alejandra-luna |
 | Marketing | Jorgelina Riquelme | https://ar.linkedin.com/in/jorgelina-riquelmee- |
 | Data Analyst | Fernando Romero | |
 | Project Manager | Jeanette Ruiz Valiente | https://www.linkedin.com/in/jeanette-elizabeth-ruiz-valiente-a4b480370?utm_source=share_via&utm_content=profile&utm_medium=member_android |
 |Backend |Sabrina Tolay | https://www.linkedin.com/in/sabrinatolay/|
-| | | |
-| | | |
+
 
 ---
 
