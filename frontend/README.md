@@ -31,6 +31,13 @@ pnpm dev
 
 Vite informa en la terminal la URL local para abrir la aplicación.
 
+## Despliegue en Vercel
+
+Configurá `frontend` como **Root Directory** del proyecto en Vercel. La regla
+de `vercel.json` reescribe las rutas de React Router a `index.html`, para que
+las páginas como `/restaurantes`, `/login` y `/registro` también funcionen al
+abrirlas directamente o recargar el navegador.
+
 ## Datos de restaurantes
 
 Los listados y el detalle consumen `src/services/restaurants.ts`. Elegí la fuente
