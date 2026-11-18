@@ -12,8 +12,12 @@ async function obtenerTransporter() {
         return transporter;
     }
 
+    console.log('1. Intentando crear cuenta de Ethereal...');
+
     // Crea una cuenta temporal para probar el envío de correos.
     const cuentaPrueba = await nodemailer.createTestAccount();
+
+    console.log('2. Cuenta de Ethereal creada correctamente.');
 
     transporter = nodemailer.createTransport({
         host: cuentaPrueba.smtp.host,
@@ -24,6 +28,9 @@ async function obtenerTransporter() {
             pass: cuentaPrueba.pass
         }
     });
+
+
+    console.log('3. Transporter configurado.');
 
     return transporter;
 }
