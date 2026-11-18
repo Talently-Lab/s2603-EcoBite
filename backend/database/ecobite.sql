@@ -2,12 +2,12 @@
 -- PostgreSQL database dump
 --
 
-\restrict t9bxuL4Oyc7cKV6S6MPHaBjxwgpeIwhNK1dQ9XrBZ45CN3jjPAPhc5IbhkyXkGz
+\restrict sj3pfamusa6umP6MKAOZ1nnhOvYNtVSmQKYiCbcjUUWQKe0F3ZjsaYtKhVfhUDK
 
 -- Dumped from database version 18.6
 -- Dumped by pg_dump version 18.6
 
--- Started on 2026-11-18 18:28:44
+-- Started on 2026-11-18 20:17:58
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -32,7 +32,7 @@ CREATE SCHEMA public;
 ALTER SCHEMA public OWNER TO pg_database_owner;
 
 --
--- TOC entry 5044 (class 0 OID 0)
+-- TOC entry 5024 (class 0 OID 0)
 -- Dependencies: 4
 -- Name: SCHEMA public; Type: COMMENT; Schema: -; Owner: pg_database_owner
 --
@@ -79,7 +79,7 @@ CREATE SEQUENCE public.carrito_id_seq
 ALTER SEQUENCE public.carrito_id_seq OWNER TO postgres;
 
 --
--- TOC entry 5045 (class 0 OID 0)
+-- TOC entry 5025 (class 0 OID 0)
 -- Dependencies: 235
 -- Name: carrito_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
@@ -125,7 +125,7 @@ CREATE SEQUENCE public.cliente_id_seq
 ALTER SEQUENCE public.cliente_id_seq OWNER TO postgres;
 
 --
--- TOC entry 5046 (class 0 OID 0)
+-- TOC entry 5026 (class 0 OID 0)
 -- Dependencies: 220
 -- Name: cliente_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
@@ -166,7 +166,7 @@ CREATE SEQUENCE public.detalle_carrito_id_seq
 ALTER SEQUENCE public.detalle_carrito_id_seq OWNER TO postgres;
 
 --
--- TOC entry 5047 (class 0 OID 0)
+-- TOC entry 5027 (class 0 OID 0)
 -- Dependencies: 237
 -- Name: detalle_carrito_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
@@ -208,7 +208,7 @@ CREATE SEQUENCE public.detalle_pedido_id_seq
 ALTER SEQUENCE public.detalle_pedido_id_seq OWNER TO postgres;
 
 --
--- TOC entry 5048 (class 0 OID 0)
+-- TOC entry 5028 (class 0 OID 0)
 -- Dependencies: 222
 -- Name: detalle_pedido_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
@@ -250,7 +250,7 @@ CREATE SEQUENCE public.horario_restaurante_id_seq
 ALTER SEQUENCE public.horario_restaurante_id_seq OWNER TO postgres;
 
 --
--- TOC entry 5049 (class 0 OID 0)
+-- TOC entry 5029 (class 0 OID 0)
 -- Dependencies: 233
 -- Name: horario_restaurante_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
@@ -309,7 +309,7 @@ CREATE SEQUENCE public.pedido_id_seq
 ALTER SEQUENCE public.pedido_id_seq OWNER TO postgres;
 
 --
--- TOC entry 5050 (class 0 OID 0)
+-- TOC entry 5030 (class 0 OID 0)
 -- Dependencies: 224
 -- Name: pedido_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
@@ -353,7 +353,7 @@ CREATE SEQUENCE public.producto_id_seq
 ALTER SEQUENCE public.producto_id_seq OWNER TO postgres;
 
 --
--- TOC entry 5051 (class 0 OID 0)
+-- TOC entry 5031 (class 0 OID 0)
 -- Dependencies: 226
 -- Name: producto_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
@@ -399,7 +399,7 @@ CREATE SEQUENCE public.restaurante_id_seq
 ALTER SEQUENCE public.restaurante_id_seq OWNER TO postgres;
 
 --
--- TOC entry 5052 (class 0 OID 0)
+-- TOC entry 5032 (class 0 OID 0)
 -- Dependencies: 228
 -- Name: restaurante_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
@@ -442,7 +442,7 @@ CREATE SEQUENCE public.usuario_id_seq
 ALTER SEQUENCE public.usuario_id_seq OWNER TO postgres;
 
 --
--- TOC entry 5053 (class 0 OID 0)
+-- TOC entry 5033 (class 0 OID 0)
 -- Dependencies: 230
 -- Name: usuario_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
@@ -481,7 +481,7 @@ CREATE SEQUENCE public.zona_id_seq
 ALTER SEQUENCE public.zona_id_seq OWNER TO postgres;
 
 --
--- TOC entry 5054 (class 0 OID 0)
+-- TOC entry 5034 (class 0 OID 0)
 -- Dependencies: 232
 -- Name: zona_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
@@ -567,258 +567,6 @@ ALTER TABLE ONLY public.usuario ALTER COLUMN id SET DEFAULT nextval('public.usua
 --
 
 ALTER TABLE ONLY public.zona ALTER COLUMN id SET DEFAULT nextval('public.zona_id_seq'::regclass);
-
-
---
--- TOC entry 5036 (class 0 OID 32809)
--- Dependencies: 236
--- Data for Name: carrito; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY public.carrito (id, id_cliente, estado, fecha_creacion, fecha_actualizacion, id_restaurante) FROM stdin;
-6	1	convertido	2026-11-07 15:56:43.288675	2026-11-16 15:51:26.938249	2
-3	1	convertido	2026-10-27 00:57:49.072953	2026-10-27 16:16:35.941833	1
-7	1	convertido	2026-11-11 20:43:08.412713	2026-11-16 16:09:14.064708	1
-8	1	eliminado	2026-11-16 16:11:38.592579	2026-11-16 16:12:15.66289	13
-9	1	convertido	2026-11-16 16:16:34.614892	2026-11-16 16:22:25.203536	2
-\.
-
-
---
--- TOC entry 5019 (class 0 OID 16940)
--- Dependencies: 219
--- Data for Name: cliente; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY public.cliente (id, id_usuario, nombre, apellido, telefono, direccion, piso, departamento, ciudad, id_zona) FROM stdin;
-2	2	Juan	Perez	2664000002	Calle Belgrano 456	\N	\N	San Luis	2
-1	1	Sandra	Casano	2664000001	Av. San Martin 123	2	B	San Luis	\N
-\.
-
-
---
--- TOC entry 5038 (class 0 OID 32830)
--- Dependencies: 238
--- Data for Name: detalle_carrito; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY public.detalle_carrito (id, id_carrito, id_producto, cantidad) FROM stdin;
-1	3	1	2
-2	3	2	1
-3	6	4	2
-5	7	2	1
-4	6	5	1
-11	9	6	1
-12	9	4	1
-\.
-
-
---
--- TOC entry 5021 (class 0 OID 16950)
--- Dependencies: 221
--- Data for Name: detalle_pedido; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY public.detalle_pedido (id, id_pedido, id_producto, cantidad, precio_unitario, subtotal) FROM stdin;
-11	8	1	2	8500.00	17000.00
-12	8	2	1	7200.00	7200.00
-18	13	4	2	9500.00	19000.00
-19	13	5	1	8000.00	8000.00
-20	14	2	1	7200.00	7200.00
-21	15	4	1	9500.00	9500.00
-22	15	6	1	3200.00	3200.00
-\.
-
-
---
--- TOC entry 5034 (class 0 OID 32769)
--- Dependencies: 234
--- Data for Name: horario_restaurante; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY public.horario_restaurante (id, id_restaurante, dia_semana, hora_apertura, hora_cierre) FROM stdin;
-4	1	2	09:00:00	13:59:00
-5	1	2	20:00:00	23:59:00
-6	1	3	09:00:00	13:59:00
-7	1	3	20:00:00	23:59:00
-8	1	4	09:00:00	13:59:00
-9	1	4	20:00:00	23:59:00
-10	1	5	09:00:00	13:59:00
-11	1	5	20:00:00	23:59:00
-12	1	6	09:00:00	13:59:00
-13	1	6	20:00:00	23:59:00
-14	1	7	09:00:00	13:59:00
-3	1	1	19:00:00	23:59:00
-\.
-
-
---
--- TOC entry 5023 (class 0 OID 16960)
--- Dependencies: 223
--- Data for Name: pedido; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY public.pedido (id, id_cliente, id_restaurante, id_zona, estado_pedido, total_pedido, tipo_pago, costo_envio, direccion_entrega, piso_entrega, departamento_entrega, indicacion_entrega, hora_aceptacion, hora_despacho, calificacion, plastico_ahorrado, co2_ahorrado, hora_entrega, id_carrito, fecha_creacion) FROM stdin;
-8	1	1	2	entregado	24700.00	efectivo	500.00	Calle Ejemplo 123	\N	\N	Tocar timbre	2026-10-28 01:14:23.547963	2026-10-28 01:30:23.547963	5	\N	0.53	2026-10-28 01:40:23.547963	3	2026-10-28 01:13:23.547963
-13	1	2	3	entregado	30000.00	efectivo	3000.00	Av. Illia 450	2	A	Tocar timbre del departamento	2026-11-16 15:52:26.938249	2026-11-16 16:02:26.938249	4	\N	0.74	2026-11-16 16:15:26.938249	6	2026-11-16 15:51:26.938249
-14	1	1	3	cancelado_demora	10200.00	efectivo	3000.00	Direccion 12, San Luis	1	\N	\N	2026-11-16 16:10:14.064708	\N	\N	\N	0.74	\N	7	2026-11-16 16:09:14.064708
-15	1	2	1	en_preparacion	14200.00	tarjeta	1500.00	Direcccion 2, San Luis	\N	\N	\N	2026-11-18 15:33:25.203536	\N	\N	\N	0.32	\N	9	2026-11-18 15:32:25.203536
-\.
-
-
---
--- TOC entry 5025 (class 0 OID 16976)
--- Dependencies: 225
--- Data for Name: producto; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY public.producto (id, id_restaurante, nombre, descripcion, precio, disponible, categoria, imagen) FROM stdin;
-2	1	Ensalada mediterranea	Vegetales frescos, aceitunas y semillas	7200.00	t	Comida	ensalada_mediterranea.jpg
-4	2	Parrillada vegetal	Vegetales grillados de temporada	9500.00	t	Comida	parrillada_vegetal.jpg
-5	2	Hamburguesa vegetal	Hamburguesa vegetal con pan artesanal	8000.00	t	Comida	hamburguesa_vegetal.jpg
-1	1	Bowl de quinoa	Quinoa, vegetales frescos y aderezo de la casa	8500.00	t	Comida	https://res.cloudinary.com/x4imlxoe/image/upload/v1792716956/ecobite/productos/ubkv8bbofcd6cjgnesgy.webp
-7	13	Hamburguesa vegetariana	Hamburguesa de lentejas con vegetales	9500.00	t	Hamburguesas	\N
-6	2	Jugo natural	Jugo natural de frutas de temporada	3200.00	t	Bebida	jugo_natural.jpg
-3	1	Limonada natural	Limonada casera con limon fresco	3000.00	f	Bebida	limonada.jpg
-8	1	Hamburguesa clásica	Hamburguesa con carne, lechuga y tomate	8500.00	t	Ha	https://ejemplo.com/hamburguesa.jpg
-\.
-
-
---
--- TOC entry 5027 (class 0 OID 16988)
--- Dependencies: 227
--- Data for Name: restaurante; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY public.restaurante (id, id_usuario, nombre, telefono, cuit, direccion, descripcion, categoria, ciudad, imagen) FROM stdin;
-1	5	Pan de Campo	2664000005	30712345605	Chacabuco 10	Panaderia con ahorro sustentable 	Panaderia artesanal	San Luis	\N
-2	6	Hoja y Fuego	2664000006	30798765432	Calle Colon 580	Propuesta de cocina vegetal	Parrilla vegetal	San Luis	\N
-9	9	Verde Raíz	2664000009	30712345678	Av. Illia 450	Restaurante de comida saludable y sustentable	Cocina natural	San Luis	\N
-13	17	Brote Cocina Viva	2664000017	30712345675	Chacabuco 254	Restaurante de comida saludable y vegana	vegana	San Luis	https://res.cloudinary.com/x4imlxoe/image/upload/v1792717599/ecobite/restaurantes/zai4en4tb1clfqf7bsbp.jpg
-\.
-
-
---
--- TOC entry 5029 (class 0 OID 16997)
--- Dependencies: 229
--- Data for Name: usuario; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY public.usuario (id, email, contrasena, avatar, rol, fecha_registro, canal_adquisicion) FROM stdin;
-2	cliente2@ecobite.com	$2b$10$nU2EUS.QPimoHfaXkTLVuOWxJpZrHakkN3Eun7eVK8xTq1MKJwgi.	\N	cliente	2026-10-02 11:30:00	Facebook
-5	restaurante1@ecobite.com	$2b$10$sMud7TAIzbFzrDD4TfvuPeY/UwAYboi22bktl86VhS/Wel3cGVPAW	\N	restaurante	2026-09-28 16:00:00	Instagram
-6	restaurante2@ecobite.com	$2b$10$fcdyFZsov/Mp6qxsFfVL8upHFIDj6Voo56g7PmRxiBtDiFnIPuhRe	\N	restaurante	2026-09-29 12:00:00	Recomendacion
-9	restaurante4@ecobite.com	$2b$10$LDCeG.NSYEWX2pUpu24aIuquj.Op0ykCBSOCtbl92GSfR0Jup6cO2	\N	restaurante	2026-10-14 00:18:16.90284	redes_sociales
-10	cliente3@ecobite.com	$2b$10$mcJrxPxgxRYDibV/UygtReoQ0FnEqD9wgJqyQCdtyVH2tC1lQ4.Qm	\N	cliente	2026-10-14 00:49:06.990885	redes_sociales
-17	restaurante5@ecobite.com	$2b$10$FDF6FTla8DrekaCKfgqz9.NWIw/SKxDR04Its1F/uHB.DTG1hz7bG	\N	restaurante	2026-10-22 18:40:36.446041	facebook
-14	administrador1@ecobite.com	$2b$10$R4IQj3cjmX3dFfNVgBNggOESZ27uKO6JQAS/aMQqs2sCc1EPz24nO	\N	administrador	2026-10-19 21:24:01.549394	\N
-1	cliente1@ecobite.com	$2b$10$tAA2V4/VqmTlFDk69lOCT.Hp5/VRZgqPD9.tiR2/TUavzGhTWuVnK	\N	cliente	2026-10-01 10:00:00	Instagram
-\.
-
-
---
--- TOC entry 5031 (class 0 OID 17007)
--- Dependencies: 231
--- Data for Name: zona; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY public.zona (id, zona, distancia_promedio) FROM stdin;
-1	Centro	3.00
-2	Norte	5.00
-3	Sur	7.00
-4	Este	4.00
-5	Oeste	4.00
-\.
-
-
---
--- TOC entry 5055 (class 0 OID 0)
--- Dependencies: 235
--- Name: carrito_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
---
-
-SELECT pg_catalog.setval('public.carrito_id_seq', 9, true);
-
-
---
--- TOC entry 5056 (class 0 OID 0)
--- Dependencies: 220
--- Name: cliente_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
---
-
-SELECT pg_catalog.setval('public.cliente_id_seq', 11, true);
-
-
---
--- TOC entry 5057 (class 0 OID 0)
--- Dependencies: 237
--- Name: detalle_carrito_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
---
-
-SELECT pg_catalog.setval('public.detalle_carrito_id_seq', 12, true);
-
-
---
--- TOC entry 5058 (class 0 OID 0)
--- Dependencies: 222
--- Name: detalle_pedido_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
---
-
-SELECT pg_catalog.setval('public.detalle_pedido_id_seq', 22, true);
-
-
---
--- TOC entry 5059 (class 0 OID 0)
--- Dependencies: 233
--- Name: horario_restaurante_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
---
-
-SELECT pg_catalog.setval('public.horario_restaurante_id_seq', 20, true);
-
-
---
--- TOC entry 5060 (class 0 OID 0)
--- Dependencies: 224
--- Name: pedido_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
---
-
-SELECT pg_catalog.setval('public.pedido_id_seq', 15, true);
-
-
---
--- TOC entry 5061 (class 0 OID 0)
--- Dependencies: 226
--- Name: producto_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
---
-
-SELECT pg_catalog.setval('public.producto_id_seq', 8, true);
-
-
---
--- TOC entry 5062 (class 0 OID 0)
--- Dependencies: 228
--- Name: restaurante_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
---
-
-SELECT pg_catalog.setval('public.restaurante_id_seq', 17, true);
-
-
---
--- TOC entry 5063 (class 0 OID 0)
--- Dependencies: 230
--- Name: usuario_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
---
-
-SELECT pg_catalog.setval('public.usuario_id_seq', 27, true);
-
-
---
--- TOC entry 5064 (class 0 OID 0)
--- Dependencies: 232
--- Name: zona_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
---
-
-SELECT pg_catalog.setval('public.zona_id_seq', 5, true);
 
 
 --
@@ -1117,11 +865,11 @@ ALTER TABLE ONLY public.restaurante
     ADD CONSTRAINT fk_restaurante_usuario FOREIGN KEY (id_usuario) REFERENCES public.usuario(id);
 
 
--- Completed on 2026-11-18 18:28:45
+-- Completed on 2026-11-18 20:17:59
 
 --
 -- PostgreSQL database dump complete
 --
 
-\unrestrict t9bxuL4Oyc7cKV6S6MPHaBjxwgpeIwhNK1dQ9XrBZ45CN3jjPAPhc5IbhkyXkGz
+\unrestrict sj3pfamusa6umP6MKAOZ1nnhOvYNtVSmQKYiCbcjUUWQKe0F3ZjsaYtKhVfhUDK
 
