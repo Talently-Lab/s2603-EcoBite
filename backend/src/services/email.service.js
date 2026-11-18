@@ -114,10 +114,7 @@ Explorá nuestro catálogo, pedí lo que te gusta y descubrí cuánto CO₂ evit
 
     //genera el enlace para visualizar el mensaje de prueba.
     const urlVistaPrevia = nodemailer.getTestMessageUrl(info);
-    //conservar la URL de vista previa únicamente durante el desarrollo, sin mostrarla en producción.
-    /* if (process.env.NODE_ENV !== 'production') {
-        console.log('Vista previa de Correo Bienvenida:', urlVistaPrevia);
-    } */
+
    console.log('Vista previa de Correo Bienvenida:', urlVistaPrevia);
 
     return info;
@@ -183,12 +180,6 @@ async function enviarRecordatorioCarritoAbandonado(email, idCarrito) {
 
     const urlVistaPrevia = nodemailer.getTestMessageUrl(info);
 
-   /*  if (process.env.NODE_ENV !== 'production') {
-        console.log(
-            `Vista previa del correo de carrito abandonado (carrito ${idCarrito}):`,
-            urlVistaPrevia
-        );
-    } */
    console.log('Vista previa de Correo Bienvenida:', urlVistaPrevia);
 
     return info;

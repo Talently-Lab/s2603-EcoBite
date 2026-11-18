@@ -12,7 +12,7 @@ const cloudinary = require('./cloudinary');
 const { Readable } = require('stream');
 const cors = require('cors');
 
-const {enviarBienvenida, enviarRecordatorioCarritoAbandonado} = require('./services/email.service');
+//const {enviarBienvenida, enviarRecordatorioCarritoAbandonado} = require('./services/email.service');
 const subirImagen = require('./middlewares/subirImagen');
 const { verificarToken, verificarRol } = require('./middlewares/auth.middleware');
 const { obtenerPublicIdDesdeUrl } = require('./cloudinary.utils');
