@@ -32,6 +32,12 @@ async function obtenerTransporter() {
 
     console.log('3. Transporter configurado.');
 
+    console.log('4. Verificando conexión SMTP...');
+
+    await transporter.verify();
+
+    console.log('5. Conexión SMTP verificada correctamente.');
+
     return transporter;
 }
 
