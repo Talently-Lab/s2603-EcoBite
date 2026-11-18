@@ -147,11 +147,15 @@ app.post('/api/usuario/registro-restaurante', async (req, res) => {
         //-----------------------
         
         //Envio de email
-        try {
+        /* try {
             await enviarBienvenida(usuario.email, 'restaurante');
         } catch (error) {
             console.error('No se pudo enviar el correo de bienvenida:', error.message);
-        }
+        } */
+       enviarBienvenida(usuario.email, 'restaurante')
+        .catch(error => {
+            console.error('No se pudo generar el correo de bienvenida:', error.message);
+        });
         //------------
 
         res.status(201).json({
