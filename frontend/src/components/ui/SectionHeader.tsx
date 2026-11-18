@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { Title } from "../ui/Title";
 import { Arrow } from "../ui/ArrowButton";
 
@@ -17,12 +18,12 @@ export function SectionHeader({ titleText, viewAllHref }: SectionHeaderProps) {
       
       {/* Enlace con flecha a la derecha */}
       {viewAllHref && (
-        <a 
-          href={viewAllHref} 
+        <Link
+          to={viewAllHref}
           className="text-sm font-bold text-eco-dark hover:underline flex items-center gap-1 shrink-0 md:text-base"
         >
           Ver todos <Arrow direction="right" />
-        </a>
+        </Link>
       )}
     </div>
   );
