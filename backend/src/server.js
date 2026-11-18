@@ -29,6 +29,7 @@ const carritoModel = require('./models/carrito.model');
 const detalleCarritoModel = require('./models/detalleCarrito.model');
 const dashboardModel = require('./models/dashboard.model');
 
+const {obtenerVistaPrevia,crearVistaPreviaBienvenida,crearVistaPreviaRecordatorio} = require('./services/emailPreview.service');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -48,6 +49,18 @@ app.get('/', (req, res) => {
     res.json({
         mensaje: '¡Servidor de EcoBite funcionando!'
     });
+});
+
+// GET para visualizar un correo de prueba.
+app.get('/api/email-preview/:id', (req, res) => {
+    const { id } = req.params;
+    const html = obtenerVistaPrevia(id);
+
+    if (!html) {
+        return res.status(404).send('La vista previa no existe o ya venció.');
+    }
+
+    res.type('html').send(html);
 });
 
 //=========MIDDLEWARE=========
@@ -90,15 +103,21 @@ app.post('/api/usuario/registro-cliente', async (req, res) => {
         );
         //----------------------
         //Envio de email
-        /* try {
-            await enviarBienvenida(usuario.email,'cliente');
-        } catch (error) {
-            console.error('No se pudo enviar el correo de bienvenida:', error.message);
-        } */
-        enviarBienvenida(usuario.email, 'restaurante')
+        /* enviarBienvenida(usuario.email, 'restaurante')
         .catch(error => {
             console.error('No se pudo generar el correo de bienvenida:', error.message);
-        });
+        }); */
+        try {
+            const idPreview = crearVistaPreviaBienvenida(usuario.email, 'restaurante');
+            const urlBase = process.env.API_PUBLIC_URL || `http://localhost:${PORT}`;
+
+            console.log(
+                'Vista previa del correo de bienvenida:',
+                `${urlBase}/api/email-preview/${idPreview}`
+            );
+        } catch (error) {
+            console.error('No se pudo generar la vista previa:', error.message);
+        }
         //----------------
 
         res.status(201).json({
@@ -151,15 +170,21 @@ app.post('/api/usuario/registro-restaurante', async (req, res) => {
         //-----------------------
         
         //Envio de email
-        /* try {
-            await enviarBienvenida(usuario.email, 'restaurante');
-        } catch (error) {
-            console.error('No se pudo enviar el correo de bienvenida:', error.message);
-        } */
-       enviarBienvenida(usuario.email, 'restaurante')
+        /* enviarBienvenida(usuario.email, 'restaurante')
         .catch(error => {
             console.error('No se pudo generar el correo de bienvenida:', error.message);
-        });
+        }); */
+        try {
+            const idPreview = crearVistaPreviaBienvenida(usuario.email, 'restaurante');
+            const urlBase = process.env.API_PUBLIC_URL || `http://localhost:${PORT}`;
+
+            console.log(
+                'Vista previa del correo de bienvenida:',
+                `${urlBase}/api/email-preview/${idPreview}`
+            );
+        } catch (error) {
+            console.error('No se pudo generar la vista previa:', error.message);
+        }
         //------------
 
         res.status(201).json({
@@ -2998,14 +3023,17 @@ cron.schedule('* * * * *', async () => {
             }
 
             try {
-                await enviarRecordatorioCarritoAbandonado(
-                    carrito.email,
-                    carrito.id_carrito
+                const idPreview = crearVistaPreviaRecordatorio();
+                const urlBase = process.env.API_PUBLIC_URL || `http://localhost:${PORT}`;
+
+                console.log(
+                    `Vista previa del recordatorio del carrito ${carrito.id_carrito}:`,
+                    `${urlBase}/api/email-preview/${idPreview}`
                 );
             } catch (error) {
                 console.error(
-                    `Error al enviar el correo del carrito ${carrito.id_carrito}:`,
-                    error
+                    `Error al generar la vista previa del carrito ${carrito.id_carrito}:`,
+                    error.message
                 );
             }
         }
