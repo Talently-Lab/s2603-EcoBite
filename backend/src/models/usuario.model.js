@@ -5,7 +5,6 @@
 const pool = require('../db');
 const bcrypt = require('bcrypt');//para hash contraseña
 const {validarCanalAdquisicion, validarContrasena, validarEmail, validarUrlImagen} = require('../utils/validaciones');
-const { verificarCuit } = require('./restaurante.model');
 
 //CREAR USUARIO-CLIENTE
 async function crearCliente(usuario) {
@@ -126,6 +125,18 @@ async function obtenerPorId(id) {
     return resultado.rows[0] || null;
 }
 
+// OBTENER CONTRASEÑA DE UN USUARIO PARA VALIDACIÓN
+async function obtenerContrasenaPorId(id) {
+    const resultado = await pool.query(
+        `SELECT contrasena
+         FROM usuario
+         WHERE id = $1`,
+        [id]
+    );
+
+    return resultado.rows[0] || null;
+}
+
 //MODIFICAR USUARIO
 async function actualizar(id, datos) {
     const campos = [];
@@ -195,6 +206,7 @@ module.exports = {
     obtenerTodos,
     obtenerPorEmail,
     obtenerPorId,
+    obtenerContrasenaPorId,
     actualizar,
     eliminar
 };

@@ -11,6 +11,7 @@ const cron = require('node-cron');
 const cloudinary = require('./cloudinary');
 const { Readable } = require('stream');
 const cors = require('cors');
+const rateLimit = require('express-rate-limit');
 
 //const {enviarBienvenida, enviarRecordatorioCarritoAbandonado} = require('./services/email.service');
 const subirImagen = require('./middlewares/subirImagen');
@@ -33,6 +34,18 @@ const {obtenerVistaPrevia,crearVistaPreviaBienvenida,crearVistaPreviaRecordatori
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Limitar intentos de inicio de sesión
+const loginLimiter = rateLimit({
+    //windowMs: 15 * 60 * 1000, // 15 minutos
+    windowMs: 30 * 1000, // 30 segundos
+    max: 5, // Máximo 5 intentos
+    message: {
+        error: 'Demasiados intentos de inicio de sesión. Intentá nuevamente en 30 segundos.'
+    },
+    standardHeaders: true,
+    legacyHeaders: false
+});
 
 // Configuración CORS para permitir conexiones desde el frontend
 app.use(cors({
@@ -300,8 +313,60 @@ app.put('/api/usuarios/:id', verificarToken, async (req, res) => {
             });
         }
 
+        // Verificar la contraseña actual si se quiere cambiar la contraseña
+        if (datos.contrasena !== undefined) {
+
+            const esAdministrador = req.usuario.rol === 'administrador';
+            const modificaOtraCuenta = Number(req.usuario.id) !== id;
+
+            // El administrador puede restablecer contraseñas de clientes y restaurantes,
+            // pero no modificar la contraseña de otro administrador.
+            if (esAdministrador && modificaOtraCuenta) {
+                const usuarioDestino = await usuarioModel.obtenerPorId(id);
+
+                if (!usuarioDestino) {
+                    return res.status(404).json({
+                        error: 'Usuario no encontrado'
+                    });
+                }
+
+                if (!['cliente', 'restaurante'].includes(usuarioDestino.rol)) {
+                    return res.status(403).json({
+                        error: 'Solo podés restablecer contraseñas de clientes y restaurantes'
+                    });
+                }
+            } else {
+
+                if (typeof datos.contrasenaActual !== 'string' || !datos.contrasenaActual) {
+                    return res.status(400).json({
+                        error: 'Debés ingresar tu contraseña actual para cambiarla'
+                    });
+                }
+
+                const usuarioActual = await usuarioModel.obtenerContrasenaPorId(id)
+
+                if (!usuarioActual) {
+                    return res.status(404).json({
+                        error: 'Usuario no encontrado'
+                    });
+                }
+
+                const contrasenaCorrecta = await bcrypt.compare(
+                    datos.contrasenaActual,
+                    usuarioActual.contrasena
+                );
+
+                if (!contrasenaCorrecta) {
+                    return res.status(401).json({
+                        error: 'La contraseña actual es incorrecta'
+                    });
+                }
+            }
+        }
+        //------
           //Actualizar el usuario
-        const usuario = await usuarioModel.actualizar(id, req.body);
+        const { contrasenaActual, ...datosActualizar } = datos;
+        const usuario = await usuarioModel.actualizar(id, datosActualizar);
 
         if (!usuario) {
             return res.status(404).json({
@@ -386,7 +451,7 @@ app.delete('/api/usuarios/:id', verificarToken, async (req, res) => {
 
 //==========LOGIN=============
 /* INICIAR SESIÓN */
-app.post('/api/usuario/login', async (req, res) => {
+app.post('/api/usuario/login', loginLimiter, async (req, res) => {
     try {
 
         // Validar que el cuerpo sea un objeto
@@ -965,7 +1030,7 @@ app.post('/api/productos', verificarToken, async (req, res) => {
 
         // Verificar que el usuario sea dueño o administrador
         if (
-            req.usuario.rol !== 'admin' &&
+            req.usuario.rol !== 'administrador' &&
             restaurante.id_usuario !== req.usuario.id
         ) {
             return res.status(403).json({
@@ -1182,7 +1247,7 @@ app.patch('/api/productos/:id', verificarToken, async (req, res) => {
 
         // Verificar permisos
         if (
-            req.usuario.rol !== 'admin' &&
+            req.usuario.rol !== 'administrador' &&
             restaurante.id_usuario !== req.usuario.id
         ) {
             return res.status(403).json({
@@ -1248,7 +1313,7 @@ app.delete('/api/productos/:id', verificarToken, async (req, res) => {
 
         // Verificar permisos
         if (
-            req.usuario.rol !== 'admin' &&
+            req.usuario.rol !== 'administrador' &&
             restaurante.id_usuario !== req.usuario.id
         ) {
             return res.status(403).json({
