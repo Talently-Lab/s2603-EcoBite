@@ -3,18 +3,10 @@
 // Configuración y creación del pool de conexiones
 // ==========================================
 
-//dotenv es una librería de Node.js que lee las variables guardadas en el archivo .env.
-// require('dotenv') carga esa librería.//.config() ejecuta su función de configuración, que lee el archivo .env y carga sus variables en process.env.
 require('dotenv').config();
 
-/*pg: Es un paquete/librería que nos proporciona herramientas para conectarnos y hacer consultas a PostgreSQL desde Node.js.
-"De la librería pg, necesito la herramienta llamada Pool." Los { } son desestructuración */
 const { Pool } = require('pg');
 
-//Creamos una instancia de la clase Pool que contiene las opciones de configuración de la conexion que esta en .env
-
-// Si existe DATABASE_URL, usamos la conexión de Render.
-// Si no existe, usamos las variables de tu PostgreSQL local.
 const pool = process.env.DATABASE_URL
     ? new Pool({
         connectionString: process.env.DATABASE_URL

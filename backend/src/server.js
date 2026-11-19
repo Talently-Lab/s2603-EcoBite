@@ -64,7 +64,7 @@ app.get('/', (req, res) => {
     });
 });
 
-// GET para visualizar un correo de prueba.
+// GET para visualizar un correo de froma HTML.
 app.get('/api/email-preview/:id', (req, res) => {
     const { id } = req.params;
     const html = obtenerVistaPrevia(id);
@@ -76,23 +76,6 @@ app.get('/api/email-preview/:id', (req, res) => {
     res.type('html').send(html);
 });
 
-//=========MIDDLEWARE=========
-// RUTA PROTEGIDA DE PRUEBA
-app.get('/api/usuario/perfil', verificarToken, (req, res) => {
-    res.status(200).json({
-        mensaje: 'Acceso autorizado',
-        usuario: req.usuario
-    });
-});
-
-// RUTA DE PRUEBA EXCLUSIVA PARA RESTAURANTES
-app.get('/api/prueba/restaurante',verificarToken, verificarRol('restaurante'),(req, res) => {
-    res.status(200).json({
-        mensaje: 'Acceso autorizado para restaurante',
-        usuario: req.usuario
-    });
-  }
-);
 
 //============USUARIO============
 // REGISTRAR USUARIO-CLIENTE

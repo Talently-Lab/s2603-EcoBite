@@ -1,54 +1,73 @@
 # Base de datos EcoBite
 
-Esta carpeta contiene los archivos para recrear la base de datos de EcoBite en PostgreSQL.
+Esta carpeta contiene los archivos necesarios para recrear la estructura de la base de datos de EcoBite en PostgreSQL.
+
+Los archivos incluyen la definición de las tablas, relaciones y restricciones de la base de datos. **No contienen datos de prueba.**
 
 ## Archivos
 
-* `ecobite.sql`: exportación en formato SQL Plain, que contiene la estructura de las tablas, las restricciones y los datos de prueba.
-* `ecobite_backup.backup`: copia de seguridad en formato Custom, compatible con la opción **Restore** de pgAdmin.
+- `ecobite.sql`: exportación en formato SQL Plain, que contiene la estructura de la base de datos.
+- `ecobite_backup.backup`: copia de seguridad en formato Custom, compatible con la opción **Restore** de pgAdmin.
+
+## Requisitos previos
+
+- PostgreSQL instalado.
+- Una herramienta para administrar PostgreSQL, como pgAdmin.
+- Para importar el archivo `.sql`, se recomienda disponer del cliente `psql`, incluido en la instalación de PostgreSQL.
 
 ## Opción 1: restaurar desde el archivo `.backup` (pgAdmin)
 
 1. Abrir pgAdmin y conectarse al servidor PostgreSQL.
 2. Crear una base de datos vacía llamada `ecobite`.
-3. Hacer clic derecho sobre la base `ecobite` y seleccionar **Restore...**.
-4. En **Filename**, seleccionar `ecobite_backup.backup`.
+3. Hacer clic derecho sobre la base de datos `ecobite` y seleccionar **Restore...**.
+4. En **Filename**, seleccionar el archivo `ecobite_backup.backup`.
 5. En **Format**, seleccionar `Custom` si la opción aparece.
 6. Ejecutar **Restore** y esperar a que finalice.
-7. Actualizar la vista de `Schemas → public → Tables` y comprobar que estén las tablas.
+7. Actualizar la vista de `Schemas → public → Tables` y comprobar que se hayan creado las tablas.
 
 **Importante:** la base de destino debe estar vacía para evitar conflictos con tablas u objetos existentes.
 
 ## Opción 2: ejecutar el archivo `.sql`
 
-El archivo `ecobite.sql` contiene la estructura y los datos exportados desde PostgreSQL.
+El archivo `ecobite.sql` contiene la estructura de la base de datos en formato SQL.
 
-Como la exportación utiliza bloques `COPY ... FROM stdin`, se recomienda ejecutarla con el cliente `psql`, en lugar de pegar o ejecutar el contenido directamente en Query Tool.
+Como la exportación utiliza bloques `COPY ... FROM stdin`, se recomienda ejecutarla con el cliente `psql`, en lugar de pegar o ejecutar el contenido directamente en Query Tool de pgAdmin.
 
 1. Crear una base de datos vacía llamada `ecobite`.
+2. Abrir la terminal de Windows (CMD).
+3. Ejecutar el siguiente comando, reemplazando la ruta por la ubicación real del archivo y ajustando la ruta de `psql.exe` según la versión de PostgreSQL instalada:
 
-2. Ejecutar el siguiente comando desde la terminal cmd (windows+r --> cmd), reemplazando la ruta por la ubicación real del archivo y ajustando la ruta de `psql.exe` según la versión instalada(en este caso yo tenia la 18 ese numero se cambia segun la version que tengas):
+```bash
+"C:\Program Files\PostgreSQL\18\bin\psql.exe" -U postgres -d ecobite -f "RUTA_COMPLETA\ecobite.sql"
+```
 
-   ```bash
-   C:\> "C:\Program Files\PostgreSQL\18\bin\psql.exe" -U postgres -d ecobite -f "RUTA_COMPLETA/ecobite.sql"
-   ```
+En este ejemplo se utiliza PostgreSQL 18. El número de versión de la ruta debe coincidir con la versión instalada en el equipo.
 
-3. Ingresar la contraseña del usuario (si tiene una) de PostgreSQL cuando se solicite. (Veras que no escribes nada pero si esta escribiendo)
-
-4. Verificar que las tablas y los datos se hayan importado correctamente.
+4. Ingresar la contraseña del usuario de PostgreSQL cuando se solicite. Mientras se escribe, no se visualizarán los caracteres.
+5. Verificar que la importación haya finalizado correctamente.
 
 ## Verificación
 
-Después de restaurar o importar, comprobar que existan estas tablas, en schemas --> tables:
+Después de restaurar o importar la estructura, comprobar en pgAdmin que las tablas se hayan creado dentro de `Schemas → public → Tables`.
 
-* `usuario`
-* `cliente`
-* `restaurante`
-* `producto`
-* `zona`
-* `pedido`
-* `detalle_pedido`
+Entre las tablas principales se encuentran:
 
-Los archivos incluyen datos de prueba para facilitar las pruebas del backend.
+- `usuario`
+- `cliente`
+- `restaurante`
+- `horario_restaurante`
+- `producto`
+- `zona`
+- `pedido`
+- `detalle_pedido`
+- `carrito`
+- `detalle_carrito`
 
-**Nota:** la contraseña de PostgreSQL es propia de cada integrante y no debe guardarse en estos archivos ni subirse al repositorio.
+## Consideraciones
+
+- Los archivos contienen la estructura de la base de datos, no registros de prueba.
+- Cada integrante debe configurar sus propias credenciales de PostgreSQL.
+- La contraseña de PostgreSQL y demás credenciales no deben guardarse en estos archivos ni subirse al repositorio.
+- Para conectar el backend con la base de datos local, configurar las variables `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER` y `DB_PASSWORD` en el archivo `.env` del backend.
+- Para el entorno de producción, el backend utiliza `DATABASE_URL`, configurada desde las variables de entorno del servicio desplegado.
+
