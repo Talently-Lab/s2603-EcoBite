@@ -115,11 +115,13 @@ app.post('/api/usuario/registro-cliente', async (req, res) => {
             { expiresIn: '2h' }
         );
         //----------------------
-        //Envio de email
+        //Envio de email con SMTP 
         /* enviarBienvenida(usuario.email, 'restaurante')
         .catch(error => {
             console.error('No se pudo generar el correo de bienvenida:', error.message);
         }); */
+
+        //Envio de email como HTML
         try {
             const idPreview = crearVistaPreviaBienvenida(usuario.email, 'restaurante');
             const urlBase = process.env.API_PUBLIC_URL || `http://localhost:${PORT}`;
@@ -182,11 +184,13 @@ app.post('/api/usuario/registro-restaurante', async (req, res) => {
         );
         //-----------------------
         
-        //Envio de email
+        //Envio de email con SMTP 
         /* enviarBienvenida(usuario.email, 'restaurante')
         .catch(error => {
             console.error('No se pudo generar el correo de bienvenida:', error.message);
         }); */
+
+        //Envio de email como HTML
         try {
             const idPreview = crearVistaPreviaBienvenida(usuario.email, 'restaurante');
             const urlBase = process.env.API_PUBLIC_URL || `http://localhost:${PORT}`;
@@ -777,7 +781,7 @@ app.patch('/api/restaurantes/:id/imagen',verificarToken,subirImagen.single('imag
 
                 if (publicIdAnterior) {
                     try {
-                        const resultadoEliminacion = await cloudinary.uploader.destroy(
+                        await cloudinary.uploader.destroy(
                             publicIdAnterior,
                             {
                                 resource_type: 'image',
@@ -3087,6 +3091,7 @@ cron.schedule('* * * * *', async () => {
                 continue;
             }
 
+            // Envio de email como HTML
             try {
                 const idPreview = crearVistaPreviaRecordatorio();
                 const urlBase = process.env.API_PUBLIC_URL || `http://localhost:${PORT}`;
