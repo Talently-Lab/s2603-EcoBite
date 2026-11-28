@@ -38,9 +38,9 @@ Diseños, prototipos y pantallas del proyecto:
 | Mockups | | |
 | --- | --- | --- |
 | Primer prototipo<br><img src="docs/diseño/primer-prototipo.png" width="240" alt="Primer prototipo"> | Flujo de compra<br><img src="docs/diseño/flujo-compra.png" width="240" alt="Flujo de compra"> | Wireframes del análisis de datos<br><img src="docs/diseño/wireframes-data-analyst.png" width="240" alt="Wireframes del análisis de datos"> |
-| Página de inicio final<br><img src="docs/diseño/Home-final.png" width="240" alt="Página de inicio final"> | Página de inicio inicial<br><img src="docs/diseño/Home-inicial.png" width="240" alt="Página de inicio inicial"> | Inicio de sesión<br><img src="docs/diseño/login.png" width="240" alt="Inicio de sesión"> |
-| Registro de cliente y restaurante<br><img src="docs/diseño/registro-ambos.png" width="240" alt="Registro de cliente y restaurante"> | Registro de cliente, paso 2<br><img src="docs/diseño/registro-cliente-paso2.png" width="240" alt="Registro de cliente, paso 2"> | Diseño responsive<br><img src="docs/diseño/responsive.png" width="240" alt="Diseño responsive"> |
-| Registro de restaurante, paso 2<br><img src="docs/diseño/registro-local-paso2.png" width="180" alt="Registro de restaurante, paso 2"> | Registro de restaurante, paso 3<br><img src="docs/diseño/registro-local-paso3.png" width="240" alt="Registro de restaurante, paso 3"> | Dashboard<br><img src="docs/diseño/dashboard.png" width="240" alt="Dashboard"> |
+| Página de inicio final<br><img src="docs/diseño/Home-final.png" width="240" alt="Página de inicio final"> | Inicio de sesión<br><img src="docs/diseño/login.png" width="240" alt="Inicio de sesión"> | Registro de cliente y restaurante<br><img src="docs/diseño/registro-ambos.png" width="240" alt="Registro de cliente y restaurante"> |
+| Registro de cliente, paso 2<br><img src="docs/diseño/registro-cliente-paso2.png" width="240" alt="Registro de cliente, paso 2"> | Registro de restaurante, paso 2<br><img src="docs/diseño/registro-local-paso2.png" height="120" alt="Registro de restaurante, paso 2"> | Registro de restaurante, paso 3<br><img src="docs/diseño/registro-local-paso3.png" width="240" alt="Registro de restaurante, paso 3"> |
+| Diseño responsive<br><img src="docs/diseño/responsive.png" width="240" alt="Diseño responsive"> | Dashboard<br><img src="docs/diseño/dashboard.png" width="240" alt="Dashboard"> | Dashboard final<br><img src="docs/diseño/dashboard-final.png" width="240" alt="Dashboard final"> |
 
 ---
 
